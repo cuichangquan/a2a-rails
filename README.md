@@ -8,19 +8,18 @@ Rails-native integration for exposing Rails applications as A2A agents.
 
 The project is currently defining the v0.1 architecture and public API before implementation.
 
-**Current stage:** Step 8 completed — Ruby A2A SDK boundary design
+**Current stage:** Step 9 completed — Public API Design
 
-**Next step:** **Step 9 — Public API Design**
+**Next step:** **Step 10 — Agent Card Design**
 
 The next design work will decide:
 
-- Agent DSL
-- Skill DSL
-- Handler interface
-- Agent registration
-- Routing
-- Configuration API
-- Error handling API
+- Agent DSL to Agent Card field mapping
+- `/.well-known/agent-card.json` response structure
+- public endpoint URL generation
+- Skill mapping
+- v0.1 capabilities
+- protocol / transport metadata
 
 ## Development Progress
 
@@ -32,8 +31,8 @@ The next design work will decide:
 - [x] 6. Define terminology
 - [x] 7. Define architecture
 - [x] 8. Define Ruby SDK boundary
-- [ ] **9. Public API Design ← NEXT**
-- [ ] 10. Agent Card Design
+- [x] 9. Public API Design
+- [ ] **10. Agent Card Design ← NEXT**
 - [ ] 11. Task Lifecycle Design
 - [ ] 12. Test Strategy
 - [ ] 13. Gem Structure
@@ -66,20 +65,41 @@ Main principles:
 
 ## Design Documents
 
-- [v0.1 Design Decisions](docs/design/v0.1-decisions.md) — current architecture, scope, terminology, SDK boundary, and design principles.
+- [v0.1 Design Decisions](docs/design/v0.1-decisions.md) — current architecture, scope, terminology, SDK boundary, public API, and design principles.
 
 ## Target Developer Experience
 
-The intended Rails-facing API is approximately:
+The current v0.1 Rails-facing API is:
 
 ```ruby
 class ShoppingAgent < A2A::Rails::Agent
   name "Shopping Agent"
   description "Search and purchase products"
+  version "1.0"
 
   skill :search_products,
+    description: "Search products",
+    tags: %w[shopping search],
     handler: Shopping::SearchProducts
 end
 ```
 
-The exact public API is **not finalized yet**. It will be decided in Step 9 before implementation begins.
+Handler:
+
+```ruby
+class Shopping::SearchProducts
+  def self.call(message:, context:)
+    # Rails business logic
+  end
+end
+```
+
+Registration:
+
+```ruby
+A2A::Rails.configure do |config|
+  config.agent = "ShoppingAgent"
+end
+```
+
+v0.1 targets **one public A2A Agent per Rails application**, with multiple Skills handled by Rails-side Handlers.
