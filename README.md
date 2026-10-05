@@ -8,18 +8,21 @@ Rails-native integration for exposing Rails applications as A2A agents.
 
 The project is currently defining the v0.1 architecture and public API before implementation.
 
-**Current stage:** Step 10 completed — Agent Card Design
+**Current stage:** Step 11 completed — Task Lifecycle Design
 
-**Next step:** **Step 11 — Task Lifecycle Design**
+**Next step:** **Step 12 — Test Strategy**
 
 The next design work will decide:
 
-- Handler return value mapping to Message / Task / Artifact
-- Task states supported in v0.1
-- the boundary between synchronous responses and Task creation
-- Business Logic Failure representation
-- Task ID / context ID handling
-- the minimum Task persistence needed for v0.1
+- Agent / Skill DSL unit test strategy
+- Handler dispatch test strategy
+- Agent Card endpoint request tests
+- Task lifecycle state transition tests
+- Artifact mapping tests
+- error / rejection tests
+- GetTask / Task Store tests
+- Protocol Adapter mocking boundary
+- Rails dummy application integration test structure
 
 ## Development Progress
 
@@ -33,8 +36,8 @@ The next design work will decide:
 - [x] 8. Define Ruby SDK boundary
 - [x] 9. Public API Design
 - [x] 10. Agent Card Design
-- [ ] **11. Task Lifecycle Design ← NEXT**
-- [ ] 12. Test Strategy
+- [x] 11. Task Lifecycle Design
+- [ ] **12. Test Strategy ← NEXT**
 - [ ] 13. Gem Structure
 - [ ] 14. Quick Start Design
 - [ ] 15. Start Implementation
@@ -65,7 +68,7 @@ Main principles:
 
 ## Design Documents
 
-- [v0.1 Design Decisions](docs/design/v0.1-decisions.md) — current architecture, scope, terminology, SDK boundary, public API, Agent Card design, and design principles.
+- [v0.1 Design Decisions](docs/design/v0.1-decisions.md) — current architecture, scope, terminology, SDK boundary, public API, Agent Card design, Task Lifecycle design, and design principles.
 
 ## Target Developer Experience
 
@@ -169,6 +172,50 @@ Agent Card design principles:
 - Streaming, Push Notifications, and Extended Agent Cards are not supported in v0.1.
 - Invalid Agent definitions are not exposed as partial Agent Cards.
 
+## Task Lifecycle
+
+v0.1 uses A2A standard Task states and keeps lifecycle handling inside the Gem.
+
+```text
+SUBMITTED
+    ↓
+WORKING
+    ├──→ COMPLETED
+    ├──→ FAILED
+    └──→ REJECTED
+```
+
+Handler result mapping:
+
+```text
+normal return                  → COMPLETED
+A2A::Rails::RejectedTask       → REJECTED
+unexpected exception           → FAILED
+```
+
+Artifact mapping:
+
+```text
+String       → Text Part
+Hash / Array → Data Part
+nil          → no Artifact
+```
+
+v0.1 Task behavior:
+
+- Task IDs are server-generated.
+- Client-provided context IDs are preserved; otherwise the server generates one.
+- Task lifecycle and state transitions are internal to a2a-rails.
+- The default Task Store is in-memory.
+- `GetTask` is supported.
+- `ListTasks` and `CancelTask` are not supported in v0.1.
+- `CANCELED` is recognized as an A2A state but is not reached by the v0.1 execution flow.
+- `INPUT_REQUIRED` and `AUTH_REQUIRED` are out of scope for v0.1.
+- Unexpected exceptions are logged internally and exposed as a generic FAILED Task message.
+- Task history means A2A Message history, not state transition history.
+
+The in-memory Task Store is intended for development and simple synchronous workloads. Tasks are not guaranteed to survive Rails process restarts or be shared across multiple processes.
+
 ## v0.1 Scope
 
 Included:
@@ -181,6 +228,8 @@ Included:
 - `/.well-known/agent-card.json`
 - `POST /a2a`
 - minimum Task lifecycle
+- `GetTask`
+- in-memory Task Store
 - Rails Engine / Routes
 - Configuration
 - Generator
@@ -190,10 +239,15 @@ Included:
 Not included in v0.1:
 
 - A2A Client
+- `ListTasks`
+- `CancelTask`
+- ActiveRecord Task Store
+- ActiveJob Task execution
 - SSE / BiDi Streaming
 - Push Notifications
 - gRPC
 - Human-in-the-loop
+- `INPUT_REQUIRED` / `AUTH_REQUIRED` flows
 - Agent Registry / Marketplace
 - OAuth Server
 - Authorization Engine
