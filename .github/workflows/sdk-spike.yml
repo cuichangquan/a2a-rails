@@ -2,7 +2,7 @@ name: SDK v1.0 spike
 
 on:
   push:
-    branches: [main, "spike/**"]
+    branches: [main]
   pull_request:
 
 permissions:
@@ -15,7 +15,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        ruby: ["3.2", "3.3", "3.4", "4.0"]
+        ruby: ["3.3", "3.4", "4.0"]
     defaults:
       run:
         working-directory: spikes/agent2agent_v1

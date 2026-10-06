@@ -2,17 +2,17 @@
 
 Rails-native integration for exposing Rails applications as A2A agents.
 
-> **Status: Design phase — implementation has not started yet.**
+> **Status: SDK compatibility spike — the Rails gem is not implemented yet.**
 
 ## Current Status
 
-The project is currently defining the v0.1 architecture and public API before implementation.
+The v0.1 design is defined. Step 15 now verifies the published SDK before implementing the Rails gem.
 
-**Current stage:** Step 14 completed — Quick Start Design
+**Current stage:** Step 15-4 — `agent2agent 2.0.0` runtime compatibility spike
 
-**Next step:** **Step 15 — Start Implementation**
+**Next step:** Complete the [SDK spike](spikes/agent2agent_v1/README.md), then implement the Gem skeleton and Protocol Adapter.
 
-Begin with a Ruby A2A SDK compatibility spike for the exact v1.0 Echo request/response path, Agent Card, `GetTask`, and the supported Ruby / Rails matrix. Pin the SDK dependency after compatibility is verified.
+The isolated spike covers Agent Card, Echo, `GetTask`, `ListTasks`, `CancelTask`, version validation, capability errors, and exact Rails routes. See [Step 15 findings](docs/design/sdk-compatibility-spike.md) for evidence and adoption limits.
 
 ## Development Progress
 
@@ -30,7 +30,7 @@ Begin with a Ruby A2A SDK compatibility spike for the exact v1.0 Echo request/re
 - [x] 12. Test Strategy
 - [x] 13. Gem Structure
 - [x] 14. Quick Start Design
-- [ ] **15. Start Implementation ← NEXT**
+- [ ] **15. Start Implementation ← IN PROGRESS**
 
 ## v0.1 Direction
 
@@ -216,8 +216,8 @@ v0.1 Task behavior:
 - Task lifecycle and state transitions are internal to a2a-rails.
 - The default Task Store is in-memory.
 - `GetTask` is supported.
-- `ListTasks` and `CancelTask` are not supported in v0.1.
-- `CANCELED` is recognized as an A2A state but is not reached by the v0.1 execution flow.
+- `ListTasks` and `CancelTask` are included in the v0.1 design (Step 15 revision).
+- Accepted cancellation reaches `CANCELED`; synchronous handler completion must not overwrite it. Cancellation does not interrupt handler execution or undo business side effects.
 - `INPUT_REQUIRED` and `AUTH_REQUIRED` are out of scope for v0.1.
 - Unexpected exceptions are logged internally and exposed as a generic FAILED Task message.
 - Task history means A2A Message history, not state transition history.
@@ -252,6 +252,9 @@ Critical E2E cases for v0.1:
 3. SendMessage → REJECTED
 4. SendMessage → FAILED
 5. GetTask → stored Task retrieval
+6. ListTasks → filters, pagination, history, artifacts
+7. CancelTask → accepted cancellation / terminal rejection
+8. Version and disabled Capability errors
 ```
 
 CI runs Unit, Adapter Contract, Rails Integration, and Critical E2E tests on pull requests and `main` pushes. Release builds require all supported Ruby / Rails matrix combinations to be green.
@@ -285,7 +288,7 @@ Key decisions:
 - Registered Agent validation happens when A2A endpoints are used; incomplete A2A configuration does not fail host Rails boot.
 - Rails integration tests use a minimal `test/dummy` application.
 - ActiveRecord and ActiveJob are not required dependencies.
-- v0.1 targets Ruby `>= 3.2` and Rails `>= 8.0, < 8.2`.
+- v0.1 now targets Ruby `>= 3.3` and Rails `>= 8.0, < 8.2`; the SDK dependency graph cannot resolve on Ruby 3.2.
 - `agent2agent` remains the first Ruby A2A SDK candidate; its exact dependency constraint will be pinned after the implementation compatibility spike.
 
 See [v0.1 Gem Structure](docs/design/gem-structure.md) for details.
@@ -302,7 +305,8 @@ Included:
 - `/.well-known/agent-card.json`
 - `POST /a2a`
 - minimum Task lifecycle
-- `GetTask`
+- `GetTask`, `ListTasks`, `CancelTask`
+- `A2A-Version: 1.0` validation
 - in-memory Task Store
 - Rails Engine / Routes
 - Configuration
@@ -313,8 +317,6 @@ Included:
 Not included in v0.1:
 
 - A2A Client
-- `ListTasks`
-- `CancelTask`
 - ActiveRecord Task Store
 - ActiveJob Task execution
 - SSE / BiDi Streaming
@@ -329,3 +331,4 @@ Not included in v0.1:
 - Admin UI
 - LLM Agent Framework
 - Orchestration Framework
+

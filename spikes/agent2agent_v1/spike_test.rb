@@ -22,14 +22,14 @@ class Agent2AgentV1SpikeTest < Minitest::Test
     body
   end
 
-  def message(context_id = "context-1")
+  def send_params(context_id = "context-1")
     { "message" => { "messageId" => SecureRandom.uuid, "role" => "ROLE_USER", "contextId" => context_id,
       "parts" => [{ "text" => "Hello" }] } }
   end
 
   def seed(id, state: "TASK_STATE_WORKING", timestamp: "2026-10-06T00:00:00Z", context: "seed")
     @app.store.save("id" => id, "contextId" => context, "status" => { "state" => state, "timestamp" => timestamp },
-      "history" => [message.fetch("message"), message.fetch("message")],
+      "history" => [send_params.fetch("message"), send_params.fetch("message")],
       "artifacts" => [{ "artifactId" => "artifact-#{id}", "parts" => [{ "text" => id }] }])
   end
 
@@ -45,7 +45,7 @@ class Agent2AgentV1SpikeTest < Minitest::Test
   end
 
   def test_send_and_get_task
-    sent = rpc("SendMessage", message).fetch("result").fetch("task")
+    sent = rpc("SendMessage", send_params).fetch("result").fetch("task")
     assert_equal "TASK_STATE_COMPLETED", sent.dig("status", "state")
     assert_equal "Echo: Hello", sent.dig("artifacts", 0, "parts", 0, "text")
     assert_equal "context-1", sent["contextId"]
@@ -58,7 +58,7 @@ class Agent2AgentV1SpikeTest < Minitest::Test
     seen = nil
     @app = Agent2AgentV1Spike::App.new(handler: ->(message:, context:) { seen = [message, context]; "ok" })
     @rack = Rack::MockRequest.new(@app)
-    task = rpc("SendMessage", message).fetch("result").fetch("task")
+    task = rpc("SendMessage", send_params).fetch("result").fetch("task")
     assert_kind_of Hash, seen[0]
     assert_equal :user, seen[0][:role]
     assert_equal [{ text: "Hello" }], seen[0][:parts]
@@ -66,7 +66,7 @@ class Agent2AgentV1SpikeTest < Minitest::Test
   end
 
   def test_generated_context
-    params = message
+    params = send_params
     params["message"].delete("contextId")
     refute_empty rpc("SendMessage", params).dig("result", "task", "contextId")
   end
@@ -95,7 +95,7 @@ class Agent2AgentV1SpikeTest < Minitest::Test
     @rack = Rack::MockRequest.new(@app)
     worker = Thread.new do
       Rack::MockRequest.new(@app).post("/a2a", "CONTENT_TYPE" => "application/json", "HTTP_A2A_VERSION" => "1.0",
-        input: JSON.generate(jsonrpc: "2.0", id: 1, method: "SendMessage", params: message))
+        input: JSON.generate(jsonrpc: "2.0", id: 1, method: "SendMessage", params: send_params))
     end
     id = started.pop
     assert_equal "TASK_STATE_CANCELED", rpc("CancelTask", "id" => id).dig("result", "status", "state")
@@ -190,7 +190,7 @@ class Agent2AgentV1SpikeTest < Minitest::Test
 
   def test_invalid_message_and_parse_error
     assert_equal(-32602, rpc("SendMessage").dig("error", "code"))
-    params = message
+    params = send_params
     params["message"].delete("messageId")
     assert_equal(-32602, rpc("SendMessage", params).dig("error", "code"))
     response = @rack.post("/a2a", "CONTENT_TYPE" => "application/json", "HTTP_A2A_VERSION" => "1.0", input: "{")
