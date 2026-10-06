@@ -1,6 +1,6 @@
 # a2a-rails v0.1 Quick Start Design
 
-> **Status: Step 14 design complete. Step 15-7 implements the Agent / Skill / Dispatcher and internal Task core; generators, Rails HTTP integration, protocol execution wiring, and the full Quick Start are not runtime-verified yet.**
+> **Status: Step 14 design complete. Step 15-8 runtime-verifies the Agent / Skill / Dispatcher, internal Task core, and A2A Task-operation protocol path; Configuration, Agent Card generation, Rails HTTP integration, generators, and the full host-Rails Quick Start remain.**
 
 This document fixes the first-time developer experience for an existing Rails application. The example uses Echo to keep the gem independent of any business domain.
 
@@ -165,6 +165,8 @@ Illustrative success response (IDs and optional fields vary):
 
 Success means `result.task.status.state` is `TASK_STATE_COMPLETED`, Task ID and Context ID are present, and a Text Part in the Task Artifacts contains `Echo: Hello`. Exact IDs, timestamps, optional fields, and Artifact metadata are not fixed fixtures.
 
+Step 15-8 runtime-verifies this `SendMessage` Task shape, Handler boundary, Artifact mapping, and the related `GetTask`, `ListTasks`, and `CancelTask` paths through the real SDK. The remaining gap is exposing that verified path from an actual host Rails application through Configuration, generated Agent Card data, Engine routes, and controllers.
+
 ## 4. Skill Routing
 
 A2A v1.0 `SendMessageRequest` and `Message` do not define a standard `skill_id`. Agent Card Skills advertise capabilities; they are not protocol method selectors.
@@ -226,7 +228,7 @@ Quick Start Message:
 }
 ```
 
-`ROLE_USER` maps to `:user`; `ROLE_AGENT` maps to `:agent`. Missing Message metadata normalizes to `{}`. For the text-only Quick Start, an omitted Part media type normalizes to `text/plain`.
+`ROLE_USER` maps to `:user`. Missing Message metadata normalizes to `{}`. For the text-only Quick Start, an omitted Part media type normalizes to `text/plain`. v0.1 Task execution accepts text Parts; unsupported Part content is rejected at the protocol boundary.
 
 Handler context:
 
@@ -242,7 +244,7 @@ Handler context:
 
 Do not introduce public `A2A::Rails::Message`, `Context`, or `TextPart` classes in v0.1. Task and Artifact conversion remains internal. A String return becomes a Text Part Artifact.
 
-Step 15-7 now implements the internal Task representation and result boundary. Internal Task hashes use Symbol keys and Symbol states; A2A enum/string conversion remains the Protocol Adapter's responsibility. `Task::Lifecycle` owns creation and state transitions but deliberately does not invoke Handlers directly, so Agent/Router configuration failures remain separate from FAILED business Tasks.
+Step 15-7 implements the internal Task representation and result boundary. Step 15-8 adds `Protocol::RequestHandler` and `Protocol::TaskMapper`: the former orchestrates Dispatcher + Task Lifecycle for A2A operations, while the latter alone maps internal Symbol-key / Symbol-state Tasks to A2A camelCase fields and `TASK_STATE_*` values. SDK errors stay inside `Protocol::Agent2AgentAdapter`.
 
 ## 6. First-Time Error Experience
 
@@ -256,21 +258,21 @@ Adding the gem or running a generator must not fail Rails boot merely because th
 | Multiple Skills without Router | `ConfigurationError`: Agent defines multiple Skills but no Router is configured | No arbitrary Skill fallback |
 | Handler raises an unexpected exception | Detailed exception in Rails logger | Task state `TASK_STATE_FAILED` with a generic message |
 
-Configuration failures occur before business execution; they do not masquerade as failed Handler Tasks. Agent Card validation failures return a generic HTTP 500, consistent with the Agent Card design. A2A request failures use the SDK/Adapter error boundary. Never expose Ruby class names, stack traces, or raw unexpected exception messages to clients.
+Static Agent / Skill validation now occurs before Task creation on `SendMessage`. Once execution has started, `RejectedTask` maps to REJECTED and unexpected execution exceptions map to a generic FAILED Task. `TaskNotFound` / non-cancelable Task / invalid Task query errors are translated to SDK errors only inside the Protocol Adapter. Never expose Ruby class names, stack traces, or raw unexpected exception messages to clients.
 
 ## 7. Acceptance and Next Step
 
-Step 14 is complete as a design decision. Step 15-7 now runtime-verifies the Agent / Skill / Dispatcher subset plus the internal Task core. Full Quick Start implementation acceptance still requires:
+Step 14 is complete as a design decision. Step 15-8 runtime-verifies the Rails-facing Agent / Skill / Dispatcher subset, internal Task core, and the Task-operation protocol path against the real `agent2agent 2.0.0` SDK. Full Quick Start implementation acceptance still requires:
 
 - Generator output matches the two-file contract and contains no dangling Handler reference.
 - An unconfigured or incomplete Agent does not break host Rails boot.
-- The exact Echo path produces a valid Agent Card and a completed Task via the real SDK.
-- SDK values normalize into the documented Message and Handler context.
-- Single-Skill dispatch and explicit multi-Skill routing are covered.
-- Configuration errors and Handler exceptions follow the separate behaviors above.
-- README examples, contract tests, and Critical E2E use A2A v1.0 method names and wire shapes.
+- The exact Echo path produces a valid Agent Card and a completed Task through an actual Rails HTTP endpoint.
+- Configuration resolves the registered Agent lazily at endpoint use.
+- Agent Card Builder / Validator generates the designed v1.0 card without leaking Handler internals.
+- Rails Engine routes/controllers expose `/.well-known/agent-card.json` and `/a2a` without an explicit host route mount.
+- README examples and host-Rails Critical E2E use the verified A2A v1.0 method names and wire shapes.
 
-Implemented through Step 15-7:
+Implemented through Step 15-8:
 
 - Agent metadata / Skill DSL.
 - Skill validation and callable Handler validation.
@@ -286,8 +288,13 @@ Implemented through Step 15-7:
 - Atomic cancellation and terminal-state overwrite protection.
 - Thread-safe in-memory Task storage with deep-copy reads.
 - `ListTasks` filtering, stable newest-first ordering, and opaque snapshot pagination.
+- `Protocol::RequestHandler` orchestration for `SendMessage`, `GetTask`, `ListTasks`, and `CancelTask`.
+- `Protocol::TaskMapper` internal-to-wire Task conversion.
+- SDK error translation kept inside `Protocol::Agent2AgentAdapter`.
+- Real-SDK verification of COMPLETED / REJECTED / FAILED / CANCELED Task responses.
+- Real-SDK cancellation-race verification: late Handler completion cannot overwrite `CANCELED`.
 
-**Next: Step 15-8 — Connect Dispatcher + Task Lifecycle to `SendMessage`, `GetTask`, `ListTasks`, and `CancelTask`, and map the internal Task representation through the Protocol Adapter.**
+**Next: Step 15-9 — Implement Configuration plus Agent Card Builder / Validator.**
 
 ## Official References
 
