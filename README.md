@@ -2,19 +2,19 @@
 
 Rails-native integration for exposing Rails applications as A2A agents.
 
-> **Status: Gem skeleton and Protocol Adapter implemented; Rails-facing core is next.**
+> **Status: Agent / Skill DSL and Dispatcher implemented; Task execution core is next.**
 
 ## Current Status
 
-The A2A v1.0 SDK integration path and the first Gem skeleton are now runtime-verified.
+The A2A v1.0 SDK integration path, Gem skeleton, Protocol Adapter, and first Rails-facing core are now runtime-verified.
 
-**Current stage:** Step 15-5 completed — Gem skeleton and `Protocol::Agent2AgentAdapter`
+**Current stage:** Step 15-6 completed — `Agent` / `Skill` DSL and `Dispatcher`
 
-**Next step:** **Step 15-6 — Implement the Agent / Skill DSL and Dispatcher.**
+**Next step:** **Step 15-7 — Implement Task Lifecycle, Result / Artifact Mapping, and MemoryStore.**
 
-Step 15-5 introduced the first loadable Gem structure and isolated `agent2agent 2.0.0` behind an internal Protocol Adapter. The current CI has 12 green jobs: Gem tests on Ruby 3.3 / 3.4 / 4.0 plus the existing SDK / Rails compatibility matrix. The Gem suite runs 6 tests / 18 assertions with no failures, errors, or skips. The adapter keeps SDK objects out of the downstream boundary, validates A2A v1.0 requests, buffers non-rewindable Rack input, and returns SDK schema objects internally. See [Draft PR #1](https://github.com/cuichangquan/a2a-rails/pull/1) for implementation and verification details.
+Step 15-6 implements `A2A::Rails::Agent`, immutable-ish `Skill` definitions, validation errors, and SDK-independent Handler dispatch. One declared Skill dispatches automatically. Multiple Skills require an application-owned Router, which receives a frozen Array of declared Skill IDs as Symbols and must select one of them. Handler context receives the selected `skill_id` without mutating the incoming context. The Agent DSL also preserves Ruby's normal `Class#name` behavior while keeping the A2A display name separately. The current CI has 12 green jobs, and the Gem suite now runs 21 tests / 69 assertions with no failures, errors, or skips. See [Draft PR #1](https://github.com/cuichangquan/a2a-rails/pull/1) for implementation and verification details.
 
-The Step 15-4 isolated spike also remains green across Ruby 3.3 / 3.4 / 4.0, Rails 8.0 / 8.1, and a real HTTP server smoke check. See [Step 15 findings](docs/design/sdk-compatibility-spike.md) for evidence and adoption limits.
+Step 15-5 introduced the first loadable Gem structure and isolated `agent2agent 2.0.0` behind an internal Protocol Adapter. The Step 15-4 isolated spike also remains green across Ruby 3.3 / 3.4 / 4.0, Rails 8.0 / 8.1, and a real HTTP server smoke check. See [Step 15 findings](docs/design/sdk-compatibility-spike.md) for evidence and adoption limits.
 
 ## Development Progress
 
@@ -63,12 +63,11 @@ Main principles:
 - [v0.1 Design Decisions](docs/design/v0.1-decisions.md) — current architecture, scope, terminology, SDK boundary, public API, Agent Card design, Task Lifecycle design, and design principles.
 - [v0.1 Test Strategy](docs/design/test-strategy.md) — Minitest strategy, test layers, mocking boundaries, Critical E2E cases, and CI policy.
 - [v0.1 Gem Structure](docs/design/gem-structure.md) — Gem directory structure, Rails Engine boundary, Protocol Adapter placement, Task components, generators, dummy Rails application, dependencies, and supported Ruby / Rails matrix.
-
 - [v0.1 Quick Start Design](docs/design/quick-start.md) — Echo setup, generator output, A2A v1.0 request, Skill routing, Handler Hash boundary, error experience, and implementation acceptance.
 
 ## Quick Start (Design Preview)
 
-The Quick Start is designed but has not been implemented or runtime-verified. The intended path is:
+The Quick Start is designed but has not been fully implemented or runtime-verified end-to-end yet. The intended path is:
 
 1. Add `a2a-rails` to an existing Rails application.
 2. Generate the initializer and an Echo Agent.
@@ -117,6 +116,8 @@ end
 ```
 
 v0.1 targets **one public A2A Agent per Rails application**. One Skill dispatches automatically; multiple Skills require an application-owned Router. A2A messages do not contain a standard Skill selector. Handlers receive SDK-independent Ruby Hashes for `message` and `context`; the Handler context includes the selected internal `skill_id`.
+
+For multiple Skills, the Router receives `skills:` as a frozen `Array<Symbol>` containing only declared Skill IDs. It may return a Symbol or String matching one declared Skill. Any unknown selection raises `A2A::Rails::UnknownSkillError`; the Dispatcher never silently falls back to the first Skill.
 
 ## Agent Card
 
@@ -282,8 +283,11 @@ Key decisions:
 
 - Rails Engine / controllers / routes are only the Rails integration layer.
 - SDK-specific behavior is isolated behind `Protocol::Adapter` and `Protocol::Agent2AgentAdapter`.
-- Step 15-5 implements the initial Gem skeleton and Protocol Adapter; Agent / Skill / Dispatcher remain the next implementation layer.
-- Task lifecycle, result mapping, Artifact mapping, and Task storage live under `A2A::Rails::Task`.
+- Step 15-5 implemented the initial Gem skeleton and Protocol Adapter.
+- Step 15-6 implements `Agent`, `Skill`, errors, and `Dispatcher`; single-Skill auto-dispatch and explicit multi-Skill Router selection are runtime-tested.
+- `name "..."` stores the A2A display name without replacing Ruby's normal zero-argument `Class#name` behavior.
+- Router `skills:` is a frozen `Array<Symbol>` of declared Skill IDs; unknown selections raise `UnknownSkillError`.
+- Task lifecycle, result mapping, Artifact mapping, and Task storage live under `A2A::Rails::Task` and are the next implementation layer.
 - The default v0.1 Task Store is in-memory.
 - v0.1 generators are limited to `install` and `agent`.
 - `install` creates only the initializer with a generic `"YourAgent"` placeholder.
