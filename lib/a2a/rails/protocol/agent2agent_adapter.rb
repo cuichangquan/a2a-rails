@@ -30,11 +30,37 @@ module A2A
         end
 
         def call(env)
-          status, headers, body = @sdk.call(normalize_env(env))
+          status, headers, body = with_sensitive_sdk_logging_suppressed do
+            @sdk.call(normalize_env(env))
+          end
           [status, headers.merge("a2a-version" => PROTOCOL_VERSION), body]
         end
 
         private
+
+        def with_sensitive_sdk_logging_suppressed
+          return yield unless defined?(::Console) && ::Console.respond_to?(:logger)
+          return yield unless defined?(::Console::Logger::WARN) && defined?(::A2A::Server::Triage)
+
+          logger = ::Console.logger
+          return yield unless logger.respond_to?(:subjects)
+
+          subjects = logger.subjects
+          triage = ::A2A::Server::Triage
+          had_override = subjects.key?(triage)
+          previous_level = subjects[triage]
+          subjects[triage] = ::Console::Logger::WARN
+
+          yield
+        ensure
+          if defined?(subjects) && subjects
+            if had_override
+              subjects[triage] = previous_level
+            else
+              subjects.delete(triage)
+            end
+          end
+        end
 
         def normalize_env(env)
           input = env.fetch("rack.input")
