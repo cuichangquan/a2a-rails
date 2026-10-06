@@ -8,22 +8,11 @@ Rails-native integration for exposing Rails applications as A2A agents.
 
 The project is currently defining the v0.1 architecture and public API before implementation.
 
-**Current stage:** Step 12 completed — Test Strategy
+**Current stage:** Step 13 completed — Gem Structure
 
-**Next step:** **Step 13 — Gem Structure**
+**Next step:** **Step 14 — Quick Start Design**
 
-The next design work will decide:
-
-- Gem directory structure
-- Rails Engine structure
-- internal namespace layout
-- Protocol Adapter placement
-- Task Lifecycle / Task Store placement
-- generator structure
-- dummy Rails application placement
-- gemspec dependencies
-- supported Ruby / Rails versions
-- test directory layout finalization
+The next design work will define the exact first-time developer path from adding the gem to successfully serving an Agent Card and handling the first A2A request.
 
 ## Development Progress
 
@@ -39,8 +28,8 @@ The next design work will decide:
 - [x] 10. Agent Card Design
 - [x] 11. Task Lifecycle Design
 - [x] 12. Test Strategy
-- [ ] **13. Gem Structure ← NEXT**
-- [ ] 14. Quick Start Design
+- [x] 13. Gem Structure
+- [ ] **14. Quick Start Design ← NEXT**
 - [ ] 15. Start Implementation
 
 ## v0.1 Direction
@@ -71,6 +60,7 @@ Main principles:
 
 - [v0.1 Design Decisions](docs/design/v0.1-decisions.md) — current architecture, scope, terminology, SDK boundary, public API, Agent Card design, Task Lifecycle design, and design principles.
 - [v0.1 Test Strategy](docs/design/test-strategy.md) — Minitest strategy, test layers, mocking boundaries, Critical E2E cases, and CI policy.
+- [v0.1 Gem Structure](docs/design/gem-structure.md) — Gem directory structure, Rails Engine boundary, Protocol Adapter placement, Task components, generators, dummy Rails application, dependencies, and supported Ruby / Rails matrix.
 
 ## Target Developer Experience
 
@@ -251,6 +241,35 @@ Critical E2E cases for v0.1:
 CI runs Unit, Adapter Contract, Rails Integration, and Critical E2E tests on pull requests and `main` pushes. Release builds require all supported Ruby / Rails matrix combinations to be green.
 
 See [v0.1 Test Strategy](docs/design/test-strategy.md) for details.
+
+## Gem Structure
+
+v0.1 keeps Gem core behavior under `lib/a2a/rails` and keeps the Rails HTTP layer thin.
+
+```text
+lib/a2a/rails/
+├── agent.rb
+├── skill.rb
+├── dispatcher.rb
+├── configuration.rb
+├── agent_card/
+├── task/
+└── protocol/
+```
+
+Key decisions:
+
+- Rails Engine / controllers / routes are only the Rails integration layer.
+- SDK-specific behavior is isolated behind `Protocol::Adapter` and `Protocol::Agent2AgentAdapter`.
+- Task lifecycle, result mapping, Artifact mapping, and Task storage live under `A2A::Rails::Task`.
+- The default v0.1 Task Store is in-memory.
+- v0.1 generators are limited to `install` and `agent`.
+- Rails integration tests use a minimal `test/dummy` application.
+- ActiveRecord and ActiveJob are not required dependencies.
+- v0.1 targets Ruby `>= 3.2` and Rails `>= 8.0, < 8.2`.
+- `agent2agent` remains the first Ruby A2A SDK candidate; its exact dependency constraint will be pinned after the implementation compatibility spike.
+
+See [v0.1 Gem Structure](docs/design/gem-structure.md) for details.
 
 ## v0.1 Scope
 
