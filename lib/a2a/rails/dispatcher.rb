@@ -7,8 +7,13 @@ module A2A
         @agent = agent
       end
 
-      def call(message:, context:)
+      def validate!
         @agent.validate!
+        self
+      end
+
+      def call(message:, context:)
+        validate!
         skill = select_skill(message: message, context: context)
         handler_context = context.merge(skill_id: skill.id)
 

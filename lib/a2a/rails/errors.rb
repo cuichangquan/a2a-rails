@@ -11,6 +11,11 @@ module A2A
     class RejectedTask < Error; end
     class ArtifactMappingError < Error; end
 
+    class ProtocolError < Error; end
+    class InvalidRequestError < ProtocolError; end
+    class ContentTypeNotSupportedError < ProtocolError; end
+    class TaskContinuationNotSupportedError < ProtocolError; end
+
     class TaskError < Error; end
     class TaskNotFoundError < TaskError
       attr_reader :task_id

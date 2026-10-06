@@ -4,6 +4,7 @@ require "a2a"
 require "rack"
 require "stringio"
 require_relative "adapter"
+require_relative "task_mapper"
 
 module A2A
   module Rails
@@ -54,6 +55,21 @@ module A2A
 
           result = @request_handler.call(operation: operation, params: request.to_h)
           schema(RESPONSE_SCHEMAS.fetch(operation), result)
+        rescue A2A::Rails::TaskNotFoundError => error
+          raise A2A::TaskNotFoundError.new(error.task_id)
+        rescue A2A::Rails::TaskNotCancelableError => error
+          raise A2A::TaskNotCancelableError.new(
+            error.task_id,
+            state: TaskMapper.wire_state(error.state)
+          )
+        rescue A2A::Rails::InvalidRequestError,
+          A2A::Rails::InvalidTaskQueryError,
+          A2A::Rails::InvalidTaskStateError => error
+          raise A2A::InvalidParamsError.new(error.message)
+        rescue A2A::Rails::ContentTypeNotSupportedError
+          raise A2A::ContentTypeNotSupportedError.new
+        rescue A2A::Rails::TaskContinuationNotSupportedError => error
+          raise A2A::UnsupportedOperationError.new(message: error.message)
         end
 
         def validate_version!(env)
