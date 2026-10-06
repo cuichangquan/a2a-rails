@@ -1,6 +1,6 @@
 # a2a-rails v0.1 Quick Start Design
 
-> **Status: Step 14 design complete. Step 15-8 runtime-verifies the Agent / Skill / Dispatcher, internal Task core, and A2A Task-operation protocol path; Configuration, Agent Card generation, Rails HTTP integration, generators, and the full host-Rails Quick Start remain.**
+> **Status: Step 14 design complete. Step 15-9 runtime-verifies the Agent / Skill / Dispatcher, internal Task core, A2A Task-operation protocol path, Configuration, and Agent Card generation; Rails HTTP integration, generators, and the full host-Rails Quick Start remain.**
 
 This document fixes the first-time developer experience for an existing Rails application. The example uses Echo to keep the gem independent of any business domain.
 
@@ -102,6 +102,8 @@ end
 
 For this localhost example, leave `A2A_PUBLIC_BASE_URL` unset or set it to `http://localhost:3000`. An explicit base URL takes precedence over the request base URL and must not contain `/a2a`.
 
+Step 15-9 now implements this Configuration API. Assigning `config.agent` keeps the class name as a String; the Agent is resolved and validated only when an A2A endpoint needs it, so initializer evaluation itself does not eagerly resolve the application constant.
+
 ```bash
 bin/rails server
 ```
@@ -116,6 +118,8 @@ curl -sS http://localhost:3000/.well-known/agent-card.json \
 ```
 
 Confirm HTTP 200, Agent name `Echo Agent`, Skill ID `reply`, and a JSON-RPC supported interface with protocol version `1.0` pointing to `http://localhost:3000/a2a`.
+
+Step 15-9 implements and runtime-verifies the Agent Card data builder/validator. The generated Card uses `config.public_base_url` when present, otherwise a request base URL supplied by the future Rails controller; `/a2a` is appended by the Builder. Generated Agent Cards pass the real `agent2agent 2.0.0` Agent Card schema, and Handler internals are not emitted.
 
 ### Send the First Message
 
@@ -165,7 +169,7 @@ Illustrative success response (IDs and optional fields vary):
 
 Success means `result.task.status.state` is `TASK_STATE_COMPLETED`, Task ID and Context ID are present, and a Text Part in the Task Artifacts contains `Echo: Hello`. Exact IDs, timestamps, optional fields, and Artifact metadata are not fixed fixtures.
 
-Step 15-8 runtime-verifies this `SendMessage` Task shape, Handler boundary, Artifact mapping, and the related `GetTask`, `ListTasks`, and `CancelTask` paths through the real SDK. The remaining gap is exposing that verified path from an actual host Rails application through Configuration, generated Agent Card data, Engine routes, and controllers.
+Step 15-8 runtime-verifies this `SendMessage` Task shape, Handler boundary, Artifact mapping, and the related `GetTask`, `ListTasks`, and `CancelTask` paths through the real SDK. Step 15-9 closes the Configuration and generated Agent Card data gap. The remaining gap is exposing those verified components from an actual host Rails application through Engine routes and thin controllers, followed by generators.
 
 ## 4. Skill Routing
 
@@ -250,6 +254,8 @@ Step 15-7 implements the internal Task representation and result boundary. Step 
 
 Adding the gem or running a generator must not fail Rails boot merely because the A2A Agent is unregistered or incomplete. Resolve and validate the registered Agent when an A2A endpoint is used, respecting Rails autoload/reload. This does not promise to suppress syntax errors in application-owned Ruby code.
 
+Step 15-9 implements the lazy Configuration half of this behavior: `config.agent` remains a class-name String until `resolve_agent` is called. The Rails HTTP layer will call that resolver at endpoint use in Step 15-10.
+
 | Cause | Developer-facing error/log | Client behavior |
 | --- | --- | --- |
 | `config.agent` is nil or cannot be resolved | `ConfigurationError`: no registered Agent could be resolved | No partial Agent Card or Handler dispatch |
@@ -262,20 +268,20 @@ Static Agent / Skill validation now occurs before Task creation on `SendMessage`
 
 ## 7. Acceptance and Next Step
 
-Step 14 is complete as a design decision. Step 15-8 runtime-verifies the Rails-facing Agent / Skill / Dispatcher subset, internal Task core, and the Task-operation protocol path against the real `agent2agent 2.0.0` SDK. Full Quick Start implementation acceptance still requires:
+Step 14 is complete as a design decision. Step 15-9 runtime-verifies the Rails-facing Agent / Skill / Dispatcher subset, internal Task core, Task-operation protocol path, lazy Configuration, and Agent Card generation against the real `agent2agent 2.0.0` SDK. Full Quick Start implementation acceptance still requires:
 
 - Generator output matches the two-file contract and contains no dangling Handler reference.
 - An unconfigured or incomplete Agent does not break host Rails boot.
 - The exact Echo path produces a valid Agent Card and a completed Task through an actual Rails HTTP endpoint.
-- Configuration resolves the registered Agent lazily at endpoint use.
-- Agent Card Builder / Validator generates the designed v1.0 card without leaking Handler internals.
 - Rails Engine routes/controllers expose `/.well-known/agent-card.json` and `/a2a` without an explicit host route mount.
+- Invalid endpoint configuration is logged without leaking implementation details to clients.
 - README examples and host-Rails Critical E2E use the verified A2A v1.0 method names and wire shapes.
 
-Implemented through Step 15-8:
+Implemented through Step 15-9:
 
 - Agent metadata / Skill DSL.
 - Skill validation and callable Handler validation.
+- Optional Skill Agent Card metadata: `examples`, `input_modes`, `output_modes`.
 - Single-Skill automatic dispatch.
 - Multi-Skill Router dispatch with a frozen Symbol ID collection.
 - Unknown Router selection via `UnknownSkillError`.
@@ -293,8 +299,12 @@ Implemented through Step 15-8:
 - SDK error translation kept inside `Protocol::Agent2AgentAdapter`.
 - Real-SDK verification of COMPLETED / REJECTED / FAILED / CANCELED Task responses.
 - Real-SDK cancellation-race verification: late Handler completion cannot overwrite `CANCELED`.
+- `A2A::Rails::Configuration` with lazy class-name resolution and optional logger / public base URL.
+- `AgentCard::Builder` / `AgentCard::Validator` with public URL precedence and fixed v0.1 capabilities.
+- Generated Agent Card validated by the real `agent2agent 2.0.0` Agent Card schema.
+- Handler internals excluded from generated Agent Card data.
 
-**Next: Step 15-9 — Implement Configuration plus Agent Card Builder / Validator.**
+**Next: Step 15-10 — Implement the Rails Engine, standard routes, and thin controllers that expose the already-verified Agent Card and protocol execution paths.**
 
 ## Official References
 
