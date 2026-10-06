@@ -2,19 +2,19 @@
 
 Rails-native integration for exposing Rails applications as A2A agents.
 
-> **Status: Core A2A task operations are wired end-to-end through the Protocol Adapter; Configuration and Agent Card generation are next.**
+> **Status: Configuration and Agent Card generation are implemented and runtime-verified; Rails Engine / routes / controllers are next.**
 
 ## Current Status
 
-The A2A v1.0 SDK integration path, Gem skeleton, Protocol Adapter, Rails-facing dispatch core, internal Task core, and protocol Task execution path are now runtime-verified.
+The A2A v1.0 SDK integration path, Gem skeleton, Protocol Adapter, Rails-facing dispatch core, internal Task core, protocol Task execution path, Configuration, and Agent Card generation are now runtime-verified.
 
-**Current stage:** Step 15-8 completed — `SendMessage`, `GetTask`, `ListTasks`, and `CancelTask` wired to Dispatcher / Task Lifecycle
+**Current stage:** Step 15-9 completed — Configuration + Agent Card Builder / Validator
 
-**Next step:** **Step 15-9 — Implement Configuration plus Agent Card Builder / Validator.**
+**Next step:** **Step 15-10 — Implement Rails Engine, routes, and thin controllers for `/.well-known/agent-card.json` and `/a2a`.**
 
-Step 15-8 adds `Protocol::RequestHandler` and `Protocol::TaskMapper`, connecting the SDK-facing Adapter to the SDK-independent Dispatcher and Task core. Incoming text Messages are normalized to ordinary Ruby Hashes, internal Symbol states remain isolated from the A2A wire format, and internal errors are translated to SDK errors only inside the Protocol Adapter. Real `agent2agent 2.0.0` integration tests cover COMPLETED / REJECTED / FAILED / CANCELED flows, GetTask, ListTasks projection and validation, task-continuation restrictions, content restrictions, and a cancellation race where late Handler completion cannot overwrite `CANCELED`. The current CI has 12 green jobs, and the Gem suite runs 49 tests / 180 assertions with no failures, errors, or skips. See [Draft PR #2](https://github.com/cuichangquan/a2a-rails/pull/2) for implementation and verification details.
+Step 15-9 adds `A2A::Rails::Configuration`, the global `A2A::Rails.configure` API, and `AgentCard::Builder` / `AgentCard::Validator`. The registered Agent stays as a class-name String until endpoint use so Rails autoload/reload remains possible. `public_base_url` is validated lazily, takes precedence over the request base URL, and the Builder appends `/a2a`. Skill metadata now supports the designed optional `examples`, `input_modes`, and `output_modes` fields while Handler internals are never emitted into the Agent Card. The generated Card is accepted by the real `agent2agent 2.0.0` Agent Card JSON schema. The current CI has 12 green jobs, and the Gem suite runs 68 tests / 234 assertions with no failures, errors, or skips. See [Draft PR #3](https://github.com/cuichangquan/a2a-rails/pull/3) for implementation and verification details.
 
-Step 15-7 implemented SDK-independent Task state management, Handler result mapping, Artifact mapping, and a thread-safe in-memory Task Store. Step 15-6 implemented `A2A::Rails::Agent`, immutable-ish `Skill` definitions, validation errors, and SDK-independent Handler dispatch. Step 15-5 introduced the first loadable Gem structure and isolated `agent2agent 2.0.0` behind an internal Protocol Adapter. The Step 15-4 isolated spike remains green across Ruby 3.3 / 3.4 / 4.0, Rails 8.0 / 8.1, and a real HTTP server smoke check. See [Step 15 findings](docs/design/sdk-compatibility-spike.md) for evidence and adoption limits.
+Step 15-8 wired `SendMessage`, `GetTask`, `ListTasks`, and `CancelTask` through the real SDK. Step 15-7 implemented SDK-independent Task state management, Handler result mapping, Artifact mapping, and a thread-safe in-memory Task Store. Step 15-6 implemented `A2A::Rails::Agent`, immutable-ish `Skill` definitions, validation errors, and SDK-independent Handler dispatch. Step 15-5 introduced the first loadable Gem structure and isolated `agent2agent 2.0.0` behind an internal Protocol Adapter. The Step 15-4 isolated spike remains green across Ruby 3.3 / 3.4 / 4.0, Rails 8.0 / 8.1, and a real HTTP server smoke check. See [Step 15 findings](docs/design/sdk-compatibility-spike.md) for evidence and adoption limits.
 
 ## Development Progress
 
@@ -67,7 +67,7 @@ Main principles:
 
 ## Quick Start (Design Preview)
 
-The Quick Start is designed but has not been fully implemented or runtime-verified end-to-end through a host Rails application yet. The intended path is:
+The Quick Start is designed but has not been fully runtime-verified end-to-end through a host Rails application yet. The intended path is:
 
 1. Add `a2a-rails` to an existing Rails application.
 2. Generate the initializer and an Echo Agent.
@@ -77,7 +77,7 @@ The Quick Start is designed but has not been fully implemented or runtime-verifi
 6. Send `SendMessage` to `/a2a` with `A2A-Version: 1.0`.
 7. Confirm `TASK_STATE_COMPLETED` and an Artifact containing `Echo: Hello`.
 
-The Step 15-8 protocol execution path behind `/a2a` is runtime-verified with the real SDK. Configuration, Agent Card generation, Rails Engine routes/controllers, and generators still need to be connected before the copy-and-paste Rails Quick Start is complete.
+The Step 15-8 protocol execution path behind `/a2a` is runtime-verified with the real SDK, and Step 15-9 runtime-verifies lazy Configuration plus generated Agent Card data against the real SDK schema. Rails Engine routes/controllers and generators still need to be connected before the copy-and-paste Rails Quick Start is complete.
 
 See [the complete Quick Start design](docs/design/quick-start.md) for the intended copy-and-paste flow. No database, ActiveJob, authentication, or LLM is needed for this local example.
 
@@ -141,7 +141,7 @@ A2A::Rails.configure do |config|
 end
 ```
 
-a2a-rails conceptually generates:
+a2a-rails generates:
 
 ```json
 {
@@ -173,17 +173,19 @@ a2a-rails conceptually generates:
 }
 ```
 
-Agent Card design principles:
+Agent Card behavior now runtime-verified in Step 15-9:
 
 - Skill IDs are generated from the Skill symbol.
 - Skill names are generated automatically and can be overridden.
 - `description`, `tags`, and `handler` are required for a Skill.
+- Optional Skill `examples`, `input_modes`, and `output_modes` map to A2A Agent Card fields.
 - `handler` is internal to a2a-rails and is never exposed in the Agent Card.
 - `supportedInterfaces` and protocol metadata are generated by the Gem.
 - `public_base_url` is used when provided; otherwise the request base URL is used.
 - v0.1 defaults to `text/plain` input and output.
-- Streaming, Push Notifications, and Extended Agent Cards are not supported in v0.1.
-- Invalid Agent definitions are not exposed as partial Agent Cards.
+- Streaming, Push Notifications, and Extended Agent Cards are fixed as unsupported in v0.1.
+- Invalid Agent definitions are rejected before a Card is returned.
+- The generated Card passes the real `agent2agent 2.0.0` Agent Card schema.
 
 ## Task Lifecycle
 
@@ -247,7 +249,7 @@ v0.1 uses **Minitest** and separates tests into four layers.
 
 Core principles:
 
-- Unit Tests cover Agent / Skill DSL, Configuration, Dispatcher, Task Lifecycle, Artifact Mapping, and Task Store.
+- Unit Tests cover Agent / Skill DSL, Configuration, Agent Card Builder / Validator, Dispatcher, Task Lifecycle, Artifact Mapping, and Task Store.
 - Protocol Adapter Unit Tests mock the Ruby A2A SDK.
 - Adapter Contract Tests and Critical E2E use the real Ruby A2A SDK.
 - Rails Integration Tests use a dummy Rails application.
@@ -267,7 +269,7 @@ Critical E2E cases for v0.1:
 8. Version and disabled Capability errors
 ```
 
-Step 15-8 now exercises the Task-operation subset above through the real Ruby SDK, including a concurrent CancelTask race. Full host-Rails Critical E2E remains pending the Engine / route / controller layer.
+Step 15-8 exercises the Task-operation subset above through the real Ruby SDK, including a concurrent CancelTask race. Step 15-9 adds a real-SDK contract test for generated Agent Card schema validity. Full host-Rails Critical E2E remains pending the Engine / route / controller layer.
 
 CI runs Unit, Adapter Contract, Rails Integration, and Critical E2E tests on pull requests and `main` pushes. Release builds require all supported Ruby / Rails matrix combinations to be green.
 
@@ -298,6 +300,9 @@ Key decisions:
 - Router `skills:` is a frozen `Array<Symbol>` of declared Skill IDs; unknown selections raise `UnknownSkillError`.
 - Step 15-7 implements `Task::Lifecycle`, `Task::ResultMapper`, `Task::ArtifactMapper`, the `Task::Store` contract, and thread-safe `Task::MemoryStore`.
 - Step 15-8 adds `Protocol::RequestHandler` and `Protocol::TaskMapper` and wires Dispatcher / Task Lifecycle to `SendMessage`, `GetTask`, `ListTasks`, and `CancelTask` through the real SDK.
+- Step 15-9 adds lazy `Configuration`, `AgentCard::Builder`, `AgentCard::Validator`, and optional Skill Agent Card metadata.
+- Agent resolution happens when an A2A endpoint needs it, not when the initializer assigns `config.agent`, preserving Rails autoload/reload compatibility.
+- Agent Card generation remains SDK-independent internally; the real SDK schema is used as a contract test rather than leaked into the public API.
 - A2A camelCase fields, `TASK_STATE_*` values, SDK schema objects, and SDK error classes remain Protocol-layer concerns; Handler and Task core APIs remain SDK-independent.
 - Static Agent / Skill validation occurs before Task creation; Handler execution failures after a Task starts map through the Task lifecycle.
 - The default v0.1 Task Store is in-memory.
@@ -351,4 +356,3 @@ Not included in v0.1:
 - Admin UI
 - LLM Agent Framework
 - Orchestration Framework
-

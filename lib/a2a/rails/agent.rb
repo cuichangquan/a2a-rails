@@ -34,13 +34,16 @@ module A2A
           @a2a_router = value
         end
 
-        def skill(id, description:, tags:, handler:, name: nil)
+        def skill(id, description:, tags:, handler:, name: nil, examples: nil, input_modes: nil, output_modes: nil)
           definition = Skill.new(
             id: id,
             name: name,
             description: description,
             tags: tags,
-            handler: handler
+            handler: handler,
+            examples: examples,
+            input_modes: input_modes,
+            output_modes: output_modes
           )
           skill_definitions << definition
           definition
