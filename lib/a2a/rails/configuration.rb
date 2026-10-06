@@ -6,7 +6,6 @@ module A2A
   module Rails
     class Configuration
       attr_accessor :agent, :public_base_url
-      attr_writer :logger
 
       def initialize
         @agent = nil
