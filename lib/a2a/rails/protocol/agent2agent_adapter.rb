@@ -24,27 +24,42 @@ module A2A
             raise ArgumentError, "request_handler must respond to #call"
           end
 
-          suppress_sensitive_sdk_logging!
           @request_handler = request_handler
           factory = sdk_factory || A2A.method(:agent)
           @sdk = factory.call(agent_card: agent_card) { |env| dispatch(env) }
         end
 
         def call(env)
-          status, headers, body = @sdk.call(normalize_env(env))
+          status, headers, body = with_sensitive_sdk_logging_suppressed do
+            @sdk.call(normalize_env(env))
+          end
           [status, headers.merge("a2a-version" => PROTOCOL_VERSION), body]
         end
 
         private
 
-        def suppress_sensitive_sdk_logging!
-          return unless defined?(::Console) && ::Console.respond_to?(:logger)
-          return unless defined?(::Console::Logger::WARN) && defined?(::A2A::Server::Triage)
+        def with_sensitive_sdk_logging_suppressed
+          return yield unless defined?(::Console) && ::Console.respond_to?(:logger)
+          return yield unless defined?(::Console::Logger::WARN) && defined?(::A2A::Server::Triage)
 
           logger = ::Console.logger
-          return unless logger.respond_to?(:subjects)
+          return yield unless logger.respond_to?(:subjects)
 
-          logger.subjects[::A2A::Server::Triage] = ::Console::Logger::WARN
+          subjects = logger.subjects
+          triage = ::A2A::Server::Triage
+          had_override = subjects.key?(triage)
+          previous_level = subjects[triage]
+          subjects[triage] = ::Console::Logger::WARN
+
+          yield
+        ensure
+          if defined?(subjects) && subjects
+            if had_override
+              subjects[triage] = previous_level
+            else
+              subjects.delete(triage)
+            end
+          end
         end
 
         def normalize_env(env)
