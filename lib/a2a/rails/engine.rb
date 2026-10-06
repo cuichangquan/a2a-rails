@@ -2,6 +2,7 @@
 
 require "active_support"
 require "active_support/core_ext/module/delegation"
+require "action_dispatch"
 require "rails/engine"
 
 module A2A
