@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require "rails/engine"
+require "rails"
 
 module A2A
   module Rails
