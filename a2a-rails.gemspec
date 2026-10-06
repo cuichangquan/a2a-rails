@@ -12,13 +12,14 @@ Gem::Specification.new do |spec|
   spec.license = "MIT"
   spec.required_ruby_version = ">= 3.3"
 
-  spec.files = Dir["lib/**/*", "README.md", "LICENSE"]
+  spec.files = Dir["lib/**/*", "app/**/*", "config/**/*", "README.md", "LICENSE"]
   spec.require_paths = ["lib"]
 
   spec.metadata["source_code_uri"] = spec.homepage
   spec.metadata["rubygems_mfa_required"] = "true"
 
   spec.add_dependency "agent2agent", "~> 2.0.0"
+  spec.add_dependency "actionpack", ">= 8.0", "< 8.2"
   spec.add_dependency "json", "< 3"
   spec.add_dependency "rack", ">= 3.0", "< 4"
   spec.add_dependency "railties", ">= 8.0", "< 8.2"
