@@ -8,21 +8,22 @@ Rails-native integration for exposing Rails applications as A2A agents.
 
 The project is currently defining the v0.1 architecture and public API before implementation.
 
-**Current stage:** Step 11 completed — Task Lifecycle Design
+**Current stage:** Step 12 completed — Test Strategy
 
-**Next step:** **Step 12 — Test Strategy**
+**Next step:** **Step 13 — Gem Structure**
 
 The next design work will decide:
 
-- Agent / Skill DSL unit test strategy
-- Handler dispatch test strategy
-- Agent Card endpoint request tests
-- Task lifecycle state transition tests
-- Artifact mapping tests
-- error / rejection tests
-- GetTask / Task Store tests
-- Protocol Adapter mocking boundary
-- Rails dummy application integration test structure
+- Gem directory structure
+- Rails Engine structure
+- internal namespace layout
+- Protocol Adapter placement
+- Task Lifecycle / Task Store placement
+- generator structure
+- dummy Rails application placement
+- gemspec dependencies
+- supported Ruby / Rails versions
+- test directory layout finalization
 
 ## Development Progress
 
@@ -37,8 +38,8 @@ The next design work will decide:
 - [x] 9. Public API Design
 - [x] 10. Agent Card Design
 - [x] 11. Task Lifecycle Design
-- [ ] **12. Test Strategy ← NEXT**
-- [ ] 13. Gem Structure
+- [x] 12. Test Strategy
+- [ ] **13. Gem Structure ← NEXT**
 - [ ] 14. Quick Start Design
 - [ ] 15. Start Implementation
 
@@ -69,6 +70,7 @@ Main principles:
 ## Design Documents
 
 - [v0.1 Design Decisions](docs/design/v0.1-decisions.md) — current architecture, scope, terminology, SDK boundary, public API, Agent Card design, Task Lifecycle design, and design principles.
+- [v0.1 Test Strategy](docs/design/test-strategy.md) — Minitest strategy, test layers, mocking boundaries, Critical E2E cases, and CI policy.
 
 ## Target Developer Experience
 
@@ -215,6 +217,40 @@ v0.1 Task behavior:
 - Task history means A2A Message history, not state transition history.
 
 The in-memory Task Store is intended for development and simple synchronous workloads. Tasks are not guaranteed to survive Rails process restarts or be shared across multiple processes.
+
+## Test Strategy
+
+v0.1 uses **Minitest** and separates tests into four layers.
+
+```text
+4. Protocol E2E / Smoke Tests
+3. Rails Integration Tests
+2. Adapter Contract Tests
+1. Core Unit Tests
+```
+
+Core principles:
+
+- Unit Tests cover Agent / Skill DSL, Configuration, Dispatcher, Task Lifecycle, Artifact Mapping, and Task Store.
+- Protocol Adapter Unit Tests mock the Ruby A2A SDK.
+- Adapter Contract Tests and Critical E2E use the real Ruby A2A SDK.
+- Rails Integration Tests use a dummy Rails application.
+- A2A Protocol behavior and SDK internals are not re-tested by a2a-rails.
+- Gem-internal components are not mocked in Critical E2E tests.
+
+Critical E2E cases for v0.1:
+
+```text
+1. Agent Card retrieval
+2. message/send → COMPLETED
+3. message/send → REJECTED
+4. message/send → FAILED
+5. tasks/get → stored Task retrieval
+```
+
+CI runs Unit, Adapter Contract, Rails Integration, and Critical E2E tests on pull requests and `main` pushes. Release builds require all supported Ruby / Rails matrix combinations to be green.
+
+See [v0.1 Test Strategy](docs/design/test-strategy.md) for details.
 
 ## v0.1 Scope
 
