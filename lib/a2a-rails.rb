@@ -1,0 +1,10 @@
+# frozen_string_literal: true
+
+require_relative "a2a/rails/version"
+require_relative "a2a/rails/protocol/adapter"
+require_relative "a2a/rails/protocol/agent2agent_adapter"
+
+module A2A
+  module Rails
+  end
+end
