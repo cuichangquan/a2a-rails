@@ -2,19 +2,19 @@
 
 Rails-native integration for exposing Rails applications as A2A agents.
 
-> **Status: Agent / Skill DSL and Dispatcher implemented; Task execution core is next.**
+> **Status: Task lifecycle, result/artifact mapping, and MemoryStore implemented; protocol execution wiring is next.**
 
 ## Current Status
 
-The A2A v1.0 SDK integration path, Gem skeleton, Protocol Adapter, and first Rails-facing core are now runtime-verified.
+The A2A v1.0 SDK integration path, Gem skeleton, Protocol Adapter, Rails-facing dispatch core, and internal Task core are now runtime-verified.
 
-**Current stage:** Step 15-6 completed — `Agent` / `Skill` DSL and `Dispatcher`
+**Current stage:** Step 15-7 completed — Task Lifecycle, Result / Artifact Mapping, and `Task::MemoryStore`
 
-**Next step:** **Step 15-7 — Implement Task Lifecycle, Result / Artifact Mapping, and MemoryStore.**
+**Next step:** **Step 15-8 — Wire Task execution to `SendMessage`, `GetTask`, `ListTasks`, and `CancelTask` through the Protocol Adapter.**
 
-Step 15-6 implements `A2A::Rails::Agent`, immutable-ish `Skill` definitions, validation errors, and SDK-independent Handler dispatch. One declared Skill dispatches automatically. Multiple Skills require an application-owned Router, which receives a frozen Array of declared Skill IDs as Symbols and must select one of them. Handler context receives the selected `skill_id` without mutating the incoming context. The Agent DSL also preserves Ruby's normal `Class#name` behavior while keeping the A2A display name separately. The current CI has 12 green jobs, and the Gem suite now runs 21 tests / 69 assertions with no failures, errors, or skips. See [Draft PR #1](https://github.com/cuichangquan/a2a-rails/pull/1) for implementation and verification details.
+Step 15-7 implements SDK-independent Task state management, Handler result mapping, Artifact mapping, and a thread-safe in-memory Task Store. Task states are stored internally as Symbols and converted to A2A wire values only at the protocol boundary. Terminal states cannot be overwritten, accepted cancellation is atomic against late completion, and ListTasks uses stable snapshot pagination with the designed filters. Unexpected Handler exceptions map to a generic FAILED message while detailed exceptions remain available to the logger. The current CI has 12 green jobs, and the Gem suite now runs 43 tests / 132 assertions with no failures, errors, or skips. See [Draft PR #1](https://github.com/cuichangquan/a2a-rails/pull/1) for implementation and verification details.
 
-Step 15-5 introduced the first loadable Gem structure and isolated `agent2agent 2.0.0` behind an internal Protocol Adapter. The Step 15-4 isolated spike also remains green across Ruby 3.3 / 3.4 / 4.0, Rails 8.0 / 8.1, and a real HTTP server smoke check. See [Step 15 findings](docs/design/sdk-compatibility-spike.md) for evidence and adoption limits.
+Step 15-6 implemented `A2A::Rails::Agent`, immutable-ish `Skill` definitions, validation errors, and SDK-independent Handler dispatch. Step 15-5 introduced the first loadable Gem structure and isolated `agent2agent 2.0.0` behind an internal Protocol Adapter. The Step 15-4 isolated spike also remains green across Ruby 3.3 / 3.4 / 4.0, Rails 8.0 / 8.1, and a real HTTP server smoke check. See [Step 15 findings](docs/design/sdk-compatibility-spike.md) for evidence and adoption limits.
 
 ## Development Progress
 
@@ -185,7 +185,7 @@ Agent Card design principles:
 
 ## Task Lifecycle
 
-v0.1 uses A2A standard Task states and keeps lifecycle handling inside the Gem.
+v0.1 uses A2A standard Task states and keeps lifecycle handling inside the Gem. Internally, Step 15-7 stores SDK-independent Symbol states (`:submitted`, `:working`, `:completed`, `:failed`, `:rejected`, `:canceled`); protocol-specific `TASK_STATE_*` values are produced only at the Adapter boundary.
 
 ```text
 SUBMITTED
@@ -210,6 +210,7 @@ Artifact mapping:
 String       → Text Part
 Hash / Array → Data Part
 nil          → no Artifact
+other object → explicit ArtifactMappingError
 ```
 
 v0.1 Task behavior:
@@ -217,15 +218,17 @@ v0.1 Task behavior:
 - Task IDs are server-generated.
 - Client-provided context IDs are preserved; otherwise the server generates one.
 - Task lifecycle and state transitions are internal to a2a-rails.
-- The default Task Store is in-memory.
-- `GetTask` is supported.
-- `ListTasks` and `CancelTask` are included in the v0.1 design (Step 15 revision).
-- Accepted cancellation reaches `CANCELED`; synchronous handler completion must not overwrite it. Cancellation does not interrupt handler execution or undo business side effects.
+- Terminal states are immutable; late completion cannot overwrite `COMPLETED`, `FAILED`, `REJECTED`, or `CANCELED`.
+- The default Task Store is the thread-safe in-memory `Task::MemoryStore`.
+- Stored values are returned as copies so response shaping cannot mutate persisted Task state accidentally.
+- `GetTask` is supported by the internal Store API.
+- `ListTasks` supports context/state/timestamp filters, newest-first stable ordering, page sizes 1–100, and opaque snapshot pagination.
+- `CancelTask` transitions non-terminal Tasks atomically to `CANCELED`; synchronous handler completion cannot overwrite it. Cancellation does not interrupt handler execution or undo business side effects.
 - `INPUT_REQUIRED` and `AUTH_REQUIRED` are out of scope for v0.1.
-- Unexpected exceptions are logged internally and exposed as a generic FAILED Task message.
+- Unexpected exceptions are logged internally and exposed as the generic `Task execution failed` message.
 - Task history means A2A Message history, not state transition history.
 
-The in-memory Task Store is intended for development and simple synchronous workloads. Tasks are not guaranteed to survive Rails process restarts or be shared across multiple processes.
+The in-memory Task Store is intended for development and simple synchronous workloads. Tasks and pagination cursors are process-local; they are not guaranteed to survive Rails process restarts or be shared across multiple processes.
 
 ## Test Strategy
 
@@ -284,10 +287,11 @@ Key decisions:
 - Rails Engine / controllers / routes are only the Rails integration layer.
 - SDK-specific behavior is isolated behind `Protocol::Adapter` and `Protocol::Agent2AgentAdapter`.
 - Step 15-5 implemented the initial Gem skeleton and Protocol Adapter.
-- Step 15-6 implements `Agent`, `Skill`, errors, and `Dispatcher`; single-Skill auto-dispatch and explicit multi-Skill Router selection are runtime-tested.
+- Step 15-6 implemented `Agent`, `Skill`, errors, and `Dispatcher`; single-Skill auto-dispatch and explicit multi-Skill Router selection are runtime-tested.
 - `name "..."` stores the A2A display name without replacing Ruby's normal zero-argument `Class#name` behavior.
 - Router `skills:` is a frozen `Array<Symbol>` of declared Skill IDs; unknown selections raise `UnknownSkillError`.
-- Task lifecycle, result mapping, Artifact mapping, and Task storage live under `A2A::Rails::Task` and are the next implementation layer.
+- Step 15-7 implements `Task::Lifecycle`, `Task::ResultMapper`, `Task::ArtifactMapper`, the `Task::Store` contract, and thread-safe `Task::MemoryStore`.
+- Task lifecycle remains SDK-independent and does not directly invoke the Handler; execution orchestration will connect Dispatcher and Lifecycle at the protocol/application boundary.
 - The default v0.1 Task Store is in-memory.
 - v0.1 generators are limited to `install` and `agent`.
 - `install` creates only the initializer with a generic `"YourAgent"` placeholder.
@@ -295,7 +299,7 @@ Key decisions:
 - Registered Agent validation happens when A2A endpoints are used; incomplete A2A configuration does not fail host Rails boot.
 - Rails integration tests use a minimal `test/dummy` application.
 - ActiveRecord and ActiveJob are not required dependencies.
-- v0.1 now targets Ruby `>= 3.3` and Rails `>= 8.0, < 8.2`; the SDK dependency graph cannot resolve on Ruby 3.2.
+- v0.1 targets Ruby `>= 3.3` and Rails `>= 8.0, < 8.2`; the SDK dependency graph cannot resolve on Ruby 3.2.
 - The implementation currently depends on `agent2agent ~> 2.0.0`, `json < 3`, `rack >= 3.0, < 4`, and `railties >= 8.0, < 8.2`.
 - The SDK's server triage logger can emit the Rack environment; the production Rails-facing integration must prevent sensitive request data from being exposed through SDK logging.
 
