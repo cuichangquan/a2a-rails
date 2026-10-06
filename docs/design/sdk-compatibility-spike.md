@@ -14,7 +14,8 @@ CIの最終検証結果は完了後に以下へ記録する。Gem本体の実装
 5. Version validationはIntegration側で必要。SDKの`VersionNotSupportedError`を使い、SDKにJSON-RPC envelopeの生成を委譲する。
 6. Rails 8.0.5.1 + json 3.0.2ではRailsの404 JSON応答が`unknown keyword: quirks_mode`で500になる。Rails 8.0の検証環境のみjson<3を指定する。Rails 8.1はjson 3で検証する。正式Gemの制約・導入ドキュメントへの反映は後続の依存設計で確定する。
 7. SDKのTriageはraw Rack envをINFOログへ出力する。Rails envにはsecret_key_base等も含まれるため、正式Adapterではこのログを抑止または安全なloggerへ置換する。
-8. `ListTasks` / `CancelTask`をv0.1 Scopeへ追加する。同期Handler / Memory Store / Streaming=falseの方針は維持する。
+8. Rack 3のinputはrewindを必須としないが、SDK JSON-RPC bindingは無条件にrewindする。実HTTP smokeで500を再現。AdapterでStringIOへ変換し、SDKの前提を満たす。正式実装ではbody size limitも設ける。
+9. `ListTasks` / `CancelTask`をv0.1 Scopeへ追加する。同期Handler / Memory Store / Streaming=falseの方針は維持する。
 
 Ruby 3.2の依存解決失敗: [初回CI](https://github.com/cuichangquan/a2a-rails/actions/runs/37430766241)。
 
@@ -23,6 +24,7 @@ Ruby 3.2の依存解決失敗: [初回CI](https://github.com/cuichangquan/a2a-ra
 - `GET /.well-known/agent-card.json`はRails側で生成・公開。
 - `POST /a2a`のみSDKへ渡す。内部でSDKのroot pathに変換する。
 - HTTP method / JSON Content-TypeをIntegration境界で保証。
+- Rack inputをrewind可能なbufferへ正規化。実HTTP smokeでサーバー起動からTask操作まで検証する。
 - Versionはheader、またはquery parameterを利用。未指定/空は0.3として拒否。対応は1.0のみ。
 - SDK固有Request / Error / Rack envをHandlerへ渡さない。
 - Streaming=falseは`UnsupportedOperationError`、Push=falseは`PushNotificationNotSupportedError`。

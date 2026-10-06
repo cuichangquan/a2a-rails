@@ -5,6 +5,7 @@ require "a2a"
 require "securerandom"
 require "time"
 require "digest"
+require "stringio"
 
 # Disposable compatibility probe; these classes are NOT the gem's public API.
 module Agent2AgentV1Spike
@@ -122,7 +123,9 @@ module Agent2AgentV1Spike
       return http(415, "Unsupported Media Type") unless env["CONTENT_TYPE"].to_s.split(";").first.to_s.strip == "application/json"
 
       # Rewrite only the internal SDK path. REST/gRPC/well-known paths never reach it.
-      status, headers, body = @sdk.call(env.merge("PATH_INFO" => "/"))
+      # Rack 3 inputs need not implement rewind; the SDK unconditionally uses it.
+      sdk_env = env.merge("PATH_INFO" => "/", "rack.input" => StringIO.new(env.fetch("rack.input").read))
+      status, headers, body = @sdk.call(sdk_env)
       [status, headers.merge("a2a-version" => "1.0"), body]
     end
 

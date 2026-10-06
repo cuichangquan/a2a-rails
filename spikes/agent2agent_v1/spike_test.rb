@@ -188,6 +188,18 @@ class Agent2AgentV1SpikeTest < Minitest::Test
     assert JSON.parse(response.body).key?("result")
   end
 
+  def test_rack_input_does_not_need_rewind
+    input = Object.new
+    input.define_singleton_method(:read) { JSON.generate(jsonrpc: "2.0", id: 9, method: "ListTasks", params: {}) }
+    refute input.respond_to?(:rewind)
+    env = Rack::MockRequest.env_for("/a2a", method: "POST", "CONTENT_TYPE" => "application/json", "HTTP_A2A_VERSION" => "1.0")
+    status, _, body = @app.call(env.merge("rack.input" => input))
+    assert_equal 200, status
+    parsed = JSON.parse(body.join)
+    assert_equal 9, parsed["id"]
+    assert_equal 0, parsed.dig("result", "totalSize")
+  end
+
   def test_invalid_message_and_parse_error
     assert_equal(-32602, rpc("SendMessage").dig("error", "code"))
     params = send_params
