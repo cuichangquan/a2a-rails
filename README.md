@@ -2,19 +2,19 @@
 
 Rails-native integration for exposing Rails applications as A2A agents.
 
-> **Status: the built `a2a-rails` gem is runtime-verified in a clean Rails application; v0.1 release-candidate preparation is next.**
+> **Status: the v0.1.0 release candidate is prepared and CI-verified; the actual public release is next.**
 
 ## Current Status
 
-The A2A v1.0 SDK integration path, Gem core, Protocol Adapter, Agent / Skill DSL, Task lifecycle, Configuration, Agent Card generation, Rails Engine HTTP endpoints, generators, source-tree Quick Start, and packaged-gem installation path are now runtime-verified.
+The A2A v1.0 SDK integration path, Gem core, Protocol Adapter, Agent / Skill DSL, Task lifecycle, Configuration, Agent Card generation, Rails Engine HTTP endpoints, generators, source-tree Quick Start, packaged-gem installation path, and v0.1.0 release-candidate metadata are now verified.
 
-**Current stage:** Step 15-12 completed — packaged-gem / release-readiness verification
+**Current stage:** Step 15-13 completed — v0.1.0 release-candidate preparation
 
-**Next step:** **Step 15-13 — Prepare the v0.1.0 release candidate: release notes / changelog, final package metadata and release checklist, without publishing yet.**
+**Next step:** **Step 15-14 — Execute the v0.1.0 release: final artifact verification from the exact main commit, public-release readiness, `v0.1.0` tag, RubyGems publication, GitHub Release, and post-release smoke verification.**
 
-Step 15-12 builds the actual `a2a-rails-0.1.0` gem, inspects the artifact for required Engine / generator / template files, installs that gem outside the repository checkout, creates a clean Rails 8.1 application, proves Bundler resolves the installed gem rather than the source tree, runs the real `bin/rails generate a2a:rails:install` and `a2a:rails:agent echo` commands, applies the documented Echo setup, and verifies Agent Card + `SendMessage → TASK_STATE_COMPLETED` + `Echo: Hello`. The successful package SHA256 is `09c55122c5d5e6cb5f9b735664d70b000f67d23dcaad9f4a8ff960dbe02dd410`. The supported CI now has **13 / 13 green jobs**, while the Gem suite remains **70 tests / 240 assertions / 0 failures / 0 errors / 0 skips**. See [Draft PR #6](https://github.com/cuichangquan/a2a-rails/pull/6).
+Step 15-13 adds `CHANGELOG.md`, canonical v0.1.0 release notes, a pre-release / publish / post-release checklist, and final RubyGems metadata for source, changelog, documentation, issue tracker, and MFA. The packaged-gem smoke now verifies those metadata fields plus README, CHANGELOG, LICENSE, Ruby compatibility, generator discovery, clean-app installation, Agent Card retrieval, and Echo `SendMessage`. The release-candidate CI is **13 / 13 green**, while the Gem suite remains **70 tests / 240 assertions / 0 failures / 0 errors / 0 skips**. See [Draft PR #7](https://github.com/cuichangquan/a2a-rails/pull/7).
 
-Step 15-11 added the intentionally small `install` / `agent` generators and the generator-backed source-tree Quick Start. Step 15-10 implemented the automatically mounted Rails Engine, thin API controllers, a process-local Runtime that shares the in-memory Task Store across HTTP requests, and the Rails-facing SDK logging boundary. Step 15-9 implemented lazy Configuration and Agent Card generation. Step 15-8 wired `SendMessage`, `GetTask`, `ListTasks`, and `CancelTask` through the real SDK. Step 15-7 implemented the SDK-independent Task core. Step 15-6 implemented the Rails-facing Agent / Skill / Dispatcher API. Step 15-5 introduced the loadable Gem skeleton and Protocol Adapter. Step 15-4 verified the `agent2agent 2.0.0` SDK path across the supported Ruby / Rails matrix.
+Step 15-12 verified the actual built gem in a clean Rails application. Step 15-11 added the intentionally small `install` / `agent` generators and the generator-backed source-tree Quick Start. Step 15-10 implemented the automatically mounted Rails Engine, thin API controllers, a process-local Runtime that shares the in-memory Task Store across HTTP requests, and the Rails-facing SDK logging boundary. Step 15-9 implemented lazy Configuration and Agent Card generation. Step 15-8 wired `SendMessage`, `GetTask`, `ListTasks`, and `CancelTask` through the real SDK. Step 15-7 implemented the SDK-independent Task core. Step 15-6 implemented the Rails-facing Agent / Skill / Dispatcher API. Step 15-5 introduced the loadable Gem skeleton and Protocol Adapter. Step 15-4 verified the `agent2agent 2.0.0` SDK path across the supported Ruby / Rails matrix.
 
 ## Development Progress
 
@@ -42,7 +42,8 @@ Step 15-11 added the intentionally small `install` / `agent` generators and the 
   - [x] 15-10 Rails Engine HTTP integration
   - [x] 15-11 Generators + generated Quick Start
   - [x] 15-12 Packaged-gem / release-readiness verification
-  - [ ] 15-13 v0.1.0 release-candidate preparation
+  - [x] 15-13 v0.1.0 release-candidate preparation
+  - [ ] 15-14 v0.1.0 release execution
 
 ## v0.1 Direction
 
@@ -361,7 +362,21 @@ Step 15-12 verifies the distribution artifact itself:
 - generated files match the documented scaffold contract;
 - the clean app boots and serves the generated Agent Card;
 - `SendMessage` completes with the Echo Artifact;
-- verified package SHA256: `09c55122c5d5e6cb5f9b735664d70b000f67d23dcaad9f4a8ff960dbe02dd410`.
+- Step 15-12 verified package SHA256: `09c55122c5d5e6cb5f9b735664d70b000f67d23dcaad9f4a8ff960dbe02dd410`.
+
+Step 15-13 extends this verification to user-facing release files and RubyGems metadata. The final published artifact must still be rebuilt and hashed from the exact tagged release commit.
+
+## Release Candidate
+
+Step 15-13 prepares, but does not publish, v0.1.0:
+
+- [CHANGELOG](CHANGELOG.md)
+- [v0.1.0 release notes](docs/release/v0.1.0.md)
+- [v0.1.0 release checklist](docs/release/v0.1.0-checklist.md)
+
+The gemspec publishes canonical links for source code, changelog, documentation, and issue tracking, and requires RubyGems MFA. `README.md`, `CHANGELOG.md`, and `LICENSE` are verified as package contents.
+
+No `v0.1.0` tag, RubyGems publication, GitHub Release, or repository-visibility change is performed in Step 15-13.
 
 ## Test Strategy
 
@@ -381,7 +396,7 @@ The current CI matrix covers:
 - Rails: Ruby 3.3 / 3.4 / 4.0 × Rails 8.0 / 8.1
 - Packaged gem: Ruby 3.4 + clean Rails 8.1 application
 
-Current Step 15-12 result:
+Current Step 15-13 result:
 
 ```text
 13 / 13 CI jobs green
@@ -476,3 +491,9 @@ Not included in v0.1:
 - [v0.1 Gem Structure](docs/design/gem-structure.md)
 - [v0.1 Quick Start Design](docs/design/quick-start.md)
 - [Step 15 SDK compatibility findings](docs/design/sdk-compatibility-spike.md)
+
+## Release Documents
+
+- [CHANGELOG](CHANGELOG.md)
+- [v0.1.0 Release Notes](docs/release/v0.1.0.md)
+- [v0.1.0 Release Checklist](docs/release/v0.1.0-checklist.md)
