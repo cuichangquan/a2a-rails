@@ -54,9 +54,9 @@ class RailsEngineHttpTest < Minitest::Test
 
   def test_agent_card_is_exposed_without_explicit_host_route_mount
     response = request("GET", "/.well-known/agent-card.json")
-    card = JSON.parse(response.body)
 
-    assert_equal 200, response.status
+    assert_equal 200, response.status, response.body
+    card = JSON.parse(response.body)
     assert_equal "1.0", response["A2A-Version"]
     assert_equal "Echo Agent", card.fetch("name")
     assert_equal "reply", card.fetch("skills").first.fetch("id")
@@ -85,7 +85,7 @@ class RailsEngineHttpTest < Minitest::Test
       }
     )
 
-    assert_equal 200, send_response.status
+    assert_equal 200, send_response.status, send_response.body
     assert_equal "1.0", send_response["a2a-version"]
 
     sent = JSON.parse(send_response.body)
@@ -108,7 +108,7 @@ class RailsEngineHttpTest < Minitest::Test
       }
     )
 
-    assert_equal 200, get_response.status
+    assert_equal 200, get_response.status, get_response.body
     fetched = JSON.parse(get_response.body).fetch("result")
     assert_equal task.fetch("id"), fetched.fetch("id")
     assert_equal "TASK_STATE_COMPLETED", fetched.dig("status", "state")
@@ -118,8 +118,9 @@ class RailsEngineHttpTest < Minitest::Test
     A2A::Rails.configuration.public_base_url = "https://agents.example.com/base/"
 
     response = request("GET", "/.well-known/agent-card.json")
-    card = JSON.parse(response.body)
 
+    assert_equal 200, response.status, response.body
+    card = JSON.parse(response.body)
     assert_equal "https://agents.example.com/base/a2a", card.fetch("supportedInterfaces").first.fetch("url")
   end
 
