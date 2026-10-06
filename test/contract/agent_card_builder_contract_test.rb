@@ -25,6 +25,6 @@ class AgentCardBuilderContractTest < Minitest::Test
     ).call
 
     schema = A2A::Protocol::JsonSchema["Agent Card"].new(card)
-    assert_same schema, schema.valid!
+    assert schema.valid!
   end
 end
