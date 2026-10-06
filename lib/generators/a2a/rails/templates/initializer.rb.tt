@@ -1,0 +1,4 @@
+A2A::Rails.configure do |config|
+  config.agent = "YourAgent"
+  config.public_base_url = ENV["A2A_PUBLIC_BASE_URL"]
+end

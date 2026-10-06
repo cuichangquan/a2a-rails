@@ -1,0 +1,7 @@
+class <%= class_name %>Agent < A2A::Rails::Agent
+  name "<%= agent_display_name %> Agent"
+  description "TODO"
+  version "1.0"
+
+  # Add at least one skill.
+end
