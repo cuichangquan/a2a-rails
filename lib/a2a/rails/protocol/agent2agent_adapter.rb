@@ -24,6 +24,7 @@ module A2A
             raise ArgumentError, "request_handler must respond to #call"
           end
 
+          suppress_sensitive_sdk_logging!
           @request_handler = request_handler
           factory = sdk_factory || A2A.method(:agent)
           @sdk = factory.call(agent_card: agent_card) { |env| dispatch(env) }
@@ -35,6 +36,16 @@ module A2A
         end
 
         private
+
+        def suppress_sensitive_sdk_logging!
+          return unless defined?(::Console) && ::Console.respond_to?(:logger)
+          return unless defined?(::Console::Logger::WARN) && defined?(::A2A::Server::Triage)
+
+          logger = ::Console.logger
+          return unless logger.respond_to?(:subjects)
+
+          logger.subjects[::A2A::Server::Triage] = ::Console::Logger::WARN
+        end
 
         def normalize_env(env)
           input = env.fetch("rack.input")
