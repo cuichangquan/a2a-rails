@@ -9,4 +9,6 @@ gem "webrick", "~> 1.9"
 if ENV["SPIKE_RAILS_VERSION"]
   gem "railties", ENV.fetch("SPIKE_RAILS_VERSION")
   gem "actionpack", ENV.fetch("SPIKE_RAILS_VERSION")
+  # Rails 8.0's JSON encoder passes quirks_mode, removed by json 3.
+  gem "json", "< 3" if ENV.fetch("SPIKE_RAILS_VERSION").include?("8.0")
 end

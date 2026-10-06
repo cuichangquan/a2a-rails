@@ -10,6 +10,7 @@ Ruby **3.3以上**を使用する。SDKのgemspecは>=3.2だが、`protocol-http
 cd spikes/agent2agent_v1
 bundle install
 bundle exec ruby spike_test.rb
+bundle exec ruby http_smoke.rb
 bundle exec rackup -s webrick -o 127.0.0.1 -p 9292
 ```
 
@@ -32,7 +33,7 @@ SPIKE_RAILS_VERSION='~> 8.0.0' bundle install
 SPIKE_RAILS_VERSION='~> 8.0.0' bundle exec ruby rails_test.rb
 ```
 
-Rails 8.1は`~> 8.1.0`に変更する。SDK単体とRailsありのbundleは異なる依存セットになるため、環境変更時はbundle installを行う。
+Rails 8.0はJSON encoder互換性のため、このGemfileでjson<3に制限する。Rails 8.1は`~> 8.1.0`に変更し、json 3も使用できる。SDK単体とRailsありのbundleは異なる依存セットになるため、環境変更時はbundle installを行う。
 
 ## 検証範囲
 

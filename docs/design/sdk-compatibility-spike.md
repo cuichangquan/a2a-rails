@@ -12,7 +12,9 @@ CIの最終検証結果は完了後に以下へ記録する。Gem本体の実装
 3. SDKのTriageはSchema objectを生成するが`valid!`を呼ばない。Adapterでvalidationを明示する。
 4. SDK付属のprotobuf由来JSON schemaには`required`宣言がない。`valid!`だけで必須項目やoneof等を保証できない。
 5. Version validationはIntegration側で必要。SDKの`VersionNotSupportedError`を使い、SDKにJSON-RPC envelopeの生成を委譲する。
-6. `ListTasks` / `CancelTask`をv0.1 Scopeへ追加する。同期Handler / Memory Store / Streaming=falseの方針は維持する。
+6. Rails 8.0.5.1 + json 3.0.2ではRailsの404 JSON応答が`unknown keyword: quirks_mode`で500になる。Rails 8.0の検証環境のみjson<3を指定する。Rails 8.1はjson 3で検証する。正式Gemの制約・導入ドキュメントへの反映は後続の依存設計で確定する。
+7. SDKのTriageはraw Rack envをINFOログへ出力する。Rails envにはsecret_key_base等も含まれるため、正式Adapterではこのログを抑止または安全なloggerへ置換する。
+8. `ListTasks` / `CancelTask`をv0.1 Scopeへ追加する。同期Handler / Memory Store / Streaming=falseの方針は維持する。
 
 Ruby 3.2の依存解決失敗: [初回CI](https://github.com/cuichangquan/a2a-rails/actions/runs/37430766241)。
 
@@ -44,6 +46,7 @@ SpikeはSDKのversionを`= 2.0.0`へ完全固定する。推移依存はBundler�
 - Task LifecycleのCOMPLETED / FAILED / REJECTED / CANCELEDを統合。
 - 付属schemaで不足する必須項目・oneof・値制約とJSON-RPC envelope validationの責務を確定。
 - 認証/認可とTask可視性、cursor expiry、production Memory Storeの限界を文書化。
+- SDKのraw env loggingを抑止し、Rails 8.0のJSON依存制約を決める。
 - Critical E2Eと公式TCKで互換性を広げる。
 
 ## 参照

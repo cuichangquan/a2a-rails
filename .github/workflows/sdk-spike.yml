@@ -27,6 +27,8 @@ jobs:
           working-directory: spikes/agent2agent_v1
           bundler-cache: true
       - run: bundle exec ruby spike_test.rb
+      - run: bundle exec ruby http_smoke.rb
+        if: matrix.ruby == '3.4'
 
   rails:
     runs-on: ubuntu-latest
