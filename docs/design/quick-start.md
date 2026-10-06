@@ -1,6 +1,6 @@
 # a2a-rails v0.1 Quick Start Design
 
-> **Status: Step 14 design complete. Step 15-12 runtime-verifies the generator-backed Echo Quick Start both from source and from the built `a2a-rails-0.1.0` gem installed into a clean Rails application.**
+> **Status: Step 14 design complete. Step 15-12 runtime-verifies the generator-backed Echo Quick Start from source and from the built Gem. Step 15-13 verifies the v0.1.0 release-candidate metadata and packaged release files. Publication has not yet been performed.**
 
 This document fixes the first-time developer experience for an existing Rails application. The example uses Echo to keep the Gem independent of any business domain.
 
@@ -67,9 +67,11 @@ Step 15-11 invokes the generators by their Rails namespace, verifies the exact g
 
 Step 15-12 repeats that contract from the **built and installed gem** in a clean Rails 8.1 application. The verification explicitly proves that Bundler resolves `a2a-rails-0.1.0` from the installed RubyGems path rather than from the repository checkout before invoking the generator CLI.
 
+Step 15-13 keeps that clean-app flow and additionally verifies user-facing release files and RubyGems metadata in the packaged artifact.
+
 ## 3. README Quick Start
 
-> The flow below is runtime-verified from both the repository source tree and the packaged gem installed in a clean Rails application. `bundle add` still describes the intended released-gem experience; it does not mean the Gem has already been published.
+> The flow below is runtime-verified from both the repository source tree and the packaged gem installed in a clean Rails application. `bundle add` describes the intended released-gem experience; v0.1.0 is not considered published until the release-execution step completes.
 
 ### Add and install
 
@@ -310,7 +312,7 @@ The upstream SDK's `A2A::Server::Triage` can log the full Rack environment at IN
 
 ## 7. Runtime Verification
 
-Implemented and verified through Step 15-12:
+Implemented and verified through Step 15-13:
 
 - Agent metadata / Skill DSL;
 - Skill and callable Handler validation;
@@ -340,7 +342,9 @@ Implemented and verified through Step 15-12:
 - generated Echo setup → Rails boot → Agent Card → `SendMessage → TASK_STATE_COMPLETED` → `Echo: Hello`;
 - built `.gem` inspection for required runtime / generator files;
 - installed packaged-gem path proven independent of the source checkout;
-- clean Rails 8.1 app + actual generator CLI + Echo HTTP flow.
+- clean Rails 8.1 app + actual generator CLI + Echo HTTP flow;
+- packaged README, CHANGELOG, and LICENSE verification;
+- RubyGems source/changelog/documentation/issue-tracker/MFA metadata verification.
 
 Current verification result:
 
@@ -349,8 +353,10 @@ Ruby: 3.3 / 3.4 / 4.0
 Rails: 8.0 / 8.1
 CI: 13 / 13 green
 Gem suite: 70 tests / 240 assertions / 0 failures / 0 errors / 0 skips
-Packaged gem SHA256: 09c55122c5d5e6cb5f9b735664d70b000f67d23dcaad9f4a8ff960dbe02dd410
+Step 15-12 package SHA256: 09c55122c5d5e6cb5f9b735664d70b000f67d23dcaad9f4a8ff960dbe02dd410
 ```
+
+The final release artifact SHA256 is intentionally not frozen here: Step 15-14 must rebuild and hash the Gem from the exact release commit/tag.
 
 ## 8. Packaged Gem Verification
 
@@ -372,9 +378,20 @@ Two verification-harness issues were intentionally caught while establishing thi
 
 Neither was a Gem runtime defect; both improved the isolation of the packaged-artifact test.
 
-The implementation/packaging path is now verified. Publishing is a separate release action and has **not** been performed.
+Step 15-13 extends package verification to `README.md`, `CHANGELOG.md`, `LICENSE`, the Ruby requirement, license metadata, and canonical RubyGems links.
 
-**Next: Step 15-13 — Prepare the v0.1.0 release candidate and release checklist without publishing yet.**
+## 9. Release Candidate Boundary
+
+Step 15-13 prepares the release candidate only. It adds the changelog, canonical release notes, final gemspec metadata, and the release checklist.
+
+It does **not**:
+
+- create tag `v0.1.0`;
+- publish to RubyGems;
+- create a GitHub Release;
+- change repository visibility.
+
+**Next: Step 15-14 — Execute the v0.1.0 release and post-release verification after explicit approval.**
 
 ## Official References
 
