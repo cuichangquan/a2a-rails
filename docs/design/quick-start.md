@@ -1,6 +1,6 @@
 # a2a-rails v0.1 Quick Start Design
 
-> **Status: Step 14 design complete. Step 15-11 runtime-verifies the generator-backed Echo Quick Start from source, including Rails boot, Agent Card retrieval, and A2A `SendMessage → COMPLETED`. Packaged-gem verification remains before release.**
+> **Status: Step 14 design complete. Step 15-12 runtime-verifies the generator-backed Echo Quick Start both from source and from the built `a2a-rails-0.1.0` gem installed into a clean Rails application.**
 
 This document fixes the first-time developer experience for an existing Rails application. The example uses Echo to keep the Gem independent of any business domain.
 
@@ -65,11 +65,11 @@ Handler placement remains an application choice. `app/services` is used below on
 
 Step 15-11 invokes the generators by their Rails namespace, verifies the exact generated file contents, and then uses those files as the starting point for the Echo application smoke test.
 
-The source-tree smoke therefore verifies the generator contract itself, rather than merely constructing equivalent files by hand.
+Step 15-12 repeats that contract from the **built and installed gem** in a clean Rails 8.1 application. The verification explicitly proves that Bundler resolves `a2a-rails-0.1.0` from the installed RubyGems path rather than from the repository checkout before invoking the generator CLI.
 
 ## 3. README Quick Start
 
-> The flow below is runtime-verified from the repository source tree. Building/installing the packaged `.gem` into a clean external Rails application is intentionally deferred to Step 15-12.
+> The flow below is runtime-verified from both the repository source tree and the packaged gem installed in a clean Rails application. `bundle add` still describes the intended released-gem experience; it does not mean the Gem has already been published.
 
 ### Add and install
 
@@ -79,8 +79,6 @@ bin/rails generate a2a:rails:install
 bin/rails generate a2a:rails:agent echo
 mkdir -p app/services/echo
 ```
-
-`bundle add` here describes the intended released-gem experience; it is not evidence that a release already exists.
 
 ### Create the Handler
 
@@ -209,7 +207,7 @@ Success means:
 
 Exact IDs, timestamps, optional fields, and Artifact metadata are not fixed fixtures.
 
-Step 15-11 runtime-verifies this sequence after invoking the real generator namespaces and starting from their generated files.
+Step 15-12 verifies this sequence from a clean Rails application using the built `.gem`, including actual `bin/rails generate` commands and the installed Gem runtime.
 
 ## 4. Skill Routing
 
@@ -312,7 +310,7 @@ The upstream SDK's `A2A::Server::Triage` can log the full Rack environment at IN
 
 ## 7. Runtime Verification
 
-Implemented and verified through Step 15-11:
+Implemented and verified through Step 15-12:
 
 - Agent metadata / Skill DSL;
 - Skill and callable Handler validation;
@@ -339,31 +337,44 @@ Implemented and verified through Step 15-11:
 - `a2a:rails:agent NAME` generator;
 - exact generated initializer / Agent scaffold contract;
 - generator namespace invocation;
-- generated Echo setup → Rails boot → Agent Card → `SendMessage → TASK_STATE_COMPLETED` → `Echo: Hello`.
+- generated Echo setup → Rails boot → Agent Card → `SendMessage → TASK_STATE_COMPLETED` → `Echo: Hello`;
+- built `.gem` inspection for required runtime / generator files;
+- installed packaged-gem path proven independent of the source checkout;
+- clean Rails 8.1 app + actual generator CLI + Echo HTTP flow.
 
 Current verification result:
 
 ```text
 Ruby: 3.3 / 3.4 / 4.0
 Rails: 8.0 / 8.1
-CI: 12 / 12 green
+CI: 13 / 13 green
 Gem suite: 70 tests / 240 assertions / 0 failures / 0 errors / 0 skips
+Packaged gem SHA256: 09c55122c5d5e6cb5f9b735664d70b000f67d23dcaad9f4a8ff960dbe02dd410
 ```
 
-## 8. Remaining Release-Readiness Gap
+## 8. Packaged Gem Verification
 
-Step 15-11 proves the Quick Start from the repository source checkout. It does **not** yet prove the installed packaged Gem experience.
+Step 15-12 builds `a2a-rails-0.1.0` and verifies that the artifact contains the required Engine, routes, generator classes, and generator templates. The smoke installs that artifact with RubyGems and creates a clean Rails 8.1 application outside the repository checkout.
 
-The next verification should build the `.gem`, install/reference that artifact from a clean Rails application, and then execute the real CLI flow:
+Before running any generator, the test checks the loaded Gem path and rejects the run if `a2a-rails` resolves back to the source repository. It then executes:
 
 ```bash
 bin/rails generate a2a:rails:install
 bin/rails generate a2a:rails:agent echo
 ```
 
-That catches packaging/file-list/generator-discovery issues that a source-tree test cannot fully prove.
+The generated files are compared with the fixed scaffold contract. The documented Echo edits are then applied and the clean application verifies Agent Card retrieval and `SendMessage → TASK_STATE_COMPLETED → Echo: Hello`.
 
-**Next: Step 15-12 — Packaged Gem + clean Rails application release-readiness verification.**
+Two verification-harness issues were intentionally caught while establishing this boundary:
+
+1. launching the smoke under the repository's `bundle exec` leaked `BUNDLE_GEMFILE` into child processes and correctly triggered the source-path guard;
+2. a minimal Rails fixture needed `--skip-asset-pipeline` when using the deliberately narrow clean-app Gemfile.
+
+Neither was a Gem runtime defect; both improved the isolation of the packaged-artifact test.
+
+The implementation/packaging path is now verified. Publishing is a separate release action and has **not** been performed.
+
+**Next: Step 15-13 — Prepare the v0.1.0 release candidate and release checklist without publishing yet.**
 
 ## Official References
 
