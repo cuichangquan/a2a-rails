@@ -7,5 +7,31 @@ module A2A
     class ConfigurationError < Error; end
     class InvalidHandlerError < ConfigurationError; end
     class UnknownSkillError < ConfigurationError; end
+
+    class RejectedTask < Error; end
+    class ArtifactMappingError < Error; end
+
+    class TaskError < Error; end
+    class TaskNotFoundError < TaskError
+      attr_reader :task_id
+
+      def initialize(task_id)
+        @task_id = task_id
+        super("Task not found: #{task_id}")
+      end
+    end
+
+    class TaskNotCancelableError < TaskError
+      attr_reader :task_id, :state
+
+      def initialize(task_id, state:)
+        @task_id = task_id
+        @state = state
+        super("Task #{task_id} is not cancelable from #{state}")
+      end
+    end
+
+    class InvalidTaskQueryError < TaskError; end
+    class InvalidTaskStateError < TaskError; end
   end
 end
