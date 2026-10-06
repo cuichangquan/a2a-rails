@@ -2,17 +2,19 @@
 
 Rails-native integration for exposing Rails applications as A2A agents.
 
-> **Status: SDK spike verified — the Rails gem is not implemented yet.**
+> **Status: Gem skeleton and Protocol Adapter implemented; Rails-facing core is next.**
 
 ## Current Status
 
-The v0.1 design is defined. Step 15 now verifies the published SDK before implementing the Rails gem.
+The A2A v1.0 SDK integration path and the first Gem skeleton are now runtime-verified.
 
-**Current stage:** Step 15-4 completed — `agent2agent 2.0.0` runtime compatibility spike
+**Current stage:** Step 15-5 completed — Gem skeleton and `Protocol::Agent2AgentAdapter`
 
-**Next step:** **Step 15-5 — Implement the Gem skeleton and Protocol Adapter.**
+**Next step:** **Step 15-6 — Implement the Agent / Skill DSL and Dispatcher.**
 
-The isolated spike passed all 9 CI jobs: Ruby 3.3 / 3.4 / 4.0, Rails 8.0 / 8.1, and a real HTTP server smoke check. The SDK contract suite has 17 tests / 231 assertions; Rails integration has 1 test / 9 assertions per combination. It covers Agent Card, Echo, `GetTask`, `ListTasks`, `CancelTask`, version validation, capability errors, and exact Rails routes. See [Step 15 findings](docs/design/sdk-compatibility-spike.md) for evidence and adoption limits.
+Step 15-5 introduced the first loadable Gem structure and isolated `agent2agent 2.0.0` behind an internal Protocol Adapter. The current CI has 12 green jobs: Gem tests on Ruby 3.3 / 3.4 / 4.0 plus the existing SDK / Rails compatibility matrix. The Gem suite runs 6 tests / 18 assertions with no failures, errors, or skips. The adapter keeps SDK objects out of the downstream boundary, validates A2A v1.0 requests, buffers non-rewindable Rack input, and returns SDK schema objects internally. See [Draft PR #1](https://github.com/cuichangquan/a2a-rails/pull/1) for implementation and verification details.
+
+The Step 15-4 isolated spike also remains green across Ruby 3.3 / 3.4 / 4.0, Rails 8.0 / 8.1, and a real HTTP server smoke check. See [Step 15 findings](docs/design/sdk-compatibility-spike.md) for evidence and adoption limits.
 
 ## Development Progress
 
@@ -280,6 +282,7 @@ Key decisions:
 
 - Rails Engine / controllers / routes are only the Rails integration layer.
 - SDK-specific behavior is isolated behind `Protocol::Adapter` and `Protocol::Agent2AgentAdapter`.
+- Step 15-5 implements the initial Gem skeleton and Protocol Adapter; Agent / Skill / Dispatcher remain the next implementation layer.
 - Task lifecycle, result mapping, Artifact mapping, and Task storage live under `A2A::Rails::Task`.
 - The default v0.1 Task Store is in-memory.
 - v0.1 generators are limited to `install` and `agent`.
@@ -289,7 +292,8 @@ Key decisions:
 - Rails integration tests use a minimal `test/dummy` application.
 - ActiveRecord and ActiveJob are not required dependencies.
 - v0.1 now targets Ruby `>= 3.3` and Rails `>= 8.0, < 8.2`; the SDK dependency graph cannot resolve on Ruby 3.2.
-- The spike verified `agent2agent = 2.0.0`; the first implementation dependency is planned as `~> 2.0.0`. The Adapter must supply version / validation / Rack input handling and safe logging. Rails 8.0 also needs the documented JSON compatibility constraint.
+- The implementation currently depends on `agent2agent ~> 2.0.0`, `json < 3`, `rack >= 3.0, < 4`, and `railties >= 8.0, < 8.2`.
+- The SDK's server triage logger can emit the Rack environment; the production Rails-facing integration must prevent sensitive request data from being exposed through SDK logging.
 
 See [v0.1 Gem Structure](docs/design/gem-structure.md) for details.
 
