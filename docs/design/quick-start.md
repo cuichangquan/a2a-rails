@@ -1,6 +1,6 @@
 # a2a-rails v0.1 Quick Start Design
 
-> **Status: Step 14 design complete. Step 15-6 implements the Agent / Skill DSL and Dispatcher; generators, Rails HTTP integration, Task execution, and the full Quick Start are not runtime-verified yet.**
+> **Status: Step 14 design complete. Step 15-7 implements the Agent / Skill / Dispatcher and internal Task core; generators, Rails HTTP integration, protocol execution wiring, and the full Quick Start are not runtime-verified yet.**
 
 This document fixes the first-time developer experience for an existing Rails application. The example uses Echo to keep the gem independent of any business domain.
 
@@ -242,6 +242,8 @@ Handler context:
 
 Do not introduce public `A2A::Rails::Message`, `Context`, or `TextPart` classes in v0.1. Task and Artifact conversion remains internal. A String return becomes a Text Part Artifact.
 
+Step 15-7 now implements the internal Task representation and result boundary. Internal Task hashes use Symbol keys and Symbol states; A2A enum/string conversion remains the Protocol Adapter's responsibility. `Task::Lifecycle` owns creation and state transitions but deliberately does not invoke Handlers directly, so Agent/Router configuration failures remain separate from FAILED business Tasks.
+
 ## 6. First-Time Error Experience
 
 Adding the gem or running a generator must not fail Rails boot merely because the A2A Agent is unregistered or incomplete. Resolve and validate the registered Agent when an A2A endpoint is used, respecting Rails autoload/reload. This does not promise to suppress syntax errors in application-owned Ruby code.
@@ -254,11 +256,11 @@ Adding the gem or running a generator must not fail Rails boot merely because th
 | Multiple Skills without Router | `ConfigurationError`: Agent defines multiple Skills but no Router is configured | No arbitrary Skill fallback |
 | Handler raises an unexpected exception | Detailed exception in Rails logger | Task state `TASK_STATE_FAILED` with a generic message |
 
-Configuration failures occur before business execution; they do not masquerade as failed Handler Tasks. Agent Card validation failures return a generic HTTP 500, consistent with the Agent Card design. A2A request failures use the SDK/Adapter error boundary. Fix the exact JSON-RPC envelope and code during the compatibility spike; never expose Ruby class names, stack traces, or raw exception messages to clients.
+Configuration failures occur before business execution; they do not masquerade as failed Handler Tasks. Agent Card validation failures return a generic HTTP 500, consistent with the Agent Card design. A2A request failures use the SDK/Adapter error boundary. Never expose Ruby class names, stack traces, or raw unexpected exception messages to clients.
 
 ## 7. Acceptance and Next Step
 
-Step 14 is complete as a design decision. Step 15-6 now runtime-verifies the Agent / Skill / Dispatcher subset. Full Quick Start implementation acceptance still requires:
+Step 14 is complete as a design decision. Step 15-7 now runtime-verifies the Agent / Skill / Dispatcher subset plus the internal Task core. Full Quick Start implementation acceptance still requires:
 
 - Generator output matches the two-file contract and contains no dangling Handler reference.
 - An unconfigured or incomplete Agent does not break host Rails boot.
@@ -268,7 +270,7 @@ Step 14 is complete as a design decision. Step 15-6 now runtime-verifies the Age
 - Configuration errors and Handler exceptions follow the separate behaviors above.
 - README examples, contract tests, and Critical E2E use A2A v1.0 method names and wire shapes.
 
-Implemented in Step 15-6:
+Implemented through Step 15-7:
 
 - Agent metadata / Skill DSL.
 - Skill validation and callable Handler validation.
@@ -277,8 +279,15 @@ Implemented in Step 15-6:
 - Unknown Router selection via `UnknownSkillError`.
 - Handler `skill_id` context injection without mutating incoming context.
 - Ruby `Class#name` behavior remains intact even though `name "..."` is used as the display-name DSL.
+- Task creation and `SUBMITTED` / `WORKING` / terminal-state transitions.
+- String / Hash / Array / nil Handler result mapping to internal Artifacts.
+- Explicit `ArtifactMappingError` for unsupported result types.
+- Generic FAILED client message plus detailed internal logging.
+- Atomic cancellation and terminal-state overwrite protection.
+- Thread-safe in-memory Task storage with deep-copy reads.
+- `ListTasks` filtering, stable newest-first ordering, and opaque snapshot pagination.
 
-**Next: Step 15-7 — Task Lifecycle, Result / Artifact Mapping, and MemoryStore.**
+**Next: Step 15-8 — Connect Dispatcher + Task Lifecycle to `SendMessage`, `GetTask`, `ListTasks`, and `CancelTask`, and map the internal Task representation through the Protocol Adapter.**
 
 ## Official References
 
