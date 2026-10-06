@@ -12,6 +12,7 @@ module Step1512PackagedGemSmoke
 
   ROOT = File.expand_path("../..", __dir__)
   RAILS_VERSION = ENV.fetch("PACKAGED_RAILS_VERSION", "~> 8.1.0")
+  HOMEPAGE = "https://github.com/cuichangquan/a2a-rails"
 
   INITIALIZER_SCAFFOLD = <<~RUBY.freeze
     A2A::Rails.configure do |config|
@@ -119,7 +120,18 @@ module Step1512PackagedGemSmoke
     lib/generators/a2a/rails/templates/initializer.rb.tt
     lib/generators/a2a/rails/templates/agent.rb.tt
     config/routes.rb
+    README.md
+    CHANGELOG.md
+    LICENSE
   ].freeze
+
+  REQUIRED_METADATA = {
+    "source_code_uri" => HOMEPAGE,
+    "changelog_uri" => "#{HOMEPAGE}/blob/main/CHANGELOG.md",
+    "documentation_uri" => "#{HOMEPAGE}#readme",
+    "bug_tracker_uri" => "#{HOMEPAGE}/issues",
+    "rubygems_mfa_required" => "true"
+  }.freeze
 
   def assert(condition, message)
     raise message unless condition
@@ -146,6 +158,14 @@ module Step1512PackagedGemSmoke
     spec = package.spec
     assert(spec.name == "a2a-rails", "unexpected packaged gem name")
     assert(spec.version.to_s == "0.1.0", "unexpected packaged gem version: #{spec.version}")
+    assert(spec.homepage == HOMEPAGE, "unexpected packaged gem homepage: #{spec.homepage}")
+    assert(spec.license == "MIT", "unexpected packaged gem license: #{spec.license}")
+    assert(spec.required_ruby_version.satisfied_by?(Gem::Version.new("3.3.0")), "Ruby 3.3 must be supported")
+    assert(!spec.required_ruby_version.satisfied_by?(Gem::Version.new("3.2.9")), "Ruby 3.2 must not be supported")
+
+    REQUIRED_METADATA.each do |key, value|
+      assert(spec.metadata[key] == value, "unexpected gem metadata #{key}: #{spec.metadata[key].inspect}")
+    end
 
     unpack_dir = File.join(tmpdir, "unpacked")
     FileUtils.mkdir_p(unpack_dir)
