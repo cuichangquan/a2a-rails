@@ -2,26 +2,19 @@
 
 Rails-native integration for exposing Rails applications as A2A agents.
 
-> **Status: the generator-backed Echo Quick Start is implemented and runtime-verified from source; packaged-gem release readiness is next.**
+> **Status: the built `a2a-rails` gem is runtime-verified in a clean Rails application; v0.1 release-candidate preparation is next.**
 
 ## Current Status
 
-The A2A v1.0 SDK integration path, Gem core, Protocol Adapter, Agent / Skill DSL, Task lifecycle, Configuration, Agent Card generation, Rails Engine HTTP endpoints, and the `install` / `agent` generators are now runtime-verified.
+The A2A v1.0 SDK integration path, Gem core, Protocol Adapter, Agent / Skill DSL, Task lifecycle, Configuration, Agent Card generation, Rails Engine HTTP endpoints, generators, source-tree Quick Start, and packaged-gem installation path are now runtime-verified.
 
-**Current stage:** Step 15-11 completed — generators + generated Echo Quick Start
+**Current stage:** Step 15-12 completed — packaged-gem / release-readiness verification
 
-**Next step:** **Step 15-12 — Verify the built `.gem` in a clean Rails application and complete v0.1 release readiness.**
+**Next step:** **Step 15-13 — Prepare the v0.1.0 release candidate: release notes / changelog, final package metadata and release checklist, without publishing yet.**
 
-Step 15-11 adds the two intentionally small generators:
+Step 15-12 builds the actual `a2a-rails-0.1.0` gem, inspects the artifact for required Engine / generator / template files, installs that gem outside the repository checkout, creates a clean Rails 8.1 application, proves Bundler resolves the installed gem rather than the source tree, runs the real `bin/rails generate a2a:rails:install` and `a2a:rails:agent echo` commands, applies the documented Echo setup, and verifies Agent Card + `SendMessage → TASK_STATE_COMPLETED` + `Echo: Hello`. The successful package SHA256 is `09c55122c5d5e6cb5f9b735664d70b000f67d23dcaad9f4a8ff960dbe02dd410`. The supported CI now has **13 / 13 green jobs**, while the Gem suite remains **70 tests / 240 assertions / 0 failures / 0 errors / 0 skips**. See [Draft PR #6](https://github.com/cuichangquan/a2a-rails/pull/6).
 
-```bash
-bin/rails generate a2a:rails:install
-bin/rails generate a2a:rails:agent echo
-```
-
-The integration smoke invokes those generator namespaces, verifies their exact output, applies the documented Echo Handler / Skill setup, boots a minimal Rails application, retrieves the Agent Card, and sends a real A2A `SendMessage` request through `/a2a`. The response reaches `TASK_STATE_COMPLETED` with an `Echo: Hello` Artifact. The supported CI matrix is **12 / 12 green**, and the Gem suite runs **70 tests / 240 assertions / 0 failures / 0 errors / 0 skips**. See [Draft PR #5](https://github.com/cuichangquan/a2a-rails/pull/5).
-
-Step 15-10 implemented the automatically mounted Rails Engine, thin API controllers, a process-local Runtime that shares the in-memory Task Store across HTTP requests, and the Rails-facing SDK logging boundary. Step 15-9 implemented lazy Configuration and Agent Card generation. Step 15-8 wired `SendMessage`, `GetTask`, `ListTasks`, and `CancelTask` through the real SDK. Step 15-7 implemented the SDK-independent Task core. Step 15-6 implemented the Rails-facing Agent / Skill / Dispatcher API. Step 15-5 introduced the loadable Gem skeleton and Protocol Adapter. Step 15-4 verified the `agent2agent 2.0.0` SDK path across the supported Ruby / Rails matrix.
+Step 15-11 added the intentionally small `install` / `agent` generators and the generator-backed source-tree Quick Start. Step 15-10 implemented the automatically mounted Rails Engine, thin API controllers, a process-local Runtime that shares the in-memory Task Store across HTTP requests, and the Rails-facing SDK logging boundary. Step 15-9 implemented lazy Configuration and Agent Card generation. Step 15-8 wired `SendMessage`, `GetTask`, `ListTasks`, and `CancelTask` through the real SDK. Step 15-7 implemented the SDK-independent Task core. Step 15-6 implemented the Rails-facing Agent / Skill / Dispatcher API. Step 15-5 introduced the loadable Gem skeleton and Protocol Adapter. Step 15-4 verified the `agent2agent 2.0.0` SDK path across the supported Ruby / Rails matrix.
 
 ## Development Progress
 
@@ -48,7 +41,8 @@ Step 15-10 implemented the automatically mounted Rails Engine, thin API controll
   - [x] 15-9 Configuration + Agent Card
   - [x] 15-10 Rails Engine HTTP integration
   - [x] 15-11 Generators + generated Quick Start
-  - [ ] 15-12 Packaged-gem / release-readiness verification
+  - [x] 15-12 Packaged-gem / release-readiness verification
+  - [ ] 15-13 v0.1.0 release-candidate preparation
 
 ## v0.1 Direction
 
@@ -76,7 +70,7 @@ Main principles:
 
 ## Quick Start
 
-> The flow below is runtime-verified from the repository source tree in Step 15-11. The project has not yet completed packaged-gem / release verification.
+> The flow below is runtime-verified both from the repository source tree and from the built `a2a-rails-0.1.0` gem installed into a clean Rails application.
 
 ### 1. Add and install
 
@@ -354,7 +348,20 @@ Verified contract:
 - namespace-based generator invocation reproduces the documented files;
 - the generated Echo setup boots under Rails and completes a real A2A `SendMessage` request.
 
-The remaining release-readiness gap is verifying these generators after building/installing the `.gem`, using a clean Rails application rather than the repository source checkout.
+Step 15-12 verifies the same generator contract from the **built and installed gem**, in a clean Rails application outside the repository source checkout.
+
+## Packaged Gem Verification
+
+Step 15-12 verifies the distribution artifact itself:
+
+- `gem build a2a-rails.gemspec` produces `a2a-rails-0.1.0`;
+- the package contains the Engine, generator classes, generator templates, and routes required at runtime;
+- the clean app resolves `a2a-rails-0.1.0` from the installed RubyGems path, not from the repository checkout;
+- actual `bin/rails generate` commands discover both generators;
+- generated files match the documented scaffold contract;
+- the clean app boots and serves the generated Agent Card;
+- `SendMessage` completes with the Echo Artifact;
+- verified package SHA256: `09c55122c5d5e6cb5f9b735664d70b000f67d23dcaad9f4a8ff960dbe02dd410`.
 
 ## Test Strategy
 
@@ -372,11 +379,12 @@ The current CI matrix covers:
 - Gem: Ruby 3.3 / 3.4 / 4.0
 - SDK spike: Ruby 3.3 / 3.4 / 4.0
 - Rails: Ruby 3.3 / 3.4 / 4.0 × Rails 8.0 / 8.1
+- Packaged gem: Ruby 3.4 + clean Rails 8.1 application
 
-Current Step 15-11 result:
+Current Step 15-12 result:
 
 ```text
-12 / 12 CI jobs green
+13 / 13 CI jobs green
 70 tests
 240 assertions
 0 failures
