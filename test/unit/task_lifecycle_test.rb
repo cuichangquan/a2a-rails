@@ -24,12 +24,12 @@ class TaskLifecycleTest < Minitest::Test
     )
   end
 
-  def message
+  def input_message
     { message_id: "message-1", role: :user, parts: [{ text: "Hello" }] }
   end
 
   def test_create_start_and_complete
-    submitted = @lifecycle.create(message: message, context_id: "context-1")
+    submitted = @lifecycle.create(message: input_message, context_id: "context-1")
     assert_equal "task-1", submitted[:id]
     assert_equal "context-1", submitted[:context_id]
     assert_equal :submitted, submitted.dig(:status, :state)
@@ -40,18 +40,18 @@ class TaskLifecycleTest < Minitest::Test
     completed = @lifecycle.complete(submitted[:id], "done")
     assert_equal :completed, completed.dig(:status, :state)
     assert_equal "done", completed.dig(:artifacts, 0, :parts, 0, :text)
-    assert_equal message, completed[:history].first
+    assert_equal input_message, completed[:history].first
   end
 
   def test_missing_context_id_is_generated
-    submitted = @lifecycle.create(message: message)
+    submitted = @lifecycle.create(message: input_message)
 
     assert_equal "task-1", submitted[:id]
     assert_equal "context-generated", submitted[:context_id]
   end
 
   def test_reject_preserves_safe_business_reason
-    submitted = @lifecycle.create(message: message, context_id: "context-1")
+    submitted = @lifecycle.create(message: input_message, context_id: "context-1")
     @lifecycle.start(submitted[:id])
 
     rejected = @lifecycle.reject(submitted[:id], A2A::Rails::RejectedTask.new("Request is not allowed"))
@@ -61,7 +61,7 @@ class TaskLifecycleTest < Minitest::Test
   end
 
   def test_fail_exposes_generic_message_and_logs_exception_detail
-    submitted = @lifecycle.create(message: message, context_id: "context-1")
+    submitted = @lifecycle.create(message: input_message, context_id: "context-1")
     @lifecycle.start(submitted[:id])
     error = RuntimeError.new("database exploded")
 
@@ -74,7 +74,7 @@ class TaskLifecycleTest < Minitest::Test
   end
 
   def test_cancel_is_not_overwritten_by_late_completion
-    submitted = @lifecycle.create(message: message, context_id: "context-1")
+    submitted = @lifecycle.create(message: input_message, context_id: "context-1")
     @lifecycle.start(submitted[:id])
 
     canceled = @lifecycle.cancel(submitted[:id])
@@ -86,7 +86,7 @@ class TaskLifecycleTest < Minitest::Test
   end
 
   def test_list_and_find_delegate_to_store
-    submitted = @lifecycle.create(message: message, context_id: "context-1")
+    submitted = @lifecycle.create(message: input_message, context_id: "context-1")
 
     assert_equal submitted, @lifecycle.find(submitted[:id])
     assert_equal [submitted[:id]], @lifecycle.list[:tasks].map { |task| task[:id] }
