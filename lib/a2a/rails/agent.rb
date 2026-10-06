@@ -1,0 +1,103 @@
+# frozen_string_literal: true
+
+module A2A
+  module Rails
+    class Agent
+      UNSET = Object.new.freeze
+
+      class << self
+        def name(value = UNSET)
+          return super() if value.equal?(UNSET)
+
+          @a2a_name = value
+        end
+
+        def agent_name
+          @a2a_name
+        end
+
+        def description(value = UNSET)
+          return @a2a_description if value.equal?(UNSET)
+
+          @a2a_description = value
+        end
+
+        def version(value = UNSET)
+          return @a2a_version if value.equal?(UNSET)
+
+          @a2a_version = value
+        end
+
+        def router(value = UNSET)
+          return @a2a_router if value.equal?(UNSET)
+
+          @a2a_router = value
+        end
+
+        def skill(id, description:, tags:, handler:, name: nil)
+          definition = Skill.new(
+            id: id,
+            name: name,
+            description: description,
+            tags: tags,
+            handler: handler
+          )
+          skill_definitions << definition
+          definition
+        end
+
+        def skills
+          skill_definitions.dup.freeze
+        end
+
+        def validate!
+          validate_metadata!
+          validate_skills!
+          validate_router!
+          self
+        end
+
+        private
+
+        def skill_definitions
+          @a2a_skills ||= []
+        end
+
+        def validate_metadata!
+          {
+            name: @a2a_name,
+            description: @a2a_description,
+            version: @a2a_version
+          }.each do |field, value|
+            next unless value.nil? || value.to_s.strip.empty?
+
+            raise ConfigurationError, "#{self} must define #{field}"
+          end
+        end
+
+        def validate_skills!
+          if skill_definitions.empty?
+            raise ConfigurationError, "#{self} must define at least one skill"
+          end
+
+          duplicate = skill_definitions.group_by(&:id).find { |_id, definitions| definitions.length > 1 }
+          if duplicate
+            raise ConfigurationError, "#{self} defines duplicate skill id: #{duplicate.first.inspect}"
+          end
+
+          skill_definitions.each(&:validate!)
+        end
+
+        def validate_router!
+          if skill_definitions.length > 1 && @a2a_router.nil?
+            raise ConfigurationError, "#{self} defines multiple skills but no Router is configured"
+          end
+
+          return if @a2a_router.nil? || @a2a_router.respond_to?(:call)
+
+          raise ConfigurationError, "Router #{@a2a_router.inspect} must respond to .call"
+        end
+      end
+    end
+  end
+end
