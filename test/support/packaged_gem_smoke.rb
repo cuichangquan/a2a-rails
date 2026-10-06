@@ -166,7 +166,11 @@ module Step1512PackagedGemSmoke
 
   def create_clean_app(tmpdir, version)
     app_root = File.join(tmpdir, "clean_app")
-    run!("rails", "new", app_root, "--minimal", "--skip-bundle", "--skip-git", chdir: tmpdir)
+    run!(
+      "rails", "new", app_root,
+      "--minimal", "--skip-asset-pipeline", "--skip-bundle", "--skip-git",
+      chdir: tmpdir
+    )
 
     File.write(
       File.join(app_root, "Gemfile"),
