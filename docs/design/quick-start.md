@@ -1,6 +1,6 @@
 # a2a-rails v0.1 Quick Start Design
 
-> **Status: Step 14 design complete. The gem, generators, and examples are not implemented or runtime-verified yet.**
+> **Status: Step 14 design complete. Step 15-6 implements the Agent / Skill DSL and Dispatcher; generators, Rails HTTP integration, Task execution, and the full Quick Start are not runtime-verified yet.**
 
 This document fixes the first-time developer experience for an existing Rails application. The example uses Echo to keep the gem independent of any business domain.
 
@@ -196,13 +196,13 @@ end
 ```ruby
 class Shopping::AgentRouter
   def self.call(message:, context:, skills:)
-    # Application routing logic selects one declared Skill ID.
+    # skills is a frozen Array<Symbol> of declared Skill IDs.
     :search_products
   end
 end
 ```
 
-The Dispatcher validates the selected ID against declared Skills. An unknown selection uses `A2A::Rails::UnknownSkillError`. The Router receives execution context before Skill selection; `skill_id` is added to the Handler context after selection. The precise read-only `skills` collection contract and Router failure mapping must be fixed and tested during implementation before publishing this API.
+The Dispatcher validates the selected ID against declared Skills. `skills:` is a frozen `Array<Symbol>` containing only declared Skill IDs. The Router may return a matching Symbol or String. An unknown selection raises `A2A::Rails::UnknownSkillError`; the Dispatcher never silently falls back to another Skill. The Router receives execution context before Skill selection, and `skill_id` is added to a new Handler context after selection without mutating the incoming context.
 
 ## 5. Handler Boundary
 
@@ -258,7 +258,7 @@ Configuration failures occur before business execution; they do not masquerade a
 
 ## 7. Acceptance and Next Step
 
-Step 14 is complete as a design decision. Implementation acceptance requires:
+Step 14 is complete as a design decision. Step 15-6 now runtime-verifies the Agent / Skill / Dispatcher subset. Full Quick Start implementation acceptance still requires:
 
 - Generator output matches the two-file contract and contains no dangling Handler reference.
 - An unconfigured or incomplete Agent does not break host Rails boot.
@@ -268,7 +268,17 @@ Step 14 is complete as a design decision. Implementation acceptance requires:
 - Configuration errors and Handler exceptions follow the separate behaviors above.
 - README examples, contract tests, and Critical E2E use A2A v1.0 method names and wire shapes.
 
-**Next: Step 15 — Start Implementation.** Begin with a Ruby SDK compatibility spike: verify A2A v1.0 `SendMessage`, `GetTask`, Agent Card, enums, Part shape, response envelope, version header handling, and supported Ruby/Rails combinations. Record the tested SDK version and pin the dependency only after it passes. If the candidate SDK cannot support the target, resolve that boundary before implementing the full gem; do not reproduce the protocol inside a2a-rails.
+Implemented in Step 15-6:
+
+- Agent metadata / Skill DSL.
+- Skill validation and callable Handler validation.
+- Single-Skill automatic dispatch.
+- Multi-Skill Router dispatch with a frozen Symbol ID collection.
+- Unknown Router selection via `UnknownSkillError`.
+- Handler `skill_id` context injection without mutating incoming context.
+- Ruby `Class#name` behavior remains intact even though `name "..."` is used as the display-name DSL.
+
+**Next: Step 15-7 — Task Lifecycle, Result / Artifact Mapping, and MemoryStore.**
 
 ## Official References
 
