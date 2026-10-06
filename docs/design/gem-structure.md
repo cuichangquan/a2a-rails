@@ -345,14 +345,14 @@ The dummy app should avoid UI, unnecessary models, database requirements, Devise
 v0.1 targets:
 
 ```text
-Ruby  >= 3.2
+Ruby  >= 3.3
 Rails >= 8.0, < 8.2
 ```
 
 The gem should depend on the Rails components it actually needs rather than the full `rails` meta-gem:
 
 ```ruby
-spec.required_ruby_version = ">= 3.2"
+spec.required_ruby_version = ">= 3.3"
 
 spec.add_dependency "railties", ">= 8.0", "< 8.2"
 spec.add_dependency "actionpack", ">= 8.0", "< 8.2"
@@ -377,9 +377,6 @@ Do not leave the final SDK dependency unconstrained.
 The intended release matrix is:
 
 ```text
-Ruby 3.2 ─┬─ Rails 8.0
-          └─ Rails 8.1
-
 Ruby 3.3 ─┬─ Rails 8.0
           └─ Rails 8.1
 
@@ -405,7 +402,7 @@ Default Task Store      → MemoryStore
 Generators              → install + agent only
 Rails integration test  → test/dummy
 Test framework          → Minitest
-Ruby support            → >= 3.2
+Ruby support            → >= 3.3
 Rails support           → >= 8.0, < 8.2
 ActiveRecord required   → no
 ActiveJob required      → no
@@ -420,3 +417,6 @@ The structure is intentionally small enough for v0.1 while preserving clean boun
 Step 14 is complete; see [Quick Start Design](quick-start.md).
 
 **Step 15: Start Implementation** — begin with the Ruby SDK A2A v1.0 compatibility spike before pinning dependencies and building the gem.
+
+
+Step 15 runtime revision: `agent2agent 2.0.0` requires `protocol-http ~> 0.62`, whose Ruby requirement is >=3.3. Ruby 3.2 cannot resolve the published dependency graph; keep it outside the supported matrix. See [spike findings](sdk-compatibility-spike.md).

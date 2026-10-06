@@ -1,0 +1,14 @@
+source "https://rubygems.org"
+
+gem "agent2agent", "2.0.0"
+gem "minitest", "~> 5.25"
+gem "rackup", "~> 2.2"
+gem "webrick", "~> 1.9"
+
+# CI supplies the Rails minor; the SDK-only run leaves Rails out.
+if ENV["SPIKE_RAILS_VERSION"]
+  gem "railties", ENV.fetch("SPIKE_RAILS_VERSION")
+  gem "actionpack", ENV.fetch("SPIKE_RAILS_VERSION")
+  # Rails 8.0's JSON encoder passes quirks_mode, removed by json 3.
+  gem "json", "< 3" if ENV.fetch("SPIKE_RAILS_VERSION").include?("8.0")
+end

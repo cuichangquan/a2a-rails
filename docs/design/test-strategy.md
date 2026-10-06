@@ -117,7 +117,7 @@ WORKING
 - unexpected exception詳細はloggerへ記録する
 - 外部Taskにはgeneric failure messageのみを公開する
 
-`CANCELED` はstateとして認識するがv0.1の通常フローでは到達しない。
+Step 15改訂: `CancelTask` 受理時は `CANCELED`。Handler終了時のterminal state保持も検証する。
 `INPUT_REQUIRED` / `AUTH_REQUIRED` はv0.1 Scope外。
 
 ### Artifact Mapping
@@ -321,3 +321,14 @@ Step 14 acceptance additions:
 - Multiple Skills require explicit application routing.
 
 Next: **Step 15 — Start Implementation**, starting with the SDK compatibility spike.
+
+
+
+## Step 15追加Contract Cases
+
+- `ListTasks` のfilter、inclusive timestamp、default pageSize=50、cursor pagination、history、Artifact opt-in。
+- `CancelTask` のTask不存在、各terminal state拒否、受理、同時Handler完了による上書き防止。
+- Version 1.0受付、未指定/空/他version拒否、query parameter代替。
+- Streaming/Push/Extended CardのCapability error。
+- `/rest` / `/grpc` / mounted well-known非公開、HTTP method / Content-Type。
+- Ruby 3.2はSDK依存解決不能の既知除外。リリース対象はRuby 3.3 / 3.4 / 4.0とRails 8.0 / 8.1。

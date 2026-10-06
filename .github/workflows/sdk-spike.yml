@@ -1,0 +1,70 @@
+name: SDK v1.0 spike and Gem
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  gem:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        ruby: ["3.3", "3.4", "4.0"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ matrix.ruby }}
+          bundler-cache: true
+      - run: bundle exec rake test
+
+  sdk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        ruby: ["3.3", "3.4", "4.0"]
+    defaults:
+      run:
+        working-directory: spikes/agent2agent_v1
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ matrix.ruby }}
+          working-directory: spikes/agent2agent_v1
+          bundler-cache: true
+      - run: bundle exec ruby spike_test.rb
+      - run: bundle exec ruby http_smoke.rb
+        if: matrix.ruby == '3.4'
+
+  rails:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        ruby: ["3.3", "3.4", "4.0"]
+        rails: ["~> 8.0.0", "~> 8.1.0"]
+    env:
+      SPIKE_RAILS_VERSION: ${{ matrix.rails }}
+    defaults:
+      run:
+        working-directory: spikes/agent2agent_v1
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ matrix.ruby }}
+          working-directory: spikes/agent2agent_v1
+          bundler-cache: true
+          cache-version: ${{ matrix.rails }}
+      - run: bundle exec ruby spike_test.rb
+      - run: bundle exec ruby rails_test.rb
