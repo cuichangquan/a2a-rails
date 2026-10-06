@@ -2,9 +2,12 @@
 
 require_relative "a2a/rails/version"
 require_relative "a2a/rails/errors"
+require_relative "a2a/rails/configuration"
 require_relative "a2a/rails/skill"
 require_relative "a2a/rails/agent"
 require_relative "a2a/rails/dispatcher"
+require_relative "a2a/rails/agent_card/validator"
+require_relative "a2a/rails/agent_card/builder"
 require_relative "a2a/rails/task"
 require_relative "a2a/rails/protocol/adapter"
 require_relative "a2a/rails/protocol/task_mapper"
@@ -13,5 +16,15 @@ require_relative "a2a/rails/protocol/agent2agent_adapter"
 
 module A2A
   module Rails
+    class << self
+      def configuration
+        @configuration ||= Configuration.new
+      end
+
+      def configure
+        yield configuration
+        configuration
+      end
+    end
   end
 end

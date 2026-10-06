@@ -37,6 +37,36 @@ class SkillTest < Minitest::Test
     assert_equal "Echo Reply", skill.name
   end
 
+  def test_optional_agent_card_fields_are_preserved
+    skill = A2A::Rails::Skill.new(
+      id: :reply,
+      description: "Echo",
+      tags: ["echo"],
+      examples: ["Hello"],
+      input_modes: ["text/plain"],
+      output_modes: ["application/json"],
+      handler: Callable
+    )
+
+    assert_equal ["Hello"], skill.examples
+    assert_equal ["text/plain"], skill.input_modes
+    assert_equal ["application/json"], skill.output_modes
+    assert skill.examples.frozen?
+    assert_same skill, skill.validate!
+  end
+
+  def test_optional_mode_fields_must_be_non_empty_string_arrays
+    skill = A2A::Rails::Skill.new(
+      id: :reply,
+      description: "Echo",
+      tags: ["echo"],
+      input_modes: [],
+      handler: Callable
+    )
+
+    assert_raises(A2A::Rails::ConfigurationError) { skill.validate! }
+  end
+
   def test_description_is_required
     skill = A2A::Rails::Skill.new(id: :reply, description: " ", tags: ["echo"], handler: Callable)
 
