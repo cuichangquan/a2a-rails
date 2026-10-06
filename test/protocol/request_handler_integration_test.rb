@@ -84,6 +84,38 @@ class RequestHandlerIntegrationTest < Minitest::Test
     assert_equal(-32_602, rpc(rack, "GetTask", {}).dig("error", "code"))
   end
 
+  def test_cancel_wins_over_late_send_completion
+    started = Queue.new
+    release = Queue.new
+    rack, _lifecycle, adapter = build_stack(handler: lambda do |message:, context:|
+      started << context.fetch(:task_id)
+      release.pop
+      "late result"
+    end)
+
+    worker = Thread.new do
+      Rack::MockRequest.new(adapter).post(
+        "/a2a",
+        "CONTENT_TYPE" => "application/json",
+        "HTTP_A2A_VERSION" => "1.0",
+        input: JSON.generate(jsonrpc: "2.0", id: "worker", method: "SendMessage", params: send_params)
+      )
+    end
+
+    task_id = started.pop
+    canceled = rpc(rack, "CancelTask", "id" => task_id).fetch("result")
+    assert_equal "TASK_STATE_CANCELED", canceled.dig("status", "state")
+
+    release << true
+    sent = JSON.parse(worker.value.body).fetch("result").fetch("task")
+    assert_equal "TASK_STATE_CANCELED", sent.dig("status", "state")
+    refute sent.key?("artifacts")
+  ensure
+    release << true if release && worker&.alive?
+    worker&.join(2)
+    worker&.kill if worker&.alive?
+  end
+
   def test_task_continuation_and_non_text_parts_are_rejected_at_protocol_boundary
     rack, lifecycle = build_stack(handler: ->(message:, context:) { "unused" })
     task = lifecycle.create(message: internal_message, context_id: "context-existing")
@@ -128,7 +160,7 @@ class RequestHandlerIntegrationTest < Minitest::Test
       request_handler: request_handler
     )
 
-    [Rack::MockRequest.new(adapter), lifecycle]
+    [Rack::MockRequest.new(adapter), lifecycle, adapter]
   end
 
   def rpc(rack, method, params)
