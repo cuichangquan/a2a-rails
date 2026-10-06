@@ -283,7 +283,7 @@ bin/rails generate a2a:rails:install
 bin/rails generate a2a:rails:agent shopping
 ```
 
-`install` creates the initializer.
+`install` creates only `config/initializers/a2a_rails.rb`, with `config.agent = "YourAgent"` and the optional `A2A_PUBLIC_BASE_URL` setting.
 
 `agent` creates an application-owned Agent under:
 
@@ -293,7 +293,9 @@ app/agents/shopping_agent.rb
 
 v0.1 intentionally does not add generators for Handlers, Task Stores, controllers, protocol adapters, database migrations, or ActiveJob execution.
 
-Handler placement remains an application decision.
+Handler placement remains an application decision. The Agent scaffold contains metadata and a comment inviting Skill registration, with no live reference to a nonexistent Handler. It does not automatically register the Agent.
+
+Agent resolution and complete validation happen when an A2A endpoint is used, not merely when Rails boots. See [Quick Start Design](quick-start.md) for the exact generated content and Echo path.
 
 ---
 
@@ -415,6 +417,6 @@ The structure is intentionally small enough for v0.1 while preserving clean boun
 
 ## 12. Next Step
 
-**Step 14: Quick Start Design**
+Step 14 is complete; see [Quick Start Design](quick-start.md).
 
-Step 14 should define the exact first-time developer path from adding the gem to successfully serving an Agent Card and handling the first A2A request.
+**Step 15: Start Implementation** — begin with the Ruby SDK A2A v1.0 compatibility spike before pinning dependencies and building the gem.

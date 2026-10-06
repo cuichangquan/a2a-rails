@@ -8,11 +8,11 @@ Rails-native integration for exposing Rails applications as A2A agents.
 
 The project is currently defining the v0.1 architecture and public API before implementation.
 
-**Current stage:** Step 13 completed — Gem Structure
+**Current stage:** Step 14 completed — Quick Start Design
 
-**Next step:** **Step 14 — Quick Start Design**
+**Next step:** **Step 15 — Start Implementation**
 
-The next design work will define the exact first-time developer path from adding the gem to successfully serving an Agent Card and handling the first A2A request.
+Begin with a Ruby A2A SDK compatibility spike for the exact v1.0 Echo request/response path, Agent Card, `GetTask`, and the supported Ruby / Rails matrix. Pin the SDK dependency after compatibility is verified.
 
 ## Development Progress
 
@@ -29,8 +29,8 @@ The next design work will define the exact first-time developer path from adding
 - [x] 11. Task Lifecycle Design
 - [x] 12. Test Strategy
 - [x] 13. Gem Structure
-- [ ] **14. Quick Start Design ← NEXT**
-- [ ] 15. Start Implementation
+- [x] 14. Quick Start Design
+- [ ] **15. Start Implementation ← NEXT**
 
 ## v0.1 Direction
 
@@ -61,6 +61,22 @@ Main principles:
 - [v0.1 Design Decisions](docs/design/v0.1-decisions.md) — current architecture, scope, terminology, SDK boundary, public API, Agent Card design, Task Lifecycle design, and design principles.
 - [v0.1 Test Strategy](docs/design/test-strategy.md) — Minitest strategy, test layers, mocking boundaries, Critical E2E cases, and CI policy.
 - [v0.1 Gem Structure](docs/design/gem-structure.md) — Gem directory structure, Rails Engine boundary, Protocol Adapter placement, Task components, generators, dummy Rails application, dependencies, and supported Ruby / Rails matrix.
+
+- [v0.1 Quick Start Design](docs/design/quick-start.md) — Echo setup, generator output, A2A v1.0 request, Skill routing, Handler Hash boundary, error experience, and implementation acceptance.
+
+## Quick Start (Design Preview)
+
+The Quick Start is designed but has not been implemented or runtime-verified. The intended path is:
+
+1. Add `a2a-rails` to an existing Rails application.
+2. Generate the initializer and an Echo Agent.
+3. Create `Echo::Reply` in the application and declare one `reply` Skill.
+4. Register `"EchoAgent"` and start Rails without an explicit Engine mount.
+5. Retrieve `/.well-known/agent-card.json`.
+6. Send `SendMessage` to `/a2a` with `A2A-Version: 1.0`.
+7. Confirm `TASK_STATE_COMPLETED` and an Artifact containing `Echo: Hello`.
+
+See [the complete Quick Start design](docs/design/quick-start.md) for copy-and-paste examples intended for use after implementation. No database, ActiveJob, authentication, or LLM is needed for this local example.
 
 ## Target Developer Experience
 
@@ -98,7 +114,7 @@ A2A::Rails.configure do |config|
 end
 ```
 
-v0.1 targets **one public A2A Agent per Rails application**, with multiple Skills handled by Rails-side Handlers.
+v0.1 targets **one public A2A Agent per Rails application**. One Skill dispatches automatically; multiple Skills require an application-owned Router. A2A messages do not contain a standard Skill selector. Handlers receive SDK-independent Ruby Hashes for `message` and `context`; the Handler context includes the selected internal `skill_id`.
 
 ## Agent Card
 
@@ -232,10 +248,10 @@ Critical E2E cases for v0.1:
 
 ```text
 1. Agent Card retrieval
-2. message/send → COMPLETED
-3. message/send → REJECTED
-4. message/send → FAILED
-5. tasks/get → stored Task retrieval
+2. SendMessage → COMPLETED
+3. SendMessage → REJECTED
+4. SendMessage → FAILED
+5. GetTask → stored Task retrieval
 ```
 
 CI runs Unit, Adapter Contract, Rails Integration, and Critical E2E tests on pull requests and `main` pushes. Release builds require all supported Ruby / Rails matrix combinations to be green.
@@ -264,6 +280,9 @@ Key decisions:
 - Task lifecycle, result mapping, Artifact mapping, and Task storage live under `A2A::Rails::Task`.
 - The default v0.1 Task Store is in-memory.
 - v0.1 generators are limited to `install` and `agent`.
+- `install` creates only the initializer with a generic `"YourAgent"` placeholder.
+- `agent` creates only the Agent scaffold; it does not reference a nonexistent Handler or register the Agent automatically.
+- Registered Agent validation happens when A2A endpoints are used; incomplete A2A configuration does not fail host Rails boot.
 - Rails integration tests use a minimal `test/dummy` application.
 - ActiveRecord and ActiveJob are not required dependencies.
 - v0.1 targets Ruby `>= 3.2` and Rails `>= 8.0, < 8.2`.

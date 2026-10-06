@@ -86,7 +86,9 @@ Dispatcherの責務は薄く保つ。
 - 正しいSkill / Handlerを選択する
 - `message` / `context` を正しく渡す
 - Handlerの戻り値をそのまま次の層へ返す
-- Unknown Skillは `A2A::Rails::UnknownSkillError`
+- 単一Skillは自動選択、複数Skillはアプリ側Routerで選択
+- Router未設定時に最初のSkillへfallbackしない
+- Routerが返したUnknown Skillは `A2A::Rails::UnknownSkillError`
 - Invalid Handlerは `A2A::Rails::InvalidHandlerError`
 
 DispatcherではTask state変更、Artifact変換、Task保存、Protocol response生成を行わない。
@@ -170,8 +172,8 @@ Unit TestではSDKをmockし、Contract Testでは実SDKを使用する。
 - Task / TaskState
 - Artifact / Part
 - Agent Card
-- `message/send`
-- `tasks/get`
+- `SendMessage`
+- `GetTask`
 - Protocol error mapping
 
 SDK内部のserializationやvalidationロジックそのものは再テストしない。
@@ -230,9 +232,9 @@ Response
 - successful execution → `COMPLETED`
 - business rejection → `REJECTED`
 - unexpected exception → `FAILED`
-- unknown skill
+- application Router returning an unknown Skill ID
 - invalid request
-- `tasks/get`
+- `GetTask`
 
 Gem内部の主要コンポーネントはIntegration/E2Eでは原則mockしない。
 Rails application側の外部APIなどGem責務外の依存はstub可能。
@@ -245,10 +247,10 @@ v0.1 Critical Pathは最低限以下の5本とする。
 
 ```text
 1. Agent Card取得
-2. message/send → COMPLETED
-3. message/send → REJECTED
-4. message/send → FAILED
-5. tasks/get → 保存済みTask取得
+2. SendMessage → COMPLETED
+3. SendMessage → REJECTED
+4. SendMessage → FAILED
+5. GetTask → 保存済みTask取得
 ```
 
 この5本はv0.1のリリース可能性を判断するCritical E2Eとする。
@@ -308,4 +310,14 @@ v0.1 Test Strategy:
 
 Step 12: Test Strategy is complete.
 
-Next: **Step 13 — Gem Structure**.
+Step 13 and Step 14 are complete. See [Gem Structure](gem-structure.md) and [Quick Start Design](quick-start.md).
+
+Step 14 acceptance additions:
+
+- Exact Echo Quick Start through the real Ruby SDK, including `A2A-Version: 1.0`, `ROLE_USER`, direct Text Parts, the `result.task` envelope, and `TASK_STATE_COMPLETED`.
+- Generator output has no dangling Handler constant and does not auto-register the Agent.
+- Missing/incomplete Agent configuration permits host Rails boot; validation occurs at A2A endpoint use.
+- Handler arguments match the SDK-independent Hash contract.
+- Multiple Skills require explicit application routing.
+
+Next: **Step 15 — Start Implementation**, starting with the SDK compatibility spike.
