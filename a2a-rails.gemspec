@@ -12,10 +12,20 @@ Gem::Specification.new do |spec|
   spec.license = "MIT"
   spec.required_ruby_version = ">= 3.3"
 
-  spec.files = Dir["lib/**/*", "app/**/*", "config/**/*", "README.md", "LICENSE"]
+  spec.files = Dir[
+    "lib/**/*",
+    "app/**/*",
+    "config/**/*",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE"
+  ]
   spec.require_paths = ["lib"]
 
   spec.metadata["source_code_uri"] = spec.homepage
+  spec.metadata["changelog_uri"] = "#{spec.homepage}/blob/main/CHANGELOG.md"
+  spec.metadata["documentation_uri"] = "#{spec.homepage}#readme"
+  spec.metadata["bug_tracker_uri"] = "#{spec.homepage}/issues"
   spec.metadata["rubygems_mfa_required"] = "true"
 
   spec.add_dependency "agent2agent", "~> 2.0.0"
