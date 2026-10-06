@@ -1,53 +1,17 @@
 # a2a-rails
 
-Rails-native integration for exposing Rails applications as A2A agents.
+Rails-native integration for exposing Rails applications as A2A v1.0 agents.
 
-> **Status: the v0.1.0 release candidate is prepared and CI-verified; the actual public release is next.**
+> **Status: v0.1.0 is released and available on RubyGems.**
 
-## Current Status
+- RubyGems: https://rubygems.org/gems/a2a-rails
+- GitHub Release: https://github.com/cuichangquan/a2a-rails/releases/tag/v0.1.0
+- Changelog: [CHANGELOG.md](CHANGELOG.md)
+- Release record: [docs/release/v0.1.0-record.md](docs/release/v0.1.0-record.md)
 
-The A2A v1.0 SDK integration path, Gem core, Protocol Adapter, Agent / Skill DSL, Task lifecycle, Configuration, Agent Card generation, Rails Engine HTTP endpoints, generators, source-tree Quick Start, packaged-gem installation path, and v0.1.0 release-candidate metadata are now verified.
+## What is a2a-rails?
 
-**Current stage:** Step 15-13 completed — v0.1.0 release-candidate preparation
-
-**Next step:** **Step 15-14 — Execute the v0.1.0 release: final artifact verification from the exact main commit, public-release readiness, `v0.1.0` tag, RubyGems publication, GitHub Release, and post-release smoke verification.**
-
-Step 15-13 adds `CHANGELOG.md`, canonical v0.1.0 release notes, a pre-release / publish / post-release checklist, and final RubyGems metadata for source, changelog, documentation, issue tracker, and MFA. The packaged-gem smoke now verifies those metadata fields plus README, CHANGELOG, LICENSE, Ruby compatibility, generator discovery, clean-app installation, Agent Card retrieval, and Echo `SendMessage`. The release-candidate CI is **13 / 13 green**, while the Gem suite remains **70 tests / 240 assertions / 0 failures / 0 errors / 0 skips**. See [Draft PR #7](https://github.com/cuichangquan/a2a-rails/pull/7).
-
-Step 15-12 verified the actual built gem in a clean Rails application. Step 15-11 added the intentionally small `install` / `agent` generators and the generator-backed source-tree Quick Start. Step 15-10 implemented the automatically mounted Rails Engine, thin API controllers, a process-local Runtime that shares the in-memory Task Store across HTTP requests, and the Rails-facing SDK logging boundary. Step 15-9 implemented lazy Configuration and Agent Card generation. Step 15-8 wired `SendMessage`, `GetTask`, `ListTasks`, and `CancelTask` through the real SDK. Step 15-7 implemented the SDK-independent Task core. Step 15-6 implemented the Rails-facing Agent / Skill / Dispatcher API. Step 15-5 introduced the loadable Gem skeleton and Protocol Adapter. Step 15-4 verified the `agent2agent 2.0.0` SDK path across the supported Ruby / Rails matrix.
-
-## Development Progress
-
-- [x] 1. Research A2A Protocol v1.0
-- [x] 2. Research Ruby A2A SDKs / Gems
-- [x] 3. Research Rails-oriented A2A alternatives
-- [x] 4. Define the problem a2a-rails solves
-- [x] 5. Define v0.1 scope
-- [x] 6. Define terminology
-- [x] 7. Define architecture
-- [x] 8. Define Ruby SDK boundary
-- [x] 9. Public API Design
-- [x] 10. Agent Card Design
-- [x] 11. Task Lifecycle Design
-- [x] 12. Test Strategy
-- [x] 13. Gem Structure
-- [x] 14. Quick Start Design
-- [ ] **15. Implementation / release preparation ← IN PROGRESS**
-  - [x] 15-4 SDK compatibility spike
-  - [x] 15-5 Gem skeleton + Protocol Adapter
-  - [x] 15-6 Agent / Skill DSL + Dispatcher
-  - [x] 15-7 Task core + MemoryStore
-  - [x] 15-8 Task operations through real SDK
-  - [x] 15-9 Configuration + Agent Card
-  - [x] 15-10 Rails Engine HTTP integration
-  - [x] 15-11 Generators + generated Quick Start
-  - [x] 15-12 Packaged-gem / release-readiness verification
-  - [x] 15-13 v0.1.0 release-candidate preparation
-  - [ ] 15-14 v0.1.0 release execution
-
-## v0.1 Direction
-
-v0.1 is **server-first** and focuses on exposing a Rails application as an A2A Agent.
+`a2a-rails` lets a Rails application expose an A2A-compatible Agent without making application code depend directly on SDK-specific request and response objects.
 
 ```text
 A2A Protocol
@@ -61,61 +25,73 @@ Rails Application
 Business Logic
 ```
 
-Main principles:
+The Gem provides:
 
-- Do not reimplement the A2A Protocol.
-- Focus on Rails integration.
-- Keep SDK-specific APIs out of the public API.
-- Prefer a small, non-streaming server scope for v0.1.
-- Keep a2a-rails independent from ActingFor.
+- a Rails-native Agent / Skill DSL;
+- A2A Agent Card generation;
+- automatically mounted A2A HTTP endpoints;
+- synchronous Task execution;
+- SDK-independent Handler inputs;
+- a process-local Task Store;
+- Rails generators for initial setup;
+- an internal Protocol Adapter boundary around the upstream SDK.
 
-## Quick Start
+v0.1 is intentionally **server-first** and **non-streaming**.
 
-> The flow below is runtime-verified both from the repository source tree and from the built `a2a-rails-0.1.0` gem installed into a clean Rails application.
+## Requirements
 
-### 1. Add and install
+- Ruby `>= 3.3`
+- Rails `>= 8.0, < 8.2`
+- A2A protocol version `1.0`
+- `agent2agent ~> 2.0.0`
+
+The v0.1.0 release is verified against:
+
+- Ruby 3.3 / 3.4 / 4.0
+- Rails 8.0 / 8.1
+
+## Installation
+
+Add the Gem to an existing Rails application:
 
 ```bash
 bundle add a2a-rails
+```
+
+Then generate the initializer and an Agent scaffold:
+
+```bash
+bin/rails generate a2a:rails:install
+bin/rails generate a2a:rails:agent echo
+```
+
+No explicit Engine mount or host `config/routes.rb` change is required.
+
+## Quick Start
+
+The following Echo flow is verified against the published `a2a-rails 0.1.0` Gem in a clean Rails 8.1 application.
+
+### 1. Generate the setup
+
+```bash
 bin/rails generate a2a:rails:install
 bin/rails generate a2a:rails:agent echo
 mkdir -p app/services/echo
 ```
 
-`install` creates only:
+The install generator creates:
 
 ```text
 config/initializers/a2a_rails.rb
 ```
 
-with:
-
-```ruby
-A2A::Rails.configure do |config|
-  config.agent = "YourAgent"
-  config.public_base_url = ENV["A2A_PUBLIC_BASE_URL"]
-end
-```
-
-`agent echo` creates only:
+The Agent generator creates:
 
 ```text
 app/agents/echo_agent.rb
 ```
 
-with:
-
-```ruby
-class EchoAgent < A2A::Rails::Agent
-  name "Echo Agent"
-  description "TODO"
-  version "1.0"
-
-  # Add at least one skill.
-end
-```
-
-The generator deliberately does **not** create a Handler, route, controller, Task Store, job, migration, or registration side effect. It also does not reference a Handler that does not exist yet.
+The generators deliberately do not create application business logic, jobs, migrations, Task Stores, or routing side effects.
 
 ### 2. Create the Handler
 
@@ -133,7 +109,9 @@ class Echo::Reply
 end
 ```
 
-### 3. Define the Skill
+Handlers receive SDK-independent Ruby Hashes for `message` and `context`.
+
+### 3. Define the Agent and Skill
 
 Replace `app/agents/echo_agent.rb` with:
 
@@ -163,15 +141,19 @@ A2A::Rails.configure do |config|
 end
 ```
 
-For localhost, leave `A2A_PUBLIC_BASE_URL` unset or set it to `http://localhost:3000`. The Agent class name remains a String until an A2A endpoint resolves it, preserving Rails autoload / reload behavior.
+For localhost, leave `A2A_PUBLIC_BASE_URL` unset or set it to `http://localhost:3000`.
 
-No explicit Engine mount or host `config/routes.rb` change is required.
+The Agent class name remains a String until an A2A endpoint resolves it, preserving Rails autoload / reload behavior.
 
 ### 5. Check the Agent Card
+
+Start Rails:
 
 ```bash
 bin/rails server
 ```
+
+Then request the Agent Card:
 
 ```bash
 curl -sS http://localhost:3000/.well-known/agent-card.json \
@@ -183,9 +165,9 @@ Expected essentials:
 - HTTP 200
 - Agent name `Echo Agent`
 - Skill ID `reply`
-- JSON-RPC A2A interface pointing to `http://localhost:3000/a2a`
+- A2A interface URL ending in `/a2a`
 
-### 6. Send the first message
+### 6. Send a message
 
 ```bash
 curl -sS -X POST http://localhost:3000/a2a \
@@ -205,16 +187,18 @@ curl -sS -X POST http://localhost:3000/a2a \
   }'
 ```
 
-Success means:
+A successful response reaches:
 
 ```text
 result.task.status.state == TASK_STATE_COMPLETED
 Artifact Text Part == "Echo: Hello"
 ```
 
-See [the complete Quick Start design and verification notes](docs/design/quick-start.md).
+See [docs/design/quick-start.md](docs/design/quick-start.md) for the design and verification notes behind this flow.
 
-## Target Developer Experience
+## Public Rails API
+
+A minimal Agent looks like this:
 
 ```ruby
 class ShoppingAgent < A2A::Rails::Agent
@@ -248,11 +232,11 @@ A2A::Rails.configure do |config|
 end
 ```
 
-v0.1 targets **one public A2A Agent per Rails application**. Handlers receive SDK-independent Ruby Hashes for `message` and `context`.
+v0.1 targets **one public A2A Agent per Rails application**.
 
-For multiple Skills, the application supplies a Router. The Router receives `skills:` as a frozen `Array<Symbol>` of declared Skill IDs and may return a matching Symbol or String. Unknown selections raise `A2A::Rails::UnknownSkillError`; the Dispatcher never silently chooses the first Skill.
+For multiple Skills, the application supplies a Router. The Router receives `skills:` as a frozen `Array<Symbol>` of declared Skill IDs and may return a matching Symbol or String. Unknown selections raise `A2A::Rails::UnknownSkillError`; the Dispatcher does not silently choose the first Skill.
 
-## Agent Card
+## HTTP Endpoints
 
 The Gem automatically exposes:
 
@@ -261,20 +245,25 @@ GET  /.well-known/agent-card.json
 POST /a2a
 ```
 
-Agent Card behavior:
+The Rails Engine is mounted automatically.
 
-- generated from the Agent / Skill DSL;
-- Skill IDs and default display names are generated from Skill declarations;
+## Agent Card
+
+Agent Cards are generated from the Agent / Skill DSL.
+
+Behavior in v0.1:
+
+- Skill IDs and default display names come from Skill declarations;
 - optional `examples`, `input_modes`, and `output_modes` map to A2A Agent Card fields;
-- Handler internals are never exposed;
+- Handler internals are not exposed;
 - `public_base_url` wins when configured, otherwise the request base URL is used;
 - default input/output mode is `text/plain`;
-- Streaming, Push Notifications, and Extended Agent Cards are disabled for v0.1;
-- generated Cards pass the real `agent2agent 2.0.0` Agent Card schema.
+- Streaming, Push Notifications, and Extended Agent Cards are disabled;
+- generated Cards pass the `agent2agent 2.0.0` Agent Card schema.
 
 ## Task Lifecycle
 
-Internally the Gem keeps SDK-independent Task states:
+Internally, `a2a-rails` keeps SDK-independent Task states:
 
 ```text
 SUBMITTED
@@ -304,112 +293,30 @@ nil          → no Artifact
 other object → ArtifactMappingError
 ```
 
-v0.1 Task behavior:
+Supported Task operations:
 
-- server-generated Task IDs;
-- client Context ID preserved, otherwise server-generated;
-- terminal states are immutable;
-- thread-safe process-local `Task::MemoryStore` by default;
-- `SendMessage`, `GetTask`, `ListTasks`, and `CancelTask` supported;
-- `ListTasks` supports context/state/timestamp filters, stable newest-first ordering, page sizes 1–100, and opaque snapshot pagination;
-- cancellation is atomic, but does not interrupt Handler execution or undo business side effects;
-- v0.1 Handler execution accepts text Message Parts;
-- continuing an existing Task via `message.taskId` is not supported;
-- `INPUT_REQUIRED` and `AUTH_REQUIRED` are out of scope.
+- `SendMessage`
+- `GetTask`
+- `ListTasks`
+- `CancelTask`
 
-The default store is for development and simple synchronous workloads. Tasks and pagination cursors are process-local and are not durable across process restarts or shared between processes.
+`ListTasks` supports context/state/timestamp filters, stable newest-first ordering, page sizes 1–100, and opaque snapshot pagination.
 
-## Rails Integration
+The default `Task::MemoryStore` is thread-safe but process-local. Tasks and pagination cursors are not durable across process restarts and are not shared between processes.
 
-Step 15-10 provides:
+Cancellation changes Task state atomically, but does not stop already-running Handler code or reverse application side effects.
 
-- an automatically mounted Rails Engine;
-- thin `ActionController::API` controllers;
-- `/.well-known/agent-card.json` and `/a2a` routes;
-- lazy application Agent resolution;
-- one process-local Runtime that shares the default Task Store across HTTP requests;
-- request-derived Agent Card URL fallback;
-- a logging boundary that suppresses the upstream SDK `A2A::Server::Triage` INFO log containing the full Rack environment while restoring prior Console logging state afterward.
+## Architecture
 
-## Generators
+Key boundaries:
 
-Step 15-11 implements:
+- Rails Engine / controllers / routes form the Rails integration layer;
+- SDK-specific behavior stays behind `Protocol::Adapter` / `Protocol::Agent2AgentAdapter`;
+- A2A camelCase fields, `TASK_STATE_*`, SDK schema objects, and SDK errors stay in the Protocol layer;
+- Agent / Handler application constants are resolved lazily through Rails;
+- ActiveRecord and ActiveJob are not runtime requirements.
 
-```text
-a2a:rails:install
-a2a:rails:agent NAME
-```
-
-Verified contract:
-
-- `install` creates only `config/initializers/a2a_rails.rb`;
-- `agent echo` creates only `app/agents/echo_agent.rb`;
-- the Agent scaffold has no dangling Handler reference;
-- the generated Agent is not automatically registered;
-- namespace-based generator invocation reproduces the documented files;
-- the generated Echo setup boots under Rails and completes a real A2A `SendMessage` request.
-
-Step 15-12 verifies the same generator contract from the **built and installed gem**, in a clean Rails application outside the repository source checkout.
-
-## Packaged Gem Verification
-
-Step 15-12 verifies the distribution artifact itself:
-
-- `gem build a2a-rails.gemspec` produces `a2a-rails-0.1.0`;
-- the package contains the Engine, generator classes, generator templates, and routes required at runtime;
-- the clean app resolves `a2a-rails-0.1.0` from the installed RubyGems path, not from the repository checkout;
-- actual `bin/rails generate` commands discover both generators;
-- generated files match the documented scaffold contract;
-- the clean app boots and serves the generated Agent Card;
-- `SendMessage` completes with the Echo Artifact;
-- Step 15-12 verified package SHA256: `09c55122c5d5e6cb5f9b735664d70b000f67d23dcaad9f4a8ff960dbe02dd410`.
-
-Step 15-13 extends this verification to user-facing release files and RubyGems metadata. The final published artifact must still be rebuilt and hashed from the exact tagged release commit.
-
-## Release Candidate
-
-Step 15-13 prepares, but does not publish, v0.1.0:
-
-- [CHANGELOG](CHANGELOG.md)
-- [v0.1.0 release notes](docs/release/v0.1.0.md)
-- [v0.1.0 release checklist](docs/release/v0.1.0-checklist.md)
-
-The gemspec publishes canonical links for source code, changelog, documentation, and issue tracking, and requires RubyGems MFA. `README.md`, `CHANGELOG.md`, and `LICENSE` are verified as package contents.
-
-No `v0.1.0` tag, RubyGems publication, GitHub Release, or repository-visibility change is performed in Step 15-13.
-
-## Test Strategy
-
-v0.1 uses **Minitest** with four layers:
-
-```text
-4. Protocol E2E / Smoke Tests
-3. Rails Integration Tests
-2. Adapter Contract Tests
-1. Core Unit Tests
-```
-
-The current CI matrix covers:
-
-- Gem: Ruby 3.3 / 3.4 / 4.0
-- SDK spike: Ruby 3.3 / 3.4 / 4.0
-- Rails: Ruby 3.3 / 3.4 / 4.0 × Rails 8.0 / 8.1
-- Packaged gem: Ruby 3.4 + clean Rails 8.1 application
-
-Current Step 15-13 result:
-
-```text
-13 / 13 CI jobs green
-70 tests
-240 assertions
-0 failures
-0 errors
-0 skips
-```
-
-Known warning-enabled output from upstream `agent2agent 2.0.0` remains, including circular-require / indentation / URI-parser warnings. Those warnings are distinct from the Rack-environment INFO logging that a2a-rails suppresses at the Rails-facing adapter boundary.
-
-## Gem Structure
+Gem structure:
 
 ```text
 lib/a2a/rails/
@@ -429,23 +336,6 @@ lib/generators/a2a/rails/
 └── templates/
 ```
 
-Key boundaries:
-
-- Rails Engine / controllers / routes are only the Rails integration layer.
-- SDK-specific behavior stays behind `Protocol::Adapter` / `Protocol::Agent2AgentAdapter`.
-- A2A camelCase fields, `TASK_STATE_*`, SDK schema objects, and SDK errors stay in the Protocol layer.
-- Agent / Handler application constants remain lazily resolved through Rails.
-- ActiveRecord and ActiveJob are not runtime requirements.
-- v0.1 targets Ruby `>= 3.3` and Rails `>= 8.0, < 8.2`.
-
-Current main dependencies:
-
-- `agent2agent ~> 2.0.0`
-- `actionpack >= 8.0, < 8.2`
-- `json < 3`
-- `rack >= 3.0, < 4`
-- `railties >= 8.0, < 8.2`
-
 ## v0.1 Scope
 
 Included:
@@ -456,15 +346,14 @@ Included:
 - Agent Card generation
 - `/.well-known/agent-card.json`
 - `POST /a2a`
-- Task lifecycle
-- `GetTask`, `ListTasks`, `CancelTask`
+- synchronous Task lifecycle
+- `SendMessage`, `GetTask`, `ListTasks`, `CancelTask`
 - `A2A-Version: 1.0` validation
 - in-memory Task Store
 - Rails Engine / Routes
 - Configuration
 - `install` / `agent` generators
 - Rails logging boundary
-- test support
 
 Not included in v0.1:
 
@@ -474,15 +363,76 @@ Not included in v0.1:
 - SSE / BiDi Streaming
 - Push Notifications
 - gRPC
-- Human-in-the-loop
-- `INPUT_REQUIRED` / `AUTH_REQUIRED` flows
-- Agent Registry / Marketplace
+- Human-in-the-loop flows
+- `INPUT_REQUIRED` / `AUTH_REQUIRED`
 - OAuth Server
+- Agent Registry / Marketplace
 - Authorization Engine
 - ActingFor integration
 - Admin UI
 - LLM Agent Framework
 - Orchestration Framework
+
+## Verification
+
+The v0.1.0 release candidate completed:
+
+```text
+13 / 13 CI jobs green
+70 tests
+240 assertions
+0 failures
+0 errors
+0 skips
+```
+
+After publication, `a2a-rails 0.1.0` was fetched back from RubyGems and its SHA256 matched the exact artifact that was pushed.
+
+Final published artifact SHA256:
+
+```text
+23d34bde6f436723bf01735f3a507cf8529975b1dfed5d5da9b063fc0480b19f
+```
+
+A fresh Rails 8.1 application then installed the published Gem from RubyGems and verified:
+
+```text
+Agent Card HTTP: 200
+Agent name: Echo Agent
+Skill: reply
+SendMessage HTTP: 200
+Task state: TASK_STATE_COMPLETED
+Artifact: Echo: Hello
+```
+
+See [docs/release/v0.1.0-record.md](docs/release/v0.1.0-record.md) for the complete release evidence.
+
+## Test Strategy
+
+v0.1 uses Minitest with four layers:
+
+```text
+4. Protocol E2E / Smoke Tests
+3. Rails Integration Tests
+2. Adapter Contract Tests
+1. Core Unit Tests
+```
+
+The CI matrix covers:
+
+- Gem: Ruby 3.3 / 3.4 / 4.0
+- SDK spike: Ruby 3.3 / 3.4 / 4.0
+- Rails: Ruby 3.3 / 3.4 / 4.0 × Rails 8.0 / 8.1
+- Packaged Gem: Ruby 3.4 + clean Rails 8.1 application
+
+Known warning-enabled output from upstream `agent2agent 2.0.0` can include circular-require, indentation, and URI-parser warnings. Those warnings are distinct from the Rack-environment INFO logging that `a2a-rails` suppresses at the Rails-facing adapter boundary.
+
+## Release Documents
+
+- [CHANGELOG](CHANGELOG.md)
+- [v0.1.0 Release Notes](docs/release/v0.1.0.md)
+- [v0.1.0 Release Checklist](docs/release/v0.1.0-checklist.md)
+- [v0.1.0 Release Record](docs/release/v0.1.0-record.md)
 
 ## Design Documents
 
@@ -490,10 +440,8 @@ Not included in v0.1:
 - [v0.1 Test Strategy](docs/design/test-strategy.md)
 - [v0.1 Gem Structure](docs/design/gem-structure.md)
 - [v0.1 Quick Start Design](docs/design/quick-start.md)
-- [Step 15 SDK compatibility findings](docs/design/sdk-compatibility-spike.md)
+- [SDK compatibility findings](docs/design/sdk-compatibility-spike.md)
 
-## Release Documents
+## License
 
-- [CHANGELOG](CHANGELOG.md)
-- [v0.1.0 Release Notes](docs/release/v0.1.0.md)
-- [v0.1.0 Release Checklist](docs/release/v0.1.0-checklist.md)
+The Gem is available as open source under the terms of the MIT License. See [LICENSE](LICENSE).
