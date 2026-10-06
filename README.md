@@ -1,7 +1,7 @@
 # a2a-rails
 
 <p align="center">
-  <img src="docs/assets/a2a-rails-handwritten-note.webp" alt="a2a-rails handwritten overview" width="500">
+  <img src="docs/assets/a2a-rails-handwritten-note.png" alt="a2a-rails handwritten overview" width="500">
 </p>
 
 Rails-native integration for exposing Rails applications as A2A v1.0 agents.
