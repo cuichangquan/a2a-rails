@@ -3,7 +3,19 @@
 ## 状況
 
 `agent2agent 2.0.0`の実Gemを用いた独立Spikeを実装した。
-CIの最終検証結果は完了後に以下へ記録する。Gem本体の実装・完全互換性認証は未完了。
+**Step 15-4の実行検証は完了。** Gem本体の実装・完全互換性認証は未完了。
+
+## 実行結果（2026-10-06）
+
+[成功CI](https://github.com/cuichangquan/a2a-rails/actions/runs/37431440117) — code commit `15ea5029f2c558f42b0ea10eaa9502c61ad897b9`。
+
+- SDK単体: Ruby 3.3 / 3.4 / 4.0の全3ジョブ成功。各17 tests / 231 assertions、failure / error / skipは0。
+- Rails統合: 上記3 Ruby × Rails 8.0 / 8.1の全6ジョブ成功。各1 test / 9 assertions、failure / error / skipは0。各ジョブでSDK Contractも通過。
+- 実HTTP: Ruby 3.4でWEBrickを起動し、Agent Card / Echo / GetTask / ListTasks / terminal CancelTaskを成功確認。WORKING TaskのキャンセルはContract Testで別途成功確認。
+- Ruby 3.4の解決例: SDK-onlyはjson 3.0.2、Rails 8.0.5.1はjson 2.21.2。Rack 3.2.7、protocol-http 0.72.0。
+- 判定: **薄い補完を条件にagent2agentを採用可能**。最初の正式Gem依存制約候補は`~> 2.0.0`。
+
+以下の差分は実行で確認したため、単にSDKをmountするだけで完全互換になるとは扱わない。
 
 ## 既に確定した差分
 
@@ -39,9 +51,9 @@ Ruby 3.2の依存解決失敗: [初回CI](https://github.com/cuichangquan/a2a-ra
 | Rails Integration | 3.3 / 3.4 / 4.0 | 8.0 / 8.1 |
 | 既知除外 | 3.2 | SDK依存解決不能 |
 
-SpikeはSDKのversionを`= 2.0.0`へ完全固定する。推移依存はBundlerのCI実行時に解決される。正式GemのSDK依存制約は結果を見て決定する。
+SpikeはSDKのversionを`= 2.0.0`へ完全固定する。推移依存はBundlerのCI実行時に解決される。正式Gemの最初のSDK依存制約は`~> 2.0.0`を採用予定とする。
 
-## 次の実装
+## 次: Step 15-5 — Gem Skeleton / Protocol Adapter
 
 - Gem skeletonとProtocol Adapterへ、この境界を移す。
 - Agent/Skill DSLと汎用Dispatcher、Handler結果のArtifact mappingを実装。

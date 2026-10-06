@@ -2,17 +2,17 @@
 
 Rails-native integration for exposing Rails applications as A2A agents.
 
-> **Status: SDK compatibility spike — the Rails gem is not implemented yet.**
+> **Status: SDK spike verified — the Rails gem is not implemented yet.**
 
 ## Current Status
 
 The v0.1 design is defined. Step 15 now verifies the published SDK before implementing the Rails gem.
 
-**Current stage:** Step 15-4 — `agent2agent 2.0.0` runtime compatibility spike
+**Current stage:** Step 15-4 completed — `agent2agent 2.0.0` runtime compatibility spike
 
-**Next step:** Complete the [SDK spike](spikes/agent2agent_v1/README.md), then implement the Gem skeleton and Protocol Adapter.
+**Next step:** **Step 15-5 — Implement the Gem skeleton and Protocol Adapter.**
 
-The isolated spike covers Agent Card, Echo, `GetTask`, `ListTasks`, `CancelTask`, version validation, capability errors, and exact Rails routes. See [Step 15 findings](docs/design/sdk-compatibility-spike.md) for evidence and adoption limits.
+The isolated spike passed all 9 CI jobs: Ruby 3.3 / 3.4 / 4.0, Rails 8.0 / 8.1, and a real HTTP server smoke check. The SDK contract suite has 17 tests / 231 assertions; Rails integration has 1 test / 9 assertions per combination. It covers Agent Card, Echo, `GetTask`, `ListTasks`, `CancelTask`, version validation, capability errors, and exact Rails routes. See [Step 15 findings](docs/design/sdk-compatibility-spike.md) for evidence and adoption limits.
 
 ## Development Progress
 
@@ -289,7 +289,7 @@ Key decisions:
 - Rails integration tests use a minimal `test/dummy` application.
 - ActiveRecord and ActiveJob are not required dependencies.
 - v0.1 now targets Ruby `>= 3.3` and Rails `>= 8.0, < 8.2`; the SDK dependency graph cannot resolve on Ruby 3.2.
-- `agent2agent` remains the first Ruby A2A SDK candidate; its exact dependency constraint will be pinned after the implementation compatibility spike.
+- The spike verified `agent2agent = 2.0.0`; the first implementation dependency is planned as `~> 2.0.0`. The Adapter must supply version / validation / Rack input handling and safe logging. Rails 8.0 also needs the documented JSON compatibility constraint.
 
 See [v0.1 Gem Structure](docs/design/gem-structure.md) for details.
 

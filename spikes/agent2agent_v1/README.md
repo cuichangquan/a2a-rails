@@ -2,6 +2,8 @@
 
 Step 15-4の使い捨て検証コード。a2a-rails Gemの実装ではない。
 
+**検証済み**: [CI全9ジョブ成功](https://github.com/cuichangquan/a2a-rails/actions/runs/37431440117)。SDK Contractは17 tests / 231 assertions、Railsは各1 test / 9 assertions、実HTTP smokeも成功。
+
 ## 実行
 
 Ruby **3.3以上**を使用する。SDKのgemspecは>=3.2だが、`protocol-http ~> 0.62`の依存により3.2では解決できない。
