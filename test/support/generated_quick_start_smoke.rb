@@ -68,8 +68,18 @@ module Step1511GeneratedQuickStartSmoke
   end
 
   def invoke_generators(root)
-    A2A::Rails::InstallGenerator.start([], destination_root: root)
-    A2A::Rails::AgentGenerator.start(["echo"], destination_root: root)
+    ::Rails::Generators.invoke(
+      "a2a:rails:install",
+      [],
+      behavior: :invoke,
+      destination_root: root
+    )
+    ::Rails::Generators.invoke(
+      "a2a:rails:agent",
+      ["echo"],
+      behavior: :invoke,
+      destination_root: root
+    )
   end
 
   def verify_scaffolds(root)
