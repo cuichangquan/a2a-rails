@@ -145,7 +145,7 @@ module Step1510Smoke
     auth_headers = { "CONTENT_TYPE" => "application/json", "HTTP_A2A_VERSION" => "1.0" }
 
     denied = request("POST", "/a2a", body: auth_payload, headers: auth_headers)
-    assert(denied.status == 401, "unauthenticated request was not denied: #{'#{denied.status}'}")
+    assert(denied.status == 401, "unauthenticated request was not denied: #{denied.status}")
     assert(denied["WWW-Authenticate"] == 'Bearer realm="echo-agent"', "missing authentication challenge")
     assert(JSON.parse(denied.body).fetch("error") == "Unauthorized", "unsafe authentication response")
     assert(denied["Cache-Control"].to_s.include?("no-store"), "authentication response can be cached")
@@ -161,7 +161,7 @@ module Step1510Smoke
 
     allowed = request("POST", "/a2a", body: auth_payload,
       headers: auth_headers.merge("HTTP_AUTHORIZATION" => "Bearer valid-token"))
-    assert(allowed.status == 200, "authenticated request failed: #{'#{allowed.status}'}")
+    assert(allowed.status == 200, "authenticated request failed: #{allowed.status}")
     assert(JSON.parse(allowed.body).dig("result", "task", "artifacts", 0, "parts", 0, "text") ==
       "Echo: Authenticated", "authenticated Handler did not run")
 
