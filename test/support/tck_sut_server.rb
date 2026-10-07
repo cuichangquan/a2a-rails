@@ -19,6 +19,8 @@ module Step17TckSut
       # sample responses. These are local-only test fixtures, NOT special
       # production Agent behavior or changes to a2a-rails protocol semantics.
       case message.fetch(:message_id)
+      when /\Atck-message-response/
+        "Direct message response"
       when /\Atck-artifact-text-/
         "Generated text content"
       when /\Atck-artifact-file-url-/
@@ -46,6 +48,11 @@ module Step17TckSut
     name "a2a-rails TCK Echo"
     description "Local-only conformance SUT for A2A v1.0 JSON-RPC"
     version "1.0"
+    # The TCK's direct-Message scenario uses the normal host response policy.
+    # No production protocol behavior is keyed to TCK fixture message IDs.
+    response_mode ->(message:) {
+      message.fetch(:message_id).start_with?("tck-message-response") ? :message : :task
+    }
 
     skill :echo,
       description: "Echo text from a user message",

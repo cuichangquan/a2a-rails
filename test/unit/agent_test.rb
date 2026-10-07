@@ -40,6 +40,32 @@ class AgentTest < Minitest::Test
     assert_same agent, agent.validate!
   end
 
+  def test_response_mode_is_explicit_and_isolated_between_agents
+    assert_equal :task, NamedAgent.response_mode
+    direct = build_agent do
+      name "Direct"
+      description "Responds directly"
+      version "1.0"
+      response_mode :message
+      skill :reply, description: "Reply", tags: ["reply"], handler: Handler
+    end
+    assert_equal :message, direct.response_mode
+    assert_same direct, direct.validate!
+    assert_equal :task, NamedAgent.response_mode
+  end
+
+  def test_invalid_response_mode_is_rejected
+    invalid = build_agent do
+      name "Invalid"
+      description "Bad mode"
+      version "1.0"
+      response_mode :stream
+      skill :reply, description: "Reply", tags: ["reply"], handler: Handler
+    end
+    error = assert_raises(A2A::Rails::ConfigurationError) { invalid.validate! }
+    assert_match(/response_mode/, error.message)
+  end
+
   def test_name_dsl_does_not_replace_ruby_class_name
     assert_equal "AgentTest::NamedAgent", NamedAgent.name
     assert_equal "Display Name", NamedAgent.agent_name

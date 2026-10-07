@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require "securerandom"
+
 module A2A
   module Rails
     module Protocol
@@ -31,6 +33,19 @@ module A2A
           end
 
           result
+        end
+
+        def dump_direct_message(value, context_id:)
+          artifact = Task::ArtifactMapper.new.call(value)
+          unless artifact
+            raise ArtifactMappingError, "Direct Message requires a non-nil Handler result"
+          end
+
+          dump_message(
+            message_id: SecureRandom.uuid,
+            role: :agent,
+            parts: artifact.fetch(:parts)
+          ).merge("contextId" => context_id)
         end
 
         def internal_state(value)

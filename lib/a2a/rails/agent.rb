@@ -34,6 +34,14 @@ module A2A
           @a2a_router = value
         end
 
+        # Task replies remain the default. A host may opt into direct Message
+        # replies or provide a callable to choose the mode per request.
+        def response_mode(value = UNSET)
+          return @a2a_response_mode || :task if value.equal?(UNSET)
+
+          @a2a_response_mode = value
+        end
+
         def skill(id, description:, tags:, handler:, name: nil, examples: nil, input_modes: nil, output_modes: nil)
           definition = Skill.new(
             id: id,
@@ -57,6 +65,7 @@ module A2A
           validate_metadata!
           validate_skills!
           validate_router!
+          validate_response_mode!
           self
         end
 
@@ -89,6 +98,13 @@ module A2A
           end
 
           skill_definitions.each(&:validate!)
+        end
+
+        def validate_response_mode!
+          mode = response_mode
+          return if %i[task message].include?(mode) || mode.respond_to?(:call)
+
+          raise ConfigurationError, "response_mode must be :task, :message, or a callable"
         end
 
         def validate_router!

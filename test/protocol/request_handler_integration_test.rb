@@ -52,6 +52,89 @@ class RequestHandlerIntegrationTest < Minitest::Test
     refute listed.fetch("tasks").first.key?("artifacts")
   end
 
+  def test_opt_in_direct_message_round_trips_through_real_sdk_without_creating_a_task
+    rack, lifecycle = build_stack(
+      handler: ->(message:, context:) {
+        assert_nil context[:task_id]
+        assert_equal "context-1", context[:context_id]
+        "Direct: #{message.dig(:parts, 0, :text)}"
+      },
+      response_mode: :message
+    )
+
+    response = rpc(rack, "SendMessage", send_params).fetch("result")
+    assert_equal ["message"], response.keys
+    direct = response.fetch("message")
+    assert_equal "ROLE_AGENT", direct.fetch("role")
+    assert_equal "Direct: Hello", direct.dig("parts", 0, "text")
+    assert_equal "context-1", direct.fetch("contextId")
+    refute_empty direct.fetch("messageId")
+    refute direct.key?("taskId")
+    assert_equal 0, lifecycle.list.fetch(:total_size)
+  end
+
+  def test_message_mode_generates_context_id_when_absent
+    rack, lifecycle = build_stack(handler: ->(message:, context:) {
+      assert_nil context[:task_id]
+      assert_kind_of String, context[:context_id]
+      { "answer" => true }
+    }, response_mode: :message)
+    params = send_params
+    params.fetch("message").delete("contextId")
+    direct = rpc(rack, "SendMessage", params).dig("result", "message")
+
+    refute_empty direct.fetch("contextId")
+    assert_equal({ "answer" => true }, direct.dig("parts", 0, "data"))
+    assert_equal 0, lifecycle.list.fetch(:total_size)
+  end
+
+  def test_callable_response_mode_allows_direct_message_and_legacy_task_in_one_agent
+    rack, lifecycle = build_stack(
+      handler: ->(message:, context:) { "reply" },
+      response_mode: ->(message:) { message[:message_id] == "direct" ? :message : :task }
+    )
+    direct_params = send_params
+    direct_params.fetch("message")["messageId"] = "direct"
+    direct = rpc(rack, "SendMessage", direct_params).dig("result", "message")
+    assert_equal "reply", direct.dig("parts", 0, "text")
+    assert_equal 0, lifecycle.list.fetch(:total_size)
+
+    task = rpc(rack, "SendMessage", send_params).dig("result", "task")
+    assert_equal "TASK_STATE_COMPLETED", task.dig("status", "state")
+    assert_equal "reply", task.dig("artifacts", 0, "parts", 0, "text")
+    assert_equal 1, lifecycle.list.fetch(:total_size)
+  end
+
+  def test_direct_message_supports_file_part_using_existing_mapper
+    file = A2A::Rails::FileArtifact.url(
+      url: "https://files.example.test/result.txt", filename: "result.txt", media_type: "text/plain"
+    )
+    rack, lifecycle = build_stack(handler: ->(message:, context:) { file }, response_mode: :message)
+    direct = rpc(rack, "SendMessage", send_params).dig("result", "message")
+    part = direct.dig("parts", 0)
+    assert_equal "https://files.example.test/result.txt", part.fetch("url")
+    assert_equal "text/plain", part.fetch("mediaType")
+    assert_equal "result.txt", part.fetch("filename")
+    assert_equal 0, lifecycle.list.fetch(:total_size)
+  end
+
+  def test_invalid_direct_message_return_or_handler_error_has_sanitized_error
+    [nil, Object.new].each do |result|
+      rack, lifecycle = build_stack(handler: ->(message:, context:) { result }, response_mode: :message)
+      response = rpc(rack, "SendMessage", send_params)
+      assert_equal(-32_006, response.dig("error", "code"))
+      refute response.key?("result")
+      assert_equal 0, lifecycle.list.fetch(:total_size)
+    end
+    rack, lifecycle = build_stack(handler: ->(message:, context:) {
+      raise "sensitive token from application"
+    }, response_mode: :message)
+    response = rpc(rack, "SendMessage", send_params)
+    assert_equal(-32_006, response.dig("error", "code"))
+    refute_includes JSON.generate(response), "sensitive token"
+    assert_equal 0, lifecycle.list.fetch(:total_size)
+  end
+
   def test_file_raw_artifact_round_trips_through_real_sdk_and_task_queries
     file = A2A::Rails::FileArtifact.bytes(
       data: "binary\x00\xFF".b,
@@ -227,11 +310,12 @@ class RequestHandlerIntegrationTest < Minitest::Test
 
   private
 
-  def build_stack(handler:)
+  def build_stack(handler:, response_mode: :task)
     agent = Class.new(A2A::Rails::Agent)
     agent.name "Integrated Test Agent"
     agent.description "Step 15-8"
     agent.version "1.0"
+    agent.response_mode response_mode
     agent.skill :reply,
       description: "Reply",
       tags: %w[test],
