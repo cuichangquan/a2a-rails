@@ -52,6 +52,49 @@ class RequestHandlerIntegrationTest < Minitest::Test
     refute listed.fetch("tasks").first.key?("artifacts")
   end
 
+  def test_file_raw_artifact_round_trips_through_real_sdk_and_task_queries
+    file = A2A::Rails::FileArtifact.bytes(
+      data: "binary\x00\xFF".b,
+      filename: "output.txt",
+      media_type: "text/plain"
+    )
+    rack, = build_stack(handler: ->(message:, context:) { file })
+    sent = rpc(rack, "SendMessage", send_params).fetch("result").fetch("task")
+    assert_equal "TASK_STATE_COMPLETED", sent.dig("status", "state")
+    part = sent.dig("artifacts", 0, "parts", 0)
+
+    assert_equal "output.txt", part.fetch("filename")
+    assert_equal "text/plain", part.fetch("mediaType")
+    assert_equal "YmluYXJ5AP8=", part.fetch("raw")
+    refute part.key?("data")
+    refute part.key?("url")
+
+    get = rpc(rack, "GetTask", "id" => sent.fetch("id")).fetch("result")
+    assert_equal part, get.dig("artifacts", 0, "parts", 0)
+
+    list = rpc(rack, "ListTasks",
+      "contextId" => sent.fetch("contextId"),
+      "includeArtifacts" => true).fetch("result")
+    assert_equal part, list.dig("tasks", 0, "artifacts", 0, "parts", 0)
+  end
+
+  def test_file_url_artifact_round_trips_through_real_sdk
+    file = A2A::Rails::FileArtifact.url(
+      url: "https://downloads.example.test/output.txt",
+      filename: "output.txt",
+      media_type: "text/plain"
+    )
+    rack, = build_stack(handler: ->(message:, context:) { file })
+    sent = rpc(rack, "SendMessage", send_params).fetch("result").fetch("task")
+    part = sent.dig("artifacts", 0, "parts", 0)
+
+    assert_equal "https://downloads.example.test/output.txt", part.fetch("url")
+    assert_equal "output.txt", part.fetch("filename")
+    assert_equal "text/plain", part.fetch("mediaType")
+    refute part.key?("raw")
+    refute part.key?("data")
+  end
+
   def test_rejected_and_failed_tasks_are_valid_a2a_tasks
     rejected_rack, = build_stack(handler: lambda do |message:, context:|
       raise A2A::Rails::RejectedTask, "Request is not allowed"
