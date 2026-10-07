@@ -91,10 +91,37 @@ The **initial** WEBrick SUT run ([#37571366500](https://github.com/cuichangquan/
 
 A clean **13-job Ruby/Rails regression CI** independently passed on the initial TCK integration commit: [#37571366462](https://github.com/cuichangquan/a2a-rails/actions/runs/37571366462). The new TCK workflow itself is **informational/non-gating**, not a substitute for the regression suite.
 
+## Step 17-1: real TCK rerun after focused error fixes
+
+[PR #21](https://github.com/cuichangquan/a2a-rails/pull/21) changes only the confirmed error cases: unsupported push config methods now emit the defined `PushNotificationNotSupportedError (-32003)`; unsupported HTTP `Content-Type` / `Content-Encoding` now returns an empty HTTP `415` response rather than a JSON body that resembles an invalid JSON-RPC envelope.
+
+**Pinned official rerun:** [GitHub Actions #37572266638](https://github.com/cuichangquan/a2a-rails/actions/runs/37572266638), [complete report artifact](https://github.com/cuichangquan/a2a-rails/actions/runs/37572266638/artifacts/11461287525). Results are measured from this run, not an extrapolation:
+
+| Metric | Initial Puma baseline (#37571735872) | After PR #21 (#37572266638) |
+| --- | ---: | ---: |
+| pytest passed | 56 | **58** |
+| pytest failed | 9 | **6** |
+| pytest skipped | 170 | **171** |
+| pytest deselected | 30 | 30 |
+| JSON-RPC requirement results: pass | 54 | **56** |
+| JSON-RPC requirement results: fail | 9 | **6** |
+| JSON-RPC requirement results: skip | 27 | 27 |
+| TCK-reported MUST compatibility (full suite denominator) | 64.0% | **66.7%** |
+
+The three reduced failures are **two fixed push-notification error mappings** and **one HTTP 415 case now accepted as an HTTP-level rejection and skipped**. The latter is **not** a newly supported A2A operation.
+
+### Remaining six pytest failures
+
+- **4 × `DM-ART-001`:** Fixture-generated Artifacts do not match TCK canned text/file/file-URL/data examples. Add an intentional test Agent output strategy and verify real Gem mapping.
+- **1 × `DM-MSG-001`:** SUT always returns Task; special TCK scenario requests a direct Message. Investigate supported result types before changing the Gem API.
+- **1 × `CORE-SEND-003`:** The pinned TCK registry does not declare `expected_error` despite the requirement explicitly demanding `ContentTypeNotSupportedError`. The server correctly returns `-32005` for unsupported content. Verify with upstream and do not incorrectly return success to satisfy the test.
+
+**Important:** 6 pytest failures remain and this baseline is **not a conformant/certified A2A implementation**. Informational GitHub Actions green reflects job infrastructure, not a passing TCK.
+
 ## Next actions
 
-1. Fix push-not-supported error mapping (`-32003`) and wrong Content-Type HTTP boundary representation, with narrow regression tests.
-2. Extend the standalone TCK SUT to deliberately produce file/data artifacts and the expected response profile *only where the Gem supports them*; do not implement bogus protocol output to satisfy a test.
-3. Investigate and, if appropriate, report the `CORE-SEND-003` upstream TCK expectation mismatch.
-4. Re-run the pinned TCK and record the exact before/after delta and remaining failures.
-5. Follow with independent Python/Go client interoperability and protocol coverage expansion.
+1. Extend a *test-only*, reproducible SUT to cover supported file/data Artifact cases, with ordinary Gem-level regression tests.
+2. Investigate A2A Message-vs-Task response union for the direct-Message TCK case without changing server behavior solely for a canned test.
+3. Investigate/report the upstream TCK `CORE-SEND-003` expected-error registry inconsistency.
+4. Re-run the pinned TCK and document the true remaining pass/fail/skip counts.
+5. Follow with official Python/Go client interoperability and protocol coverage expansion.
