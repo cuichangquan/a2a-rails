@@ -25,7 +25,7 @@ module Step17TckSut
         { "key" => "value", "count" => 42 }
       else
         text = message.fetch(:parts).filter_map { |part| part[:text] }.join("\n")
-        "TCK echo: #{'#{text}'}"
+        "TCK echo: #{text}"
       end
     end
   end
