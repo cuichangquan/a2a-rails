@@ -89,8 +89,10 @@ begin
     create_table(:smoke_route_invocations) { |t| t.string :task_id, null: false }
   end
   web = QueueAdapterSmoke.start_http(web_log)
-  status, = QueueAdapterSmoke.rpc("SendMessage", {}, token: nil)
-  QueueAdapterSmoke.assert(status == 401, "unauthenticated async request allowed")
+  status, body = QueueAdapterSmoke.rpc("SendMessage", { "message" => {
+    "messageId" => "unauthenticated", "role" => "ROLE_USER", "parts" => [{ "text" => "hold" }]
+  } }, token: nil)
+  QueueAdapterSmoke.assert(status == 401, "unauthenticated request returned #{status}: #{body}")
 
   id = QueueAdapterSmoke.send_task("hold")
   QueueAdapterSmoke.assert_state(id, "SUBMITTED")
