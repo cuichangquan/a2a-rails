@@ -5,7 +5,7 @@ require_relative "../test_helper"
 class TaskExecutionJobTest < Minitest::Test
   class Handler
     class << self
-      attr_accessor :calls, :behavior
+      attr_accessor :calls, :behavior, :started, :release
     end
 
     def self.call(message:, context:)
@@ -17,6 +17,10 @@ class TaskExecutionJobTest < Minitest::Test
         raise "sensitive handler failure"
       when :reject
         raise A2A::Rails::RejectedTask, "Request is not allowed"
+      when :block
+        started << context.fetch(:task_id)
+        release.pop
+        "late job result"
       else
         "job result"
       end
@@ -45,6 +49,8 @@ class TaskExecutionJobTest < Minitest::Test
 
     Handler.calls = []
     Handler.behavior = :success
+    Handler.started = Queue.new
+    Handler.release = Queue.new
     @lifecycle = A2A::Rails::Task::Lifecycle.new(
       store: @store,
       principal_id: "owner-1"
@@ -65,6 +71,8 @@ class TaskExecutionJobTest < Minitest::Test
     A2A::Rails.instance_variable_set(:@runtime, @original_runtime)
     Handler.calls = []
     Handler.behavior = :success
+    Handler.started = nil
+    Handler.release = nil
   end
 
   def test_task_job_forces_immediate_enqueue_boundary
@@ -123,7 +131,32 @@ class TaskExecutionJobTest < Minitest::Test
     assert_equal :completed, @lifecycle.find(@task.fetch(:id)).dig(:status, :state)
   end
 
-  def test_canceled_submitted_task_does_not_start_handler
+  def test_cancel_while_handler_is_working_wins_over_late_job_completion
+    Handler.behavior = :block
+    worker = Thread.new { perform_task }
+
+    task_id = Handler.started.pop
+    assert_equal @task.fetch(:id), task_id
+    assert_equal :working, @lifecycle.find(task_id).dig(:status, :state)
+
+    canceled = @lifecycle.cancel(task_id)
+    assert_equal :canceled, canceled.dig(:status, :state)
+
+    Handler.release << true
+    worker.join(2)
+    refute worker.alive?
+
+    final = @lifecycle.find(task_id)
+    assert_equal :canceled, final.dig(:status, :state)
+    refute final.key?(:artifacts)
+    assert_equal 1, Handler.calls.length
+  ensure
+    Handler.release << true if Handler.release && worker&.alive?
+    worker&.join(2)
+    worker&.kill if worker&.alive?
+  end
+
+  def test_cancel_before_job_delivery_prevents_handler_start
     @lifecycle.cancel(@task.fetch(:id))
 
     perform_task

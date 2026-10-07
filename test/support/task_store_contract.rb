@@ -70,6 +70,49 @@ module TaskStoreContract
       store.find("private-claim", principal_id: "tenant-A:user-1").dig(:status, :state)
   end
 
+  def test_store_contract_cancel_submitted_prevents_execution_claim
+    store = build_contract_store
+    store.save(contract_task("queued-cancel", state: :submitted))
+
+    canceled = store.cancel(
+      "queued-cancel",
+      timestamp: Time.utc(2026, 10, 7, 1),
+      principal_id: "tenant-A:user-1"
+    )
+    claimed = store.claim_execution(
+      "queued-cancel",
+      timestamp: Time.utc(2026, 10, 7, 2),
+      principal_id: "tenant-A:user-1"
+    )
+
+    assert_equal :canceled, canceled.dig(:status, :state)
+    assert_nil claimed
+    assert_equal :canceled,
+      store.find("queued-cancel", principal_id: "tenant-A:user-1").dig(:status, :state)
+  end
+
+  def test_store_contract_cancel_working_wins_over_late_completion
+    store = build_contract_store
+    store.save(contract_task("working-cancel", state: :working))
+
+    canceled = store.cancel(
+      "working-cancel",
+      timestamp: Time.utc(2026, 10, 7, 1),
+      principal_id: "tenant-A:user-1"
+    )
+    late = store.transition(
+      "working-cancel",
+      state: :completed,
+      timestamp: Time.utc(2026, 10, 7, 2),
+      artifacts: [{ artifact_id: "late", parts: [{ text: "late" }] }],
+      principal_id: "tenant-A:user-1"
+    )
+
+    assert_equal :canceled, canceled.dig(:status, :state)
+    assert_equal canceled, late
+    refute late.key?(:artifacts)
+  end
+
   def test_store_contract_terminal_transition_is_idempotent
     store = build_contract_store
     store.save(contract_task("terminal"))
