@@ -1,6 +1,6 @@
 # ActiveJob Task Execution Design
 
-Status: accepted design; Step 22 implementation in progress / Issue #41.
+Status: implemented on `main`; Step 22 verification complete through 22-10 / Issue #41.
 
 ## Goal
 
@@ -27,7 +27,7 @@ Default:
 config.task_execution_mode = :sync
 ```
 
-Proposed precedence:
+Precedence:
 
 ```text
 Skill
@@ -53,7 +53,7 @@ class ReportsAgent < A2A::Rails::Agent
 end
 ```
 
-Only `:sync` and `:async` are supported initially. Step 22-2 implements this configuration surface and precedence. Step 22-3 implements the first ActiveJob execution core while later Step 22 work continues to harden principal serialization, retry semantics, cancellation, backend compatibility, and real Rails async E2E coverage.
+Only `:sync` and `:async` are supported. Step 22 implements the configuration surface, execution core, principal serialization, enqueue/retry semantics, cancellation, duplicate suppression, backend compatibility, and real Rails HTTP async E2E coverage.
 
 Async applies to Task responses. Direct Message responses remain synchronous because they do not create a persisted Task that can be polled later.
 
@@ -310,18 +310,22 @@ SUBMITTED and WORKING Tasks are not normal terminal-retention candidates.
 
 Stale nonterminal recovery must not be silently mixed into the existing prune command.
 
-## Verification plan
+## Verification status
 
-1. execution-mode precedence tests;
-2. ExecutionPlan / route-once tests;
-3. shared atomic-claim contract for MemoryStore and ActiveRecordStore;
-4. principal and Job payload tests;
-5. enqueue failure tests;
-6. no-generic-retry tests;
-7. cancel-before-start and cancel/complete race tests;
-8. real Solid Queue smoke plus Sidekiq compatibility coverage through ActiveJob;
-9. real Rails HTTP async E2E with ActiveRecordStore;
-10. full existing Ruby/Rails CI, production security smoke, official TCK and Python/Go interoperability regression.
+Completed on `main` for Step 22:
+
+1. execution-mode precedence and route-once tests;
+2. shared atomic-claim contracts for MemoryStore and ActiveRecordStore;
+3. principal / minimal Job payload validation;
+4. enqueue failure and no-generic-Handler-retry behavior;
+5. queued and WORKING cancellation semantics;
+6. duplicate delivery suppression and PostgreSQL cross-process claim contention;
+7. real Solid Queue and Sidekiq delivery through separate workers on Rails 8.0 / 8.1;
+8. real loopback Rails HTTP async E2E covering SUBMITTED / WORKING / terminal states, owner isolation, route-once, cancellation and graceful Web/worker restart persistence.
+
+See [queue adapter / HTTP async verification](../testing/queue-adapters.md).
+
+A **fresh release candidate** must still rerun the full release matrix on one exact candidate tree: Ruby/Rails CI, PostgreSQL Store CI, queue adapter / HTTP async E2E, production security smoke, Python/Go interoperability, the pinned official TCK, exact `.gem` build/install verification, Rails 8.0 / 8.1 clean installs, and SHA256 recording. Historical Step 20 rc1 evidence is not release evidence for current `main`.
 
 ## Release rule
 
