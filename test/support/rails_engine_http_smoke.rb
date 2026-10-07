@@ -174,9 +174,9 @@ module Step1510Smoke
       response = request(
         "POST", "/a2a",
         body: JSON.generate("jsonrpc" => "2.0", "id" => "scope-1", "method" => method, "params" => params),
-        headers: auth_headers.merge("HTTP_AUTHORIZATION" => "Bearer #{'#{token}'}")
+        headers: auth_headers.merge("HTTP_AUTHORIZATION" => "Bearer #{token}")
       )
-      assert(response.status == 200, "scoped RPC #{'#{method}'} failed HTTP #{'#{response.status}'}")
+      assert(response.status == 200, "scoped RPC #{method} failed HTTP #{response.status}")
       JSON.parse(response.body)
     end
 
