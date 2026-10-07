@@ -41,17 +41,6 @@ The Gem provides:
 
 v0.1 is intentionally **server-first** and **non-streaming**.
 
-## Articles & Community / 紹介記事・コミュニティ
-
-### Japanese articles / 日本語の紹介記事
-
-- [Zenn: RailsアプリをA2A対応Agentとして公開する「a2a-rails」を作りました](https://zenn.dev/ccq/articles/d52c1b29982663)
-- [Qiita: RailsアプリをA2A対応Agentとして公開する「a2a-rails」を作りました](https://qiita.com/ccq1170/items/0852445745403c8e848b)
-
-### Community submissions / コミュニティへの投稿
-
-- [awesome-a2a: Resource suggestion #190 / 掲載提案](https://github.com/ai-boost/awesome-a2a/issues/190)
-
 ## Requirements
 
 - Ruby `>= 3.3`
@@ -459,3 +448,22 @@ Known warning-enabled output from upstream `agent2agent 2.0.0` can include circu
 ## License
 
 The Gem is available as open source under the terms of the MIT License. See [LICENSE](LICENSE).
+
+## Official A2A Resources / A2A公式資料
+
+- [A2A Protocol documentation (Latest) / 公式ドキュメント](https://a2a-protocol.org/latest/)
+- [A2A Protocol v1.0.0 documentation / v1.0.0ドキュメント](https://a2a-protocol.org/v1.0.0/)
+- [A2A v1.0.0 Specification / v1.0.0仕様書](https://a2a-protocol.org/v1.0.0/specification/)
+- [Official GitHub / 公式GitHub: a2aproject/A2A](https://github.com/a2aproject/A2A)
+- [Official samples / 公式サンプル: a2aproject/a2a-samples](https://github.com/a2aproject/a2a-samples)
+
+## Articles & Community / 紹介記事・コミュニティ
+
+### Japanese articles / 日本語の紹介記事
+
+- [Zenn: RailsアプリをA2A対応Agentとして公開する「a2a-rails」を作りました](https://zenn.dev/ccq/articles/d52c1b29982663)
+- [Qiita: RailsアプリをA2A対応Agentとして公開する「a2a-rails」を作りました](https://qiita.com/ccq1170/items/0852445745403c8e848b)
+
+### Community submissions / コミュニティへの投稿
+
+- [awesome-a2a: Resource suggestion #190 / 掲載提案](https://github.com/ai-boost/awesome-a2a/issues/190)
