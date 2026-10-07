@@ -29,6 +29,21 @@ class ArtifactMapperTest < Minitest::Test
     )
   end
 
+  def test_maps_explicit_file_result_into_single_file_part
+    file = A2A::Rails::FileArtifact.bytes(
+      data: "\x00\xFF".b, filename: "report.bin", media_type: "application/octet-stream"
+    )
+    mapped = @mapper.call(file)
+
+    assert_equal "artifact-1", mapped.fetch(:artifact_id)
+    part = mapped.fetch(:parts).first
+    assert_equal "report.bin", part.fetch(:filename)
+    assert_equal "application/octet-stream", part.fetch(:media_type)
+    assert_equal "AP8=", part.fetch(:raw)
+    refute part.key?(:data)
+    refute part.key?(:url)
+  end
+
   def test_nil_produces_no_artifact
     assert_nil @mapper.call(nil)
   end
