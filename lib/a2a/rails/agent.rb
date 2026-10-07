@@ -34,6 +34,12 @@ module A2A
           @a2a_router = value
         end
 
+        def execution_mode(value = UNSET)
+          return @a2a_execution_mode if value.equal?(UNSET)
+
+          @a2a_execution_mode = value
+        end
+
         # Task replies remain the default. A host may opt into direct Message
         # replies or provide a callable to choose the mode per request.
         def response_mode(value = UNSET)
@@ -42,7 +48,7 @@ module A2A
           @a2a_response_mode = value
         end
 
-        def skill(id, description:, tags:, handler:, name: nil, examples: nil, input_modes: nil, output_modes: nil)
+        def skill(id, description:, tags:, handler:, name: nil, examples: nil, input_modes: nil, output_modes: nil, execution_mode: nil)
           definition = Skill.new(
             id: id,
             name: name,
@@ -51,7 +57,8 @@ module A2A
             handler: handler,
             examples: examples,
             input_modes: input_modes,
-            output_modes: output_modes
+            output_modes: output_modes,
+            execution_mode: execution_mode
           )
           skill_definitions << definition
           definition
@@ -66,6 +73,7 @@ module A2A
           validate_skills!
           validate_router!
           validate_response_mode!
+          validate_execution_mode!
           self
         end
 
@@ -105,6 +113,13 @@ module A2A
           return if %i[task message].include?(mode) || mode.respond_to?(:call)
 
           raise ConfigurationError, "response_mode must be :task, :message, or a callable"
+        end
+
+        def validate_execution_mode!
+          mode = execution_mode
+          return if mode.nil? || Configuration::TASK_EXECUTION_MODES.include?(mode)
+
+          raise ConfigurationError, "execution_mode must be :sync or :async"
         end
 
         def validate_router!
