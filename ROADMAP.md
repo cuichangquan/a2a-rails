@@ -103,12 +103,35 @@ Completed on `main` (unreleased; **not** part of RubyGems v0.1.0):
 
 - Track the active step with a GitHub Issue; link it here.
 - Keep `main` status and features honest: only mark complete when implementation, tests and docs are merged.
-- Prefer small PRs and CI verification over one …655 tokens truncated…d Task/principal/Agent/Skill identifiers and verifies foreign-principal isolation.
+- Prefer small PRs and CI verification over one long-running PR.
+- Reprioritize based on real adopter feedback and A2A specification changes.
+
+
+## Step 21 — ActiveRecord Task Store + lifecycle maintenance (complete)
+
+- [Issue #35](https://github.com/cuichangquan/a2a-rails/issues/35) tracks the completed implementation.
+- [Design](docs/design/active-record-task-store.md) preserves the existing `Task::Store` boundary: MemoryStore remains default, ActiveRecordStore is optional, and host custom Stores remain supported.
+- Table `a2a_rails_tasks` uses an internal Rails PK plus unique protocol `task_id`; owner/context/state/time are first-class indexed columns and A2A history/artifacts use portable JSON.
+- Owner isolation happens in SQL. Transition/cancel use DB row locking.
+- Maintenance scope includes terminal-task `expires_at`, bounded batch pruning, per-owner admission quota, stored history/artifact limits and maintenance stats.
+- Pagination uses opaque keyset cursors; inserts after page 1 are excluded, while full point-in-time semantics for later state updates are explicitly out of scope.
+- ActiveJob/background execution is not part of Step 21.
+- [PR #36](https://github.com/cuichangquan/a2a-rails/pull/36) design; [#37](https://github.com/cuichangquan/a2a-rails/pull/37) durable core; [#38](https://github.com/cuichangquan/a2a-rails/pull/38) maintenance; [#39](https://github.com/cuichangquan/a2a-rails/pull/39) shared Store contract + PostgreSQL verification. PostgreSQL 16 [run #37595993690](https://github.com/cuichangquan/a2a-rails/actions/runs/37595993690) PASS, including fork/reconnect persistence and concurrent terminal transition consistency.
+- Step 21 changed runtime code after the old `0.2.0.rc1` candidate. A fresh versioned candidate and exact-artifact verification are required before any publication.
+
+
+## Step 22 — ActiveJob Task execution (design in progress)
+
+- [Issue #41](https://github.com/cuichangquan/a2a-rails/issues/41) tracks the design and implementation.
+- [Design](docs/design/active-job-task-execution.md) keeps synchronous execution as the default and makes async execution opt-in at global / Agent / Skill scope.
+- Step 22-2 implements the configuration surface and `Skill > Agent > global` resolution.
+- Step 22-3 ([PR #44](https://github.com/cuichangquan/a2a-rails/pull/44)) adds the `ExecutionPlan`, Gem-owned ActiveJob class, async `SUBMITTED` response path, route-once Skill execution, minimal Job payload, and atomic execution claim for MemoryStore/ActiveRecordStore.
+- Step 22-4 ([PR #46](https://github.com/cuichangquan/a2a-rails/pull/46)) constrains Job arguments to validated Task/principal/Agent/Skill identifiers and verifies foreign-principal isolation.
 - Step 22-5 ([PR #47](https://github.com/cuichangquan/a2a-rails/pull/47)) hardens enqueue success/failure handling and pins the no-generic-Handler-retry policy; the Task job opts out of transaction-deferred enqueue.
 - Step 22-6 pins cancellation semantics: a canceled SUBMITTED Task cannot be claimed later, while WORKING cancellation is logical/best-effort and late completion cannot overwrite CANCELED.
 - Step 22-7 pins duplicate suppression during WORKING and after terminal outcomes, stable Task idempotency keys, and PostgreSQL cross-process claim contention. Business side effects and distinct SendMessage submissions require host idempotency.
 - Step 22-8 adds real Solid Queue / Sidekiq adapter and separate-worker smoke coverage on Rails 8.0 / 8.1; queue payloads, outcomes, duplicate/canceled delivery, and queued work after worker restart. See [reproduction and limits](docs/testing/queue-adapters.md).
-- Step 22-9 adds loopback HTTP async E2E with separate Web/worker processes: SendMessage SUBMITTED, Get/List WORKING and terminal outcomes, owner isolation, route-once, cancellation and Web/worker restart persistence.
+- Step 22-9 ([PR #51](https://github.com/cuichangquan/a2a-rails/pull/51)) verifies loopback HTTP async E2E with separate Web/worker processes: SendMessage SUBMITTED, Get/List WORKING and terminal outcomes, owner isolation, route-once, cancellation and Web/worker restart persistence.
 - Next: **22-10 Docs / roadmap / release gates**.
 - The proposed worker payload is minimal: Task ID, verified non-secret principal ID, Agent class name and selected Skill ID. The original Message remains in the Task Store.
 - Routing is resolved once before enqueue; the background Job executes the selected Skill directly.
@@ -117,3 +140,4 @@ Completed on `main` (unreleased; **not** part of RubyGems v0.1.0):
 - CancelTask remains best effort. A queued canceled Task will not start; arbitrary running Handler code is not force-killed through backend-specific APIs.
 - Production async operation requires both a shared/durable Task Store and a durable ActiveJob backend. Issue #11 deployment gates remain open.
 - No release version bump or publication is authorized by Step 22.
+
