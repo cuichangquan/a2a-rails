@@ -21,10 +21,6 @@ module A2A
         request.env.delete(PRINCIPAL_ENV_KEY)
         validate_challenge!(configuration.authentication_challenge)
 
-        # Reject requests when a verifier exists but its Agent Card does not
-        # declare an accurate corresponding supported authentication scheme.
-        AgentCard::Security.new(configuration: configuration).fields
-
         authenticator = configuration.authenticate_request
         if authenticator.nil?
           # Preserve the published local Rails Quick Start in dev/test.
@@ -37,6 +33,13 @@ module A2A
         unless authenticator.respond_to?(:call)
           raise ConfigurationError, "authenticate_request must respond to #call"
         end
+
+        # A host verifier is only available when its advertised security
+        # requirements are valid. Never silently publish an open Agent Card.
+        AgentCard::Security.new(
+          configuration: configuration,
+          rails_environment: rails_environment
+        ).fields
 
         principal_id = authenticator.call(request)
         raise Unauthorized if principal_id.nil? || principal_id == false
