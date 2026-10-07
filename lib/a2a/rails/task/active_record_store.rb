@@ -81,15 +81,14 @@ module A2A
 
           Record.transaction do
             record = locked_record!(task_id, principal_id: principal_id)
-            return nil unless record.state == "submitted"
-
-            record.update!(
-              state: "working",
-              status_timestamp: timestamp,
-              status_message: nil
-            )
-
-            deserialize(record)
+            if record.state == "submitted"
+              record.update!(
+                state: "working",
+                status_timestamp: timestamp,
+                status_message: nil
+              )
+              deserialize(record)
+            end
           end
         end
 
