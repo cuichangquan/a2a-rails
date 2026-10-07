@@ -1,6 +1,10 @@
 name: Official Python and Go A2A client interoperability
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - "lib/a2a/rails/version.rb"
   pull_request:
     paths:
       - ".github/workflows/cross-language-interop.yml"
