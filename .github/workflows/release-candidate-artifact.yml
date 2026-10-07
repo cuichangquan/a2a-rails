@@ -1,6 +1,19 @@
 name: Release candidate artifact verification
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - "a2a-rails.gemspec"
+      - "lib/**"
+      - "app/**"
+      - "config/**"
+      - "test/**"
+      - ".github/workflows/release-candidate-artifact.yml"
+      - "docs/release/**"
+      - "CHANGELOG.md"
+      - "README.md"
+      - "ROADMAP.md"
   pull_request:
     paths:
       - "a2a-rails.gemspec"
