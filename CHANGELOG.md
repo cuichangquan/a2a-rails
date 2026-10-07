@@ -4,6 +4,32 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] — Security hardening (Steps 16-1–16-6)
+
+> **Not published on RubyGems.** The released v0.1.0 artifact does not contain these changes. A release version, compatibility decision and full deployment security assessment are still pending.
+
+### Added
+
+- Host-owned `config.authenticate_request` and explicit Agent Card Bearer security declaration (`security_schemes` / `security_requirements`).
+- Owner-scoped Task retrieval, listing, cancellation and pagination, with host-verified opaque principal IDs.
+- Input body limit (`max_request_bytes`, default 1 MiB), defensive message/query type checks and HTTP boundary errors.
+- Bounded in-process pagination snapshot count and reduced exception-detail logging.
+- Threat model, authentication/request-hardening guides, production deployment review and release acceptance checklist.
+- Negative security tests, real Rails HTTP authentication tests and production-environment fail-closed smoke tests.
+
+### Changed — potentially incompatible with v0.1.0
+
+- In production and staging, unconfigured A2A authentication now fails closed (`POST /a2a` 401); missing/inconsistent Agent Card security configuration does not publish an unauthenticated card.
+- Host verifiers must have matching Agent Card Bearer metadata.
+- Task operations are restricted to each authenticated principal; anonymous local-only Tasks are separate.
+- Invalid Content-Type, oversized requests and malformed fields are rejected before Task dispatch.
+
+### Deployment limitations
+
+- **NO-GO for open public production using the default MemoryStore:** Tasks are not durable, have no TTL/total-count cap and are isolated per worker; the Gem does not implement distributed rate limiting or timeouts for arbitrary Handler code.
+- Host applications must enforce token verification, tenant-qualified identities, business-action authorization, HTTPS and ingress/compute quotas. Cancellation does not interrupt running Handlers.
+- Release version and artifact publication require separate approval and verification.
+
 ## [0.1.0] - 2026-10-06
 
 ### Added
