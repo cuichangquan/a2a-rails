@@ -21,7 +21,7 @@
 | P0 | 4 | [Runnable Rails example](https://github.com/cuichangquan/a2a-rails/issues/28) | [Separate demo](https://github.com/cuichangquan/a2a-rails-demo), Rails 8 Echo | unreleased Git-pinned Gem source | **Complete — Demo PR #1 merged; CI green** |
 | P0 | 5 | GitHub roadmap visibility | Publish and maintain priorities, milestones and next steps | Now | **In progress** |
 | P1 | 6 | GitHub Issues organization | Create focused issues for approved upcoming changes, with acceptance criteria | Now | Planned |
-| P1 | 7 | [ActiveRecord Task Store](https://github.com/cuichangquan/a2a-rails/issues/35) | Durable owner-scoped Tasks across workers/restarts + lifecycle maintenance | next v0.2 candidate | **Step 21 in progress — design complete** |
+| P1 | 7 | [ActiveRecord Task Store](https://github.com/cuichangquan/a2a-rails/issues/35) | Durable owner-scoped Tasks across workers/restarts + lifecycle maintenance | next v0.2 candidate | **Step 21 in progress — core merged, maintenance in review** |
 | P1 | 8 | ActiveJob Task execution | Run long-running Tasks asynchronously with explicit lifecycle semantics | v0.2 proposal | Planned |
 | P1 | 9 | A2A Client | Call remote A2A Agents from Rails | v0.3 proposal | Planned |
 | P2 | 10 | SSE Streaming | Stream Task status/results over A2A-compatible transport | v0.4 proposal | Planned |
@@ -116,4 +116,5 @@ Completed on `main` (unreleased; **not** part of RubyGems v0.1.0):
 - Maintenance scope includes terminal-task `expires_at`, bounded batch pruning, per-owner admission quota, stored history/artifact limits and maintenance stats.
 - Pagination uses opaque keyset cursors; inserts after page 1 are excluded, while full point-in-time semantics for later state updates are explicitly out of scope.
 - ActiveJob/background execution is not part of Step 21.
+- Core persistence is merged in PR #37; maintenance follow-up adds 30-day terminal expiry, bounded prune Rake tasks, aggregate stats, owner admission quota and persisted collection bounds.
 - Once Step 21 runtime code merges, the old `0.2.0.rc1` candidate must not be published as verification for new main; a fresh candidate is required.
