@@ -17,7 +17,7 @@ The Rails controller enforces the following checks **before** it invokes the app
 | Content-Length | Rejects invalid lengths and mismatches |
 | Unknown/chunked body size | Reads at most `max_request_bytes + 1` bytes to detect oversize input |
 
-The guard buffers the bounded body in `StringIO` and passes that copy to the A2A SDK; it does not allow the SDK to read arbitrarily large bodies. It does **not** parse arbitrary JSON itself.
+The guard buffers the bounded body in `StringIO` and passes that copy to the A2A SDK; it does not allow the SDK to read arbitrarily large bodies. It also parses the bounded JSON **once for a limited preflight shape check**: malformed `SendMessage` Parts are rejected before upstream SDK middleware can dereference non-object values. Full protocol validation still belongs to the SDK and RequestHandler.
 
 ### Configuration
 
