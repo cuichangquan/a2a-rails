@@ -257,6 +257,13 @@ POST /a2a
 
 The Rails Engine is mounted automatically.
 
+### Authentication work in progress (Step 16-2; not in published v0.1.0)
+
+The Step 16-2 branch adds a host-provided `config.authenticate_request` callback to protect `POST /a2a` before the A2A SDK handles a request. Without a callback, production and other non-development/test environments fail closed; the existing development/test Quick Start is preserved. See [Authentication guide](docs/guides/authentication.md).
+
+> **Important:** Step 16-2 only authenticates requests. **It does not yet authorize Task access per caller.** Task ownership, `ListTasks` and pagination isolation remain in [Issue #11](https://github.com/cuichangquan/a2a-rails/issues/11). Do not treat this branch as production-secure.
+
+
 ## Agent Card
 
 Agent Cards are generated from the Agent / Skill DSL.

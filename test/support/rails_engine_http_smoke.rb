@@ -120,6 +120,57 @@ module Step1510Smoke
       "explicit public_base_url did not override request base URL"
     )
 
+    # Step 16-2: the host application verifies credentials before the SDK
+    # sees the request; a denied call must not execute a Handler.
+    configuration.authentication_challenge = 'Bearer realm="echo-agent"'
+    configuration.authenticate_request = lambda do |rails_request|
+      authorization = rails_request.get_header("HTTP_AUTHORIZATION")
+      raise A2A::Rails::Authentication::Forbidden if authorization == "Bearer forbidden-token"
+
+      "verified-client-1" if authorization == "Bearer valid-token"
+    end
+
+    auth_payload = JSON.generate(
+      "jsonrpc" => "2.0",
+      "id" => "auth-1",
+      "method" => "SendMessage",
+      "params" => {
+        "message" => {
+          "messageId" => "auth-message-1",
+          "role" => "ROLE_USER",
+          "parts" => [{ "text" => "Authenticated" }]
+        }
+      }
+    )
+    auth_headers = { "CONTENT_TYPE" => "application/json", "HTTP_A2A_VERSION" => "1.0" }
+
+    denied = request("POST", "/a2a", body: auth_payload, headers: auth_headers)
+    assert(denied.status == 401, "unauthenticated request was not denied: #{denied.status}")
+    assert(denied["WWW-Authenticate"] == 'Bearer realm="echo-agent"', "missing authentication challenge")
+    assert(JSON.parse(denied.body).fetch("error") == "Unauthorized", "unsafe authentication response")
+    assert(denied["Cache-Control"].to_s.include?("no-store"), "authentication response can be cached")
+
+    invalid = request("POST", "/a2a", body: auth_payload,
+      headers: auth_headers.merge("HTTP_AUTHORIZATION" => "Bearer wrong-token"))
+    assert(invalid.status == 401, "invalid token was not denied")
+
+    forbidden = request("POST", "/a2a", body: auth_payload,
+      headers: auth_headers.merge("HTTP_AUTHORIZATION" => "Bearer forbidden-token"))
+    assert(forbidden.status == 403, "explicit forbidden request was not denied")
+    assert(JSON.parse(forbidden.body).fetch("error") == "Forbidden", "unsafe forbidden response")
+
+    allowed = request("POST", "/a2a", body: auth_payload,
+      headers: auth_headers.merge("HTTP_AUTHORIZATION" => "Bearer valid-token"))
+    assert(allowed.status == 200, "authenticated request failed: #{allowed.status}")
+    assert(JSON.parse(allowed.body).dig("result", "task", "artifacts", 0, "parts", 0, "text") ==
+      "Echo: Authenticated", "authenticated Handler did not run")
+
+    configuration.authenticate_request = ->(_request) { raise "secret-token-shall-not-appear" }
+    unavailable = request("POST", "/a2a", body: auth_payload, headers: auth_headers)
+    assert(unavailable.status == 500, "verifier failure was not safely handled")
+    assert(JSON.parse(unavailable.body).fetch("error") == "Authentication unavailable", "unsafe error")
+    assert(!unavailable.body.include?("secret-token-shall-not-appear"), "verifier secret leaked")
+
     puts "Step 15-10 Rails HTTP smoke: PASS"
   end
 end
