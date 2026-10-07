@@ -254,15 +254,15 @@ If the queued Job runs later, it cannot claim the terminal Task and exits withou
 
 ActiveJob does not provide one portable queue-neutral API for force-killing arbitrary currently running Handler code.
 
-Therefore Step 22 must:
+Step 22-6 implements and verifies the portable semantics:
 
-- avoid Sidekiq/Solid Queue/Resque private cancellation APIs;
-- check Task state before Handler start;
-- preserve terminal-state immutability;
-- never let late Handler completion change CANCELED to COMPLETED/FAILED;
-- document that cancellation does not roll back external side effects.
+- a canceled SUBMITTED Task cannot win a later execution claim, so a delayed queued Job exits without starting the Handler;
+- a WORKING Task may transition to CANCELED while application code is still running;
+- terminal-state immutability makes late completion/failure a no-op, so CANCELED is never replaced by COMPLETED/FAILED;
+- no Sidekiq/Solid Queue/Resque private cancellation API is called;
+- cancellation does not roll back or interrupt external side effects already performed by the Handler.
 
-Cooperative cancellation tokens may be considered separately.
+Therefore running-job cancellation is **logical/best-effort state cancellation**, not process/thread termination. Hosts that need interruptible work must design cooperative cancellation inside their own Handler. Cooperative cancellation tokens may be considered separately.
 
 ## ActiveJob ownership
 
