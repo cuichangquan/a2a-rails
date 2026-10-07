@@ -34,8 +34,10 @@ Gem::Specification.new do |spec|
   spec.add_dependency "rack", ">= 3.0", "< 4"
   spec.add_dependency "railties", ">= 8.0", "< 8.2"
 
+  spec.add_development_dependency "activerecord", ">= 8.0", "< 8.2"
   spec.add_development_dependency "minitest", "~> 5.25"
   spec.add_development_dependency "rake", "~> 13.2"
+  spec.add_development_dependency "sqlite3", ">= 2.1", "< 3"
   # Puma only serves the localhost-only official A2A TCK SUT in CI/dev.
   spec.add_development_dependency "puma", ">= 6.6", "< 8"
 end
