@@ -1,61 +1,76 @@
-# Security hardening — release readiness checklist (Step 16)
+# Security hardening — release and deployment readiness checklist
 
-Last reviewed: **2026-10-07**  
+Last reviewed: **2026-10-07 (Step 20)**  
 Baseline published release: **a2a-rails 0.1.0** (2026-10-06)  
-Development status: Steps 16-1 to 16-5 merged in **unreleased `main`**.
+Working candidate name: **v0.2.0-rc.1** — planning only; repository VERSION is still 0.1.0.
 
 ## Decision
 
-**Current global release / open public production status: NO-GO.**
+Three decisions are deliberately separated:
 
-Step 16-6 documents the constraints and confirms tested fail-closed behavior. It does **not** itself authorize a public rollout or a RubyGems push.
+| Decision | Status |
+| --- | --- |
+| Prepare a versioned release candidate for review | **GO after Step 20 documentation audit** |
+| Tag / GitHub Release / RubyGems publication | **NO-GO until exact artifact checks + explicit approval** |
+| Open public / multi-worker production recommendation | **NO-GO with the default MemoryStore** |
+
+A Gem may be distributed with accurately documented limitations. That does **not** make every deployment topology safe. See [v0.2.0-rc.1 preparation decision](v0.2.0-rc.1-preparation.md).
 
 ## Evidence already merged
 
 - [x] [#12 — Step 16-1 threat model](https://github.com/cuichangquan/a2a-rails/pull/12)
 - [x] [#13 — Step 16-2 authentication gate](https://github.com/cuichangquan/a2a-rails/pull/13)
 - [x] [#15 — Step 16-3 principal ownership and cursor scoping](https://github.com/cuichangquan/a2a-rails/pull/15)
-- [x] [#16 — Step 16-4 input limits, log hygiene, cursor cap](https://github.com/cuichangquan/a2a-rails/pull/16)
-- [x] [#17 — Step 16-5 Agent Card security advertisement](https://github.com/cuichangquan/a2a-rails/pull/17)
-- [x] [#17 CI: 13/13 checks passed](https://github.com/cuichangquan/a2a-rails/actions/runs/37569260637)
-- [x] [Step 16-6 / PR #18 merged](https://github.com/cuichangquan/a2a-rails/pull/18), [13/13 CI green](https://github.com/cuichangquan/a2a-rails/actions/runs/37570771822). Production-mode HTTP fail-closed smoke included.
+- [x] [#16 — Step 16-4 input limits, log hygiene and cursor cap](https://github.com/cuichangquan/a2a-rails/pull/16)
+- [x] [#17 — Step 16-5 Bearer Agent Card security advertisement](https://github.com/cuichangquan/a2a-rails/pull/17)
+- [x] [#18 — Step 16-6 production-mode fail-closed smoke / deployment review](https://github.com/cuichangquan/a2a-rails/pull/18)
+- [x] Pinned official A2A TCK: **63 passed / 1 failed / 171 skipped / 30 deselected**; remaining CORE-SEND-003 mismatch is [upstream #202](https://github.com/a2aproject/a2a-tck/issues/202), still open as of this review.
+- [x] Official Python SDK 1.2.2 + Go SDK v2.6.0 interoperability: [Step 18](../testing/cross-language-interop.md).
+- [x] Independent Rails 8 localhost Demo: [a2a-rails-demo](https://github.com/cuichangquan/a2a-rails-demo), real HTTP smoke **16/16 PASS**.
+- [x] Recent source-tree Ruby/Rails regression CI: **13/13 PASS** on [Step 19 PR #30](https://github.com/cuichangquan/a2a-rails/pull/30).
 
-## Release candidate gates — ALL required before a new Gem release
+## A. Candidate version and consumer compatibility
 
-### A. Version and consumer compatibility
+- [x] Working candidate documented as **v0.2.0-rc.1**, without changing VERSION or publishing. A patch-only 0.1.x label is not preferred because production auth/Task visibility behavior changed.
+- [x] [Upgrade guide from v0.1.0](upgrading-v0.1.0-to-v0.2.md) documents fail-closed production auth, matching Bearer metadata, principal Task isolation, stricter HTTP handling and new opt-in outputs.
+- [x] README / CHANGELOG / Roadmap distinguish published v0.1.0 from unreleased source features.
+- [x] Current main is regularly exercised on Ruby 3.3/3.4/4.0 and Rails 8.0/8.1. **The exact versioned candidate must still rerun the matrix below.**
+- [ ] Explicitly approve the candidate version before changing `A2A::Rails::VERSION`.
 
-- [ ] Agree on the intended version and SemVer impact: production authentication is now fail-closed and Task isolation changes behavior. A patch bump is **not** automatically drop-in compatible.
-- [ ] Document an upgrade path from published v0.1.0, including the requirement to configure both the host authenticator and matching Agent Card Bearer metadata.
-- [ ] Update `CHANGELOG.md`, README, generator guidance and code samples to distinguish release behavior from unreleased features.
-- [ ] Review compatibility with Ruby 3.3/3.4/4.0 and Rails 8.0/8.1.
+## B. Public-production deployment gates
 
-### B. Security and deployment
+These are deployment gates, not a statement that source code cannot be packaged for evaluation.
 
-- [ ] Host verifier validated with expired, forged, revoked, wrong-issuer, wrong-audience and cross-tenant credentials. Authorization to perform business actions is checked inside Handlers.
-- [ ] HTTPS ingress, trusted proxy/forwarded header policy, allowed hosts, certificate trust and public Agent Card URL verified in the target deployment.
-- [ ] Rate limiting, ingress request-size cap, concurrency/timeouts, request cost limits and operational alerting configured/tested.
-- [ ] Log/tracing/monitoring scrub tested for Authorization headers, token values, request bodies, sensitive Task content and exceptions.
-- [ ] Review SSRF, outbound API boundaries, side-effect idempotency and cancellation behavior for each Handler.
-- [ ] Verify cross-principal Task access and pagination isolation with tenant-qualified principal IDs.
-- [ ] Choose a **durable owner-aware Task Store with Task retention and quotas** before multi-worker, restart-safe or open public production. The default MemoryStore does not satisfy this gate.
-- [ ] Confirm no unauthenticated development/test fallback is exposed at the public ingress.
+- [x] Gem-level tests cover authentication failure behavior and cross-principal Task/read/list/cancel/pagination isolation.
+- [ ] Validate the **real host verifier** against expired, forged, revoked, wrong-issuer, wrong-audience and cross-tenant credentials.
+- [ ] Verify application business-action authorization inside Handlers/services.
+- [ ] Verify HTTPS ingress, trusted proxy / forwarded-header policy, host allowlisting, certificate trust and public Agent Card URL.
+- [ ] Configure and test distributed rate limiting, ingress request-size cap, concurrency/timeouts, request cost limits and alerting.
+- [ ] Inspect production-shaped logs/traces/monitoring for Authorization headers, token values, request bodies, sensitive Task content and internal exceptions.
+- [ ] Review SSRF/outbound API boundaries, side-effect idempotency and cancellation behavior for each real Handler.
+- [ ] Choose a **durable owner-aware Task Store with retention/quotas** before restart-safe, multi-worker, replica-based or open-public Task usage. Default MemoryStore does not satisfy this gate.
+- [ ] Confirm the development/test anonymous fallback is unreachable from public ingress.
 
-### C. Protocol and artifact verification
+## C. Exact release-candidate artifact gates
 
-- [ ] Run 13/13 GitHub Actions CI jobs on the exact candidate commit.
-- [ ] Run a separate Rails production-mode HTTP smoke including Agent Card fail closed, 401/403, valid Bearer, foreign Task isolation and malformed/oversized HTTP bodies.
-- [ ] Validate v1.0 protocol conformance and compatibility with an independent official client / TCK (separate prioritized roadmap items; do not claim those checks passed until performed).
-- [ ] Build the `.gem` from the exact release commit; verify RubyGems package contents and metadata.
-- [ ] Install **that built artifact** into a clean Rails 8.0/8.1 app and repeat staging security smoke. Source-tree tests alone are insufficient.
-- [ ] Verify Gem SHA256 before upload and fetched-back SHA256 after publication.
-- [ ] Obtain explicit release approval; create tag/GitHub Release/RubyGems publication as separate actions.
+All items below are required before any RubyGems publication.
 
-## Recommended decision record before launch
+- [ ] Change VERSION only after explicit version approval and identify the exact candidate commit.
+- [ ] Run **13/13 CI** on that exact versioned candidate commit.
+- [ ] Run production-mode HTTP security smoke against the exact candidate: fail-closed Agent Card, 401/403, valid Bearer, foreign Task isolation, malformed/oversized requests.
+- [x] Record protocol evidence against independent clients / pinned official TCK. Re-run if candidate code later changes protocol behavior.
+- [ ] Build the `.gem` from the exact candidate; inspect package contents/metadata and record SHA256.
+- [ ] Install **that exact built artifact** into clean Rails 8.0 and Rails 8.1 hosts; do not rely only on source checkout tests.
+- [ ] Repeat relevant security and protocol smoke against the installed artifact.
+- [ ] Obtain explicit approval for tag, GitHub Release and RubyGems publication.
+- [ ] After upload, fetch the published Gem and confirm its SHA256 matches the approved artifact.
 
-Record the following for each deployment: release commit & Gem SHA256, Rails environment, ingress/TLS configuration, token issuer and audience policy, principal/tenant ID contract, Task Store & retention behavior, rate/concurrency/time limits, business authorization checks, tested threat cases, CI + staging links, accountable reviewer and date.
+## Recommended decision record for a real deployment
 
-## Known non-goals / limitations
+Record: release commit and Gem SHA256, Rails environment, ingress/TLS configuration, token issuer/audience/revocation policy, principal/tenant ID contract, Task Store/retention behavior, rate/concurrency/time limits, business authorization checks, tested threat cases, CI/staging evidence, accountable reviewer and date.
 
-The currently published v0.1.0 Gem lacks the new security controls. The unreleased main line still lacks built-in OAuth2 token issuance/introspection, all-in-one delegated business authorization, distributed rate limiting, durable Task storage and an A2A client. This checklist cannot compensate for missing application-specific enforcement.
+## Known limitations
 
-References: [Production deployment guide](../guides/production-security.md) · [Authentication setup](../guides/authentication.md) · [Request hardening](../guides/request-hardening.md) · [Roadmap](../../ROADMAP.md) · [Security issue #11](https://github.com/cuichangquan/a2a-rails/issues/11).
+The published v0.1.0 lacks the security controls above. Unreleased main still does not provide an OAuth2/OIDC server, universal business authorization, distributed rate limiting, durable Task persistence, asynchronous execution, streaming, or an A2A client. A release candidate must describe those limits rather than imply production completeness.
+
+References: [RC preparation decision](v0.2.0-rc.1-preparation.md) · [Upgrade guide](upgrading-v0.1.0-to-v0.2.md) · [Production deployment guide](../guides/production-security.md) · [Authentication](../guides/authentication.md) · [Request hardening](../guides/request-hardening.md) · [Roadmap](../../ROADMAP.md) · [Security #11](https://github.com/cuichangquan/a2a-rails/issues/11) · [Step 20 #31](https://github.com/cuichangquan/a2a-rails/issues/31).
