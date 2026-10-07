@@ -74,12 +74,13 @@ module A2A
         end
 
         def enqueue_async_task(task, plan)
-          job = @task_job.perform_later(
+          arguments = TaskExecutionArguments.new(
             task_id: task.fetch(:id),
             principal_id: @lifecycle.principal_id,
             agent_class_name: plan.agent_class_name,
-            skill_id: plan.skill_id.to_s
+            skill_id: plan.skill_id
           )
+          job = @task_job.perform_later(**arguments.to_h)
           enqueue_error = job.respond_to?(:enqueue_error) ? job.enqueue_error : nil
           return task if job && enqueue_error.nil?
 
