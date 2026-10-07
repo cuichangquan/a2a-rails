@@ -21,6 +21,10 @@ module A2A
         request.env.delete(PRINCIPAL_ENV_KEY)
         validate_challenge!(configuration.authentication_challenge)
 
+        # Reject requests when a verifier exists but its Agent Card does not
+        # declare an accurate corresponding supported authentication scheme.
+        AgentCard::Security.new(configuration: configuration).fields
+
         authenticator = configuration.authenticate_request
         if authenticator.nil?
           # Preserve the published local Rails Quick Start in dev/test.
