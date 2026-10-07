@@ -18,7 +18,7 @@ Step 16-6 documents the constraints and confirms tested fail-closed behavior. It
 - [x] [#16 — Step 16-4 input limits, log hygiene, cursor cap](https://github.com/cuichangquan/a2a-rails/pull/16)
 - [x] [#17 — Step 16-5 Agent Card security advertisement](https://github.com/cuichangquan/a2a-rails/pull/17)
 - [x] [#17 CI: 13/13 checks passed](https://github.com/cuichangquan/a2a-rails/actions/runs/37569260637)
-- [ ] Step 16-6 review PR merged and latest 13-job CI green (record the resulting PR and run after merge).
+- [x] [Step 16-6 / PR #18 merged](https://github.com/cuichangquan/a2a-rails/pull/18), [13/13 CI green](https://github.com/cuichangquan/a2a-rails/actions/runs/37570771822). Production-mode HTTP fail-closed smoke included.
 
 ## Release candidate gates — ALL required before a new Gem release
 
