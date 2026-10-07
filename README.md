@@ -41,6 +41,17 @@ The Gem provides:
 
 v0.1 is intentionally **server-first** and **non-streaming**.
 
+## Articles & Community / 紹介記事・コミュニティ
+
+### Japanese articles / 日本語の紹介記事
+
+- [Zenn: RailsアプリをA2A対応Agentとして公開する「a2a-rails」を作りました](https://zenn.dev/ccq/articles/d52c1b29982663)
+- [Qiita: RailsアプリをA2A対応Agentとして公開する「a2a-rails」を作りました](https://qiita.com/ccq1170/items/0852445745403c8e848b)
+
+### Community submissions / コミュニティへの投稿
+
+- [awesome-a2a: Resource suggestion #190 / 掲載提案](https://github.com/ai-boost/awesome-a2a/issues/190)
+
 ## Requirements
 
 - Ruby `>= 3.3`
