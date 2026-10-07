@@ -2,7 +2,7 @@
 
 > Status: planning / proposals as of 2026-10-07. These are priorities, not promised release dates or API commitments.
 >
-> **Step 20 in progress:** [Issue #31](https://github.com/cuichangquan/a2a-rails/issues/31) separates **release-candidate artifact verification** from **public-production readiness**. Candidate source version is now `0.2.0.rc1`; RubyGems remains v0.1.0 and no tag/Release has been created. Public/multi-worker production remains NO-GO with the default MemoryStore; security/deployment gates stay in [#11](https://github.com/cuichangquan/a2a-rails/issues/11).
+> **Step 20 candidate verification complete:** `0.2.0.rc1` was built and verified as an exact Gem artifact on Rails 8.0/8.1; [record](docs/release/v0.2.0-rc.1-record.md). RubyGems remains v0.1.0 and no tag/Release has been created. Public/multi-worker production remains NO-GO with the default MemoryStore; security/deployment gates stay in [#11](https://github.com/cuichangquan/a2a-rails/issues/11).
 
 ## Current baseline — v0.1.0 (released)
 
@@ -81,14 +81,14 @@ Completed on `main` (unreleased; **not** part of RubyGems v0.1.0):
 - The local-only demo provides a complete Echo Agent, Handler and `GET /.well-known/agent-card.json` and `POST /a2a` examples. Real GitHub Actions HTTP verification passed **16/16** smoke checks: Task, direct Message, Get/List and error conditions; also rejects production startup. [Demo CI](https://github.com/cuichangquan/a2a-rails-demo/actions/workflows/smoke.yml).
 - No production authentication, durable store or distributed rate limits are claimed. Never expose this anonymous test/demo to public networks; deployment security blockers remain [#11](https://github.com/cuichangquan/a2a-rails/issues/11).
 
-## Step 20 — next release-candidate preparation (in progress)
+## Step 20 — release-candidate verification (complete)
 
-- [Issue #31](https://github.com/cuichangquan/a2a-rails/issues/31) tracks the release audit. The RC branch is versioned **`0.2.0.rc1`** for exact artifact verification; publication is still unapproved.
+- [Issue #31](https://github.com/cuichangquan/a2a-rails/issues/31) tracks the completed candidate audit. Main is versioned **`0.2.0.rc1`**; publication is still unapproved.
 - [RC preparation decision](docs/release/v0.2.0-rc.1-preparation.md) says **GO for preparing a reviewable candidate**, **NO-GO for publishing without explicit approval**, and **NO-GO for claiming open public production readiness**.
 - [Upgrade guide](docs/release/upgrading-v0.1.0-to-v0.2.md) records the v0.1.0 compatibility changes: fail-closed production auth, matching Bearer Agent Card metadata, principal Task isolation, stricter HTTP validation and new opt-in output forms.
 - Protocol evidence is already strong enough for candidate planning: pinned TCK **63 pass / 1 upstream failure**, official Python/Go interop PASS and standalone Rails Demo PASS.
 - Before any Gem upload: explicitly approve version, rerun exact-candidate 13/13 CI, build/inspect exact `.gem`, clean-install Rails 8.0/8.1, run production-shaped installed-artifact smoke, record SHA256, then obtain explicit publication approval.
-- Highest-value framework-level follow-up: durable owner-aware Task persistence with retention/quotas. The default MemoryStore remains a production topology limitation.
+- Highest-value framework-level follow-up: durable owner-aware Task persistence with retention/quotas. The default MemoryStore remains a production topology limitation.\n- [Candidate verification record](docs/release/v0.2.0-rc.1-record.md): main `50e488b`, CI 13/13 PASS, exact artifact Rails 8.0/8.1 PASS, SHA256 `1f44bc74…f6d8a5`.
 
 ## Suggested release sequence (subject to change)
 
