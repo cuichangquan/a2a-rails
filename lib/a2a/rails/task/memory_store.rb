@@ -12,6 +12,7 @@ module A2A
         UNSET = Object.new.freeze
         DEFAULT_PAGE_SIZE = 50
         MAX_PAGE_SIZE = 100
+        MAX_CACHED_PAGES = 128
 
         def initialize
           @tasks = {}
@@ -59,6 +60,9 @@ module A2A
         def list(context_id: nil, status: nil, status_timestamp_after: nil,
           page_size: DEFAULT_PAGE_SIZE, page_token: nil, principal_id: nil)
           validate_page_size!(page_size)
+          unless page_token.nil? || page_token.is_a?(String)
+            raise InvalidTaskQueryError, "page_token must be a String"
+          end
           validate_state!(status) if status
           after = normalize_time(status_timestamp_after) if status_timestamp_after
           fingerprint = query_fingerprint(context_id:, status:, status_timestamp_after: after, page_size:,
@@ -73,6 +77,9 @@ module A2A
             next_token = ""
             if next_offset < rows.length
               next_token = SecureRandom.uuid
+              # Avoid unbounded growth from repeated list/pagination requests.
+              # The oldest snapshot token expires once this per-process cap is reached.
+              @pages.shift if @pages.size >= MAX_CACHED_PAGES
               @pages[next_token] = { rows: rows, offset: next_offset, fingerprint: fingerprint }
             end
 

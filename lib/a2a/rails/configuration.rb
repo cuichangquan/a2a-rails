@@ -5,13 +5,14 @@ require "uri"
 module A2A
   module Rails
     class Configuration
-      attr_accessor :agent, :public_base_url, :authenticate_request, :authentication_challenge
+      attr_accessor :agent, :public_base_url, :authenticate_request, :authentication_challenge, :max_request_bytes
 
       def initialize
         @agent = nil
         @public_base_url = nil
         @authenticate_request = nil
         @authentication_challenge = 'Bearer realm="a2a"'
+        @max_request_bytes = RequestGuard::DEFAULT_MAX_BYTES
         @logger_set = false
       end
 

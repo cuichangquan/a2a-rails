@@ -70,7 +70,8 @@ class TaskLifecycleTest < Minitest::Test
     assert_equal :failed, failed.dig(:status, :state)
     assert_equal "Task execution failed", failed.dig(:status, :message)
     refute_includes failed.dig(:status, :message), "database"
-    assert @logger.messages.any? { |entry| entry.include?("RuntimeError: database exploded") }
+    assert @logger.messages.any? { |entry| entry.include?("RuntimeError") }
+    refute @logger.messages.any? { |entry| entry.include?("database exploded") }
   end
 
   def test_cancel_is_not_overwritten_by_late_completion

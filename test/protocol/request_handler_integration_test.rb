@@ -137,6 +137,36 @@ class RequestHandlerIntegrationTest < Minitest::Test
     assert_equal(-32_602, rpc(rack, "ListTasks", "statusTimestampAfter" => "bad").dig("error", "code"))
   end
 
+  def test_malformed_message_and_task_query_fields_fail_before_task_creation
+    rack, lifecycle = build_stack(handler: ->(message:, context:) { "should not execute" })
+
+    malformed_messages = [
+      { "metadata" => "secret-raw-metadata" },
+      { "contextId" => ["not", "a", "string"] },
+      { "taskId" => 101 },
+      { "parts" => [{ "text" => "hello", "mediaType" => 5 }] },
+      { "parts" => [{ "text" => "hello", "metadata" => ["bad"] }] }
+    ]
+    malformed_messages.each do |changes|
+      input = send_params
+      input.fetch("message").merge!(changes)
+      response = rpc(rack, "SendMessage", input)
+      assert response.key?("error"), "malformed Message created a Task: #{changes.inspect}"
+      refute response.key?("result")
+    end
+
+    assert_equal 0, lifecycle.list.fetch(:total_size)
+
+    [
+      { "pageToken" => 123 },
+      { "contextId" => ["wrong"] },
+      { "includeArtifacts" => "true" }
+    ].each do |changes|
+      response = rpc(rack, "ListTasks", changes)
+      assert response.key?("error"), "malformed ListTasks succeeded: #{changes.inspect}"
+    end
+  end
+
   private
 
   def build_stack(handler:)

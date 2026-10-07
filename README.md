@@ -263,6 +263,12 @@ The unreleased `main` branch includes a host-provided `config.authenticate_reque
 
 > **Important:** These protections are **not yet shipped in RubyGems 0.1.0** and do not make an endpoint production-secure by themselves. Agent Card security advertising, payload/abuse controls, business authorization and the deployment review remain tracked in [Issue #11](https://github.com/cuichangquan/a2a-rails/issues/11).
 
+### Step 16-4 request hardening (under review, unreleased)
+
+The Step 16-4 branch adds a bounded JSON-RPC body (`config.max_request_bytes`, default 1 MiB), Content-Type validation, stricter parameter checks, a pagination snapshot cap, and reduced exception logging. See [Request Hardening Guide](docs/guides/request-hardening.md).
+
+Rate limiting, application-specific authorization, Agent Card authentication advertisement and production deployment safeguards remain the host's responsibility or future work. **Do not confuse unreleased main/PR features with published v0.1.0.**
+
 
 ## Agent Card
 

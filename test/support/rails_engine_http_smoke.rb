@@ -245,6 +245,77 @@ module Step1510Smoke
     assert(scoped_rpc.call("valid-token", "CancelTask", "id" => pending.fetch(:id)).dig("result", "status", "state") ==
       "TASK_STATE_CANCELED", "owner could not cancel Task")
 
+    # Step 16-4: HTTP payload limits and media type validation run before
+    # the verifier or protocol SDK reads the JSON-RPC request.
+    configuration.max_request_bytes = 256
+    big_request = request(
+      "POST", "/a2a",
+      body: auth_payload + (" " * 1024),
+      headers: auth_headers.merge("HTTP_AUTHORIZATION" => "Bearer valid-token")
+    )
+    assert(big_request.status == 413, "oversized A2A request was not rejected")
+    assert(JSON.parse(big_request.body).fetch("error") == "Payload too large",
+      "oversized request returned unsafe error")
+    assert(big_request["Cache-Control"].to_s.include?("no-store"),
+      "oversized A2A response can be cached")
+
+    configuration.max_request_bytes = A2A::Rails::RequestGuard::DEFAULT_MAX_BYTES
+    wrong_type = request(
+      "POST", "/a2a",
+      body: auth_payload,
+      headers: auth_headers.merge(
+        "HTTP_AUTHORIZATION" => "Bearer valid-token",
+        "CONTENT_TYPE" => "text/plain"
+      )
+    )
+    assert(wrong_type.status == 415, "non-JSON request was not rejected")
+
+    compressed = request(
+      "POST", "/a2a",
+      body: auth_payload,
+      headers: auth_headers.merge(
+        "HTTP_AUTHORIZATION" => "Bearer valid-token",
+        "HTTP_CONTENT_ENCODING" => "gzip"
+      )
+    )
+    assert(compressed.status == 415, "compressed input was not rejected")
+
+    # Malformed Part objects must be rejected before the upstream SDK's
+    # ExtractMessage middleware, which otherwise raises on nil elements.
+    [nil, 123, "unexpected"].each do |part|
+      bad_parts = JSON.generate(
+        "jsonrpc" => "2.0",
+        "id" => "invalid-part",
+        "method" => "SendMessage",
+        "params" => {
+          "message" => {
+            "messageId" => "bad-part-message",
+            "role" => "ROLE_USER",
+            "parts" => [part]
+          }
+        }
+      )
+      rejected_part = request(
+        "POST", "/a2a",
+        body: bad_parts,
+        headers: auth_headers.merge("HTTP_AUTHORIZATION" => "Bearer valid-token")
+      )
+      assert(rejected_part.status == 400, "malformed Part reached SDK without validation")
+      assert(JSON.parse(rejected_part.body).fetch("error") == "Invalid request body",
+        "malformed Part leaked internal details")
+    end
+
+    configuration.max_request_bytes = 0
+    invalid_limit = request(
+      "POST", "/a2a",
+      body: auth_payload,
+      headers: auth_headers.merge("HTTP_AUTHORIZATION" => "Bearer valid-token")
+    )
+    assert(invalid_limit.status == 500, "invalid request guard configuration was not rejected")
+    assert(JSON.parse(invalid_limit.body).fetch("error") == "Request validation unavailable",
+      "invalid config leaked exception details")
+    configuration.max_request_bytes = A2A::Rails::RequestGuard::DEFAULT_MAX_BYTES
+
     configuration.authenticate_request = ->(_request) { raise "secret-token-shall-not-appear" }
     unavailable = request("POST", "/a2a", body: auth_payload, headers: auth_headers)
     assert(unavailable.status == 500, "verifier failure was not safely handled")
