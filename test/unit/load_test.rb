@@ -9,6 +9,12 @@ class LoadTest < Minitest::Test
     assert Gem::Version.correct?(A2A::Rails::VERSION)
   end
 
+  def test_active_job_execution_classes_are_loaded
+    assert defined?(A2A::Rails::ExecutionPlan)
+    assert defined?(A2A::Rails::TaskExecutionJob)
+    assert_operator A2A::Rails::TaskExecutionJob, :<, ActiveJob::Base
+  end
+
   def test_protocol_adapter_classes_are_loaded
     assert defined?(A2A::Rails::Protocol::Adapter)
     assert defined?(A2A::Rails::Protocol::Agent2AgentAdapter)
