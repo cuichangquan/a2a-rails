@@ -280,6 +280,31 @@ module Step1510Smoke
     )
     assert(compressed.status == 415, "compressed input was not rejected")
 
+    # Malformed Part objects must be rejected before the upstream SDK's
+    # ExtractMessage middleware, which otherwise raises on nil elements.
+    [nil, 123, "unexpected"].each do |part|
+      bad_parts = JSON.generate(
+        "jsonrpc" => "2.0",
+        "id" => "invalid-part",
+        "method" => "SendMessage",
+        "params" => {
+          "message" => {
+            "messageId" => "bad-part-message",
+            "role" => "ROLE_USER",
+            "parts" => [part]
+          }
+        }
+      )
+      rejected_part = request(
+        "POST", "/a2a",
+        body: bad_parts,
+        headers: auth_headers.merge("HTTP_AUTHORIZATION" => "Bearer valid-token")
+      )
+      assert(rejected_part.status == 400, "malformed Part reached SDK without validation")
+      assert(JSON.parse(rejected_part.body).fetch("error") == "Invalid request body",
+        "malformed Part leaked internal details")
+    end
+
     configuration.max_request_bytes = 0
     invalid_limit = request(
       "POST", "/a2a",
