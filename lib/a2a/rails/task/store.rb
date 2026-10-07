@@ -8,19 +8,19 @@ module A2A
           raise NotImplementedError, "Task stores must implement #save"
         end
 
-        def find(_task_id)
+        def find(_task_id, principal_id: nil)
           raise NotImplementedError, "Task stores must implement #find"
         end
 
-        def transition(_task_id, state:, **_attributes)
+        def transition(_task_id, state:, principal_id: nil, **_attributes)
           raise NotImplementedError, "Task stores must implement #transition"
         end
 
-        def cancel(_task_id, **_attributes)
+        def cancel(_task_id, principal_id: nil, **_attributes)
           raise NotImplementedError, "Task stores must implement #cancel"
         end
 
-        def list(**_filters)
+        def list(principal_id: nil, **_filters)
           raise NotImplementedError, "Task stores must implement #list"
         end
       end
