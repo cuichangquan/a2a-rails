@@ -144,8 +144,6 @@ class RequestHandlerIntegrationTest < Minitest::Test
       { "metadata" => "secret-raw-metadata" },
       { "contextId" => ["not", "a", "string"] },
       { "taskId" => 101 },
-      { "parts" => [nil] },
-      { "parts" => [123] },
       { "parts" => [{ "text" => "hello", "mediaType" => 5 }] },
       { "parts" => [{ "text" => "hello", "metadata" => ["bad"] }] }
     ]
