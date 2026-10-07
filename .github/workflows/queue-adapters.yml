@@ -57,3 +57,5 @@ jobs:
           cache-version: ${{ matrix.rails }}
       - name: Run real queue and separate-worker smoke
         run: bundle exec ruby smoke.rb
+      - name: Run real Rails HTTP async E2E
+        run: bundle exec ruby http_smoke.rb

@@ -34,8 +34,30 @@ Polling and worker shutdown are bounded. Process groups are terminated during cl
 
 ## Limits
 
-This checks real adapter serialization/enqueue/delivery with persistent Task state, not the HTTP SendMessage path; HTTP async E2E is Step 22-9. Graceful worker restart does not prove recovery of a process killed during external side effects. Ambiguous WORKING Tasks still require explicit reconciliation. SQLite smoke does not replace the existing PostgreSQL row-lock contention CI. Solid Queue's separate queue-database topology and host transaction boundaries need additional deployment-specific validation.
+The Step 22-8 adapter smoke checks serialization/enqueue/delivery directly; the separate Step 22-9 HTTP smoke below checks the SendMessage path. Graceful worker restart does not prove recovery of a process killed during external side effects. Ambiguous WORKING Tasks still require explicit reconciliation. SQLite smoke does not replace the existing PostgreSQL row-lock contention CI. Solid Queue's separate queue-database topology and host transaction boundaries need additional deployment-specific validation.
 
 A host must configure and operate both a shared/durable Task Store and a durable queue. Adapter compatibility does not close Issue #11 or authorize public-production deployment. No release version, tag or publication is changed.
 
 References: [Solid Queue](https://github.com/rails/solid_queue), [Sidekiq ActiveJob integration](https://github.com/sidekiq/sidekiq/wiki/Active-Job).
+
+## Step 22-9: Real Rails HTTP async E2E
+
+The same four CI configurations also run:
+
+```sh
+QUEUE_ADAPTER=solid_queue bundle exec ruby http_smoke.rb
+QUEUE_ADAPTER=sidekiq REDIS_URL=redis://127.0.0.1:6379/15 bundle exec ruby http_smoke.rb
+```
+
+This starts a Puma Rails server on **127.0.0.1:9997**, sends JSON-RPC requests over TCP using Net::HTTP, and runs a separate real queue worker. It uses static test-only Bearer credentials mapped to two owners; this does not demonstrate production credential verification. The shared Task database survives graceful Web and worker process restarts during the test.
+
+- SendMessage returns SUBMITTED before any Handler runs with the worker stopped.
+- A bounded test Handler gate allows both GetTask and ListTasks to observe WORKING; release leads to COMPLETED with an Artifact.
+- HTTP failure/rejection paths become FAILED/REJECTED.
+- Foreign-owner GetTask/CancelTask fail; foreign ListTasks is empty.
+- The verified principal and stable Task idempotency key reach the worker Handler.
+- A persisted invocation log verifies Router runs once per Task, solely on the HTTP side.
+- Cancel before delivery prevents Handler start; Cancel during WORKING stays CANCELED without late artifacts.
+- Restarting Web preserves queued/terminal Tasks and Artifacts; work submitted while the worker is stopped completes after worker restart.
+
+This is loopback, test-environment E2E using SQLite. It is not a production deployment, hard-crash recovery test, or full A2A interoperability certification. PostgreSQL cross-process locking remains covered by the separate Store workflow. Reconciliation of ambiguous WORKING Tasks is still explicit.
