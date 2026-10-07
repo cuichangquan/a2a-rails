@@ -13,6 +13,7 @@ Rails-native integration for exposing Rails applications as A2A v1.0 agents.
 - Release record: [docs/release/v0.1.0-record.md](docs/release/v0.1.0-record.md)
 
 - [A2Aの全体像（日本語・A4 1枚PDF）](docs/guides/a2a-protocol-overview-ja.pdf) — 登場人物・依頼の流れ・主要用語・MCPとの違いをまとめた学習資料。
+- [A2A at a glance (English, A4 one-page PDF)](docs/guides/a2a-protocol-overview-en.pdf) — Roles, workflow, key terms, and how MCP fits.
 
 ## What is a2a-rails?
 
@@ -454,6 +455,7 @@ The Gem is available as open source under the terms of the MIT License. See [LIC
 ## Official A2A Resources / A2A公式資料
 
 - [A2A Protocol overview / A2Aの全体像（日本語・A4 1枚PDF）](docs/guides/a2a-protocol-overview-ja.pdf) — 公式資料をもとに作成した学習資料（2026-10-07）。
+- [A2A at a glance (English, A4 one-page PDF)](docs/guides/a2a-protocol-overview-en.pdf) — Learning guide based on the official documentation (2026-10-07).
 - [A2A Protocol documentation (Latest) / 公式ドキュメント](https://a2a-protocol.org/latest/)
 - [A2A Protocol v1.0.0 documentation / v1.0.0ドキュメント](https://a2a-protocol.org/v1.0.0/)
 - [A2A v1.0.0 Specification / v1.0.0仕様書](https://a2a-protocol.org/v1.0.0/specification/)
