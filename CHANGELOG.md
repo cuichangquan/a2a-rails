@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- **Step 22 execution-mode configuration:** synchronous Task execution remains the default; hosts can declare `config.task_execution_mode`, Agent-level `execution_mode`, and Skill-level `execution_mode:` with `Skill > Agent > global` precedence. Background Job execution is not implemented yet.
 - **Step 21 ActiveRecord Task Store core:** optional lazy-loaded ActiveRecord backend, owner-scoped SQL lookups, row-locked transitions/cancellation, signed keyset pagination, migration generator, and durable restart/multi-instance semantics.
 - **Step 21 lifecycle maintenance:** 30-day terminal retention by default for ActiveRecordStore, bounded batch pruning, aggregate maintenance stats, per-owner retained-Task admission guard, and persisted history/artifact collection limits.
 
