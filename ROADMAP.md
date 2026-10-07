@@ -2,7 +2,7 @@
 
 > Status: planning / proposals as of 2026-10-07. These are priorities, not promised release dates or API commitments.
 >
-> **Step 18 complete:** [#25](https://github.com/cuichangquan/a2a-rails/issues/25) closed, [PR #27](https://github.com/cuichangquan/a2a-rails/pull/27) merged (`c7956ce`), official Python and Go SDK client smoke verified. **Next proposed task:** [Step 19 / #28 — reproducible Rails example](https://github.com/cuichangquan/a2a-rails/issues/28). Security blockers remain [#11](https://github.com/cuichangquan/a2a-rails/issues/11); pinned TCK upstream issue [#202](https://github.com/a2aproject/a2a-tck/issues/202).
+> **Step 19 completed:** independent [a2a-rails-demo](https://github.com/cuichangquan/a2a-rails-demo) shipped and smoke verified ([Demo PR #1](https://github.com/cuichangquan/a2a-rails-demo/pull/1), 16/16 checks passed). No new Gem release. **Next priority to decide:** production/security and release gates in [#11](https://github.com/cuichangquan/a2a-rails/issues/11), plus outstanding pinned TCK upstream [#202](https://github.com/a2aproject/a2a-tck/issues/202).
 
 ## Current baseline — v0.1.0 (released)
 
@@ -18,7 +18,7 @@
 | P0 | 1 | [Security hardening](https://github.com/cuichangquan/a2a-rails/issues/11) | Authenticate requests; protect Task reads/lists/cancellation per principal; safe production guidance | Version to decide | **Steps 16-1–16-6 merged; public production NO-GO** |
 | P0 | 2 | [Official A2A TCK tests](https://github.com/cuichangquan/a2a-rails/issues/19) | Pin and run official JSON-RPC MUST suite, report results, fix genuine mismatches | Version to decide | **PRs #20–#24 merged; official JSON-RPC MUST: 63 passed / 1 failed / 171 skipped; upstream TCK #202 open** |
 | P0 | 3 | [Cross-language interoperability](https://github.com/cuichangquan/a2a-rails/issues/25) | Official Python / Go clients with JSON-RPC 1.0 | v0.1.x proposal | **Complete — PR #27 merged** |
-| P0 | 4 | [Runnable Rails example](https://github.com/cuichangquan/a2a-rails/issues/28) | Provide a reproducible Rails Agent demo outside the Gem repo | v0.1.x proposal | **Next — Issue #28** |
+| P0 | 4 | [Runnable Rails example](https://github.com/cuichangquan/a2a-rails/issues/28) | [Separate demo](https://github.com/cuichangquan/a2a-rails-demo), Rails 8 Echo | unreleased Git-pinned Gem source | **Complete — Demo PR #1 merged; CI green** |
 | P0 | 5 | GitHub roadmap visibility | Publish and maintain priorities, milestones and next steps | Now | **In progress** |
 | P1 | 6 | GitHub Issues organization | Create focused issues for approved upcoming changes, with acceptance criteria | Now | Planned |
 | P1 | 7 | ActiveRecord Task Store | Persist Tasks across Rails processes and restarts | v0.2 proposal | Planned |
@@ -73,6 +73,13 @@ Completed on `main` (unreleased; **not** part of RubyGems v0.1.0):
 - Final real [official Python/Go SDK interop #37576849497](https://github.com/cuichangquan/a2a-rails/actions/runs/37576849497) **PASS**. Python a2a-sdk 1.2.2 and Go a2a-go/v2 2.6.0 both worked for Task/direct Message, GetTask, ListTasks, expected terminal cancellation error and v1.0 negotiation.
 - Final [Ruby/Rails regression #37576849516](https://github.com/cuichangquan/a2a-rails/actions/runs/37576849516) **13/13 PASS**. [Reproduce and inspect exclusions](docs/testing/cross-language-interop.md).
 - **Next proposed:** [Step 19 / Issue #28, runnable Rails example](https://github.com/cuichangquan/a2a-rails/issues/28). Not a full A2A compatibility certificate; RubyGems published v0.1.0 is unchanged.
+
+## Step 19 — standalone runnable Rails example (complete)
+
+- Created [`cuichangquan/a2a-rails-demo`](https://github.com/cuichangquan/a2a-rails-demo) **as a separate repository** from the Gem. Its [PR #1](https://github.com/cuichangquan/a2a-rails-demo/pull/1) was merged (`566e1b7`).
+- Ruby **3.4.10**, Rails **8.1.0**, `a2a-rails` **pinned to unreleased source commit `fb99610...`**. No new RubyGems version published.
+- The local-only demo provides a complete Echo Agent, Handler and `GET /.well-known/agent-card.json` and `POST /a2a` examples. Real GitHub Actions HTTP verification passed **16/16** smoke checks: Task, direct Message, Get/List and error conditions; also rejects production startup. [Demo CI](https://github.com/cuichangquan/a2a-rails-demo/actions/workflows/smoke.yml).
+- No production authentication, durable store or distributed rate limits are claimed. Never expose this anonymous test/demo to public networks; deployment security blockers remain [#11](https://github.com/cuichangquan/a2a-rails/issues/11).
 
 ## Suggested release sequence (subject to change)
 
