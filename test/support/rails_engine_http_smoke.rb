@@ -127,7 +127,10 @@ module Step1510Smoke
       authorization = rails_request.get_header("HTTP_AUTHORIZATION")
       raise A2A::Rails::Authentication::Forbidden if authorization == "Bearer forbidden-token"
 
-      "verified-client-1" if authorization == "Bearer valid-token"
+      case authorization
+      when "Bearer valid-token" then "verified-client-1"
+      when "Bearer second-token" then "verified-client-2"
+      end
     end
 
     auth_payload = JSON.generate(
@@ -164,6 +167,83 @@ module Step1510Smoke
     assert(allowed.status == 200, "authenticated request failed: #{allowed.status}")
     assert(JSON.parse(allowed.body).dig("result", "task", "artifacts", 0, "parts", 0, "text") ==
       "Echo: Authenticated", "authenticated Handler did not run")
+
+    # Step 16-3: authenticated callers share an HTTP endpoint and a Task Store,
+    # but may not read, enumerate, continue, or cancel each other's Tasks.
+    scoped_rpc = lambda do |token, method, params|
+      response = request(
+        "POST", "/a2a",
+        body: JSON.generate("jsonrpc" => "2.0", "id" => "scope-1", "method" => method, "params" => params),
+        headers: auth_headers.merge("HTTP_AUTHORIZATION" => "Bearer #{'#{token}'}")
+      )
+      assert(response.status == 200, "scoped RPC #{'#{method}'} failed HTTP #{'#{response.status}'}")
+      JSON.parse(response.body)
+    end
+
+    send_params = lambda do |text, id|
+      {
+        "message" => {
+          "messageId" => id,
+          "role" => "ROLE_USER",
+          "contextId" => "shared-context",
+          "parts" => [{ "text" => text }]
+        }
+      }
+    end
+
+    a1 = scoped_rpc.call("valid-token", "SendMessage", send_params.call("A-1", "a1")).dig("result", "task")
+    a2 = scoped_rpc.call("valid-token", "SendMessage", send_params.call("A-2", "a2")).dig("result", "task")
+    b1 = scoped_rpc.call("second-token", "SendMessage", send_params.call("B-1", "b1")).dig("result", "task")
+    assert(a1.fetch("id") != b1.fetch("id"), "different callers received same task ID")
+    assert(!JSON.generate(a1).include?("verified-client-1"), "Task wire output leaked owner")
+
+    assert(scoped_rpc.call("valid-token", "GetTask", "id" => a1.fetch("id")).dig("result", "id") ==
+      a1.fetch("id"), "owner could not fetch Task")
+    assert(scoped_rpc.call("second-token", "GetTask", "id" => a1.fetch("id")).dig("error", "code") ==
+      -32_001, "foreign Task was readable")
+    assert(scoped_rpc.call("valid-token", "GetTask", "id" => b1.fetch("id")).dig("error", "code") ==
+      -32_001, "reverse Task ownership check failed")
+
+    alice_list = scoped_rpc.call("valid-token", "ListTasks",
+      "contextId" => "shared-context", "pageSize" => 1).fetch("result")
+    assert(alice_list.fetch("totalSize") == 2, "ListTasks leaked foreign Task in totalSize")
+    assert(!alice_list.fetch("nextPageToken").empty?, "expected an owner-specific page token")
+    alice_next = scoped_rpc.call("valid-token", "ListTasks",
+      "contextId" => "shared-context", "pageSize" => 1,
+      "pageToken" => alice_list.fetch("nextPageToken")).fetch("result")
+    assert((alice_list.fetch("tasks") + alice_next.fetch("tasks")).map { |row| row.fetch("id") }.sort ==
+      [a1.fetch("id"), a2.fetch("id")].sort, "owner's ListTasks pagination was incomplete")
+
+    bob_list = scoped_rpc.call("second-token", "ListTasks",
+      "contextId" => "shared-context").fetch("result")
+    assert(bob_list.fetch("totalSize") == 1, "Bob saw Alice's Tasks")
+    assert(bob_list.fetch("tasks").map { |row| row.fetch("id") } == [b1.fetch("id")],
+      "cross-owner Task enumeration")
+
+    stolen_cursor = scoped_rpc.call("second-token", "ListTasks",
+      "contextId" => "shared-context", "pageSize" => 1,
+      "pageToken" => alice_list.fetch("nextPageToken"))
+    assert(stolen_cursor.dig("error", "code") == -32_602, "page token was not bound to owner")
+
+    foreign_continuation = send_params.call("continue", "continue-1")
+    foreign_continuation.fetch("message")["taskId"] = a1.fetch("id")
+    assert(scoped_rpc.call("second-token", "SendMessage", foreign_continuation).dig("error", "code") ==
+      -32_001, "foreign Task existence leaked via continuation")
+    assert(scoped_rpc.call("valid-token", "SendMessage", foreign_continuation).dig("error", "code") ==
+      -32_004, "own Task continuation did not retain unsupported-operation error")
+
+    # Canceling a Task is atomic and the non-owner must see not-found.
+    store = A2A::Rails.runtime.instance_variable_get(:@store)
+    lifecycle = A2A::Rails::Task::Lifecycle.new(store: store, principal_id: "verified-client-1")
+    pending = lifecycle.create(message: {
+      message_id: "pending-1", role: :user,
+      parts: [{ text: "Hold", media_type: "text/plain" }], metadata: {}
+    })
+    lifecycle.start(pending.fetch(:id))
+    assert(scoped_rpc.call("second-token", "CancelTask", "id" => pending.fetch(:id)).dig("error", "code") ==
+      -32_001, "foreign Task cancellation was allowed")
+    assert(scoped_rpc.call("valid-token", "CancelTask", "id" => pending.fetch(:id)).dig("result", "status", "state") ==
+      "TASK_STATE_CANCELED", "owner could not cancel Task")
 
     configuration.authenticate_request = ->(_request) { raise "secret-token-shall-not-appear" }
     unavailable = request("POST", "/a2a", body: auth_payload, headers: auth_headers)
