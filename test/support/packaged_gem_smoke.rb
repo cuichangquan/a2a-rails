@@ -123,6 +123,7 @@ module Step1512PackagedGemSmoke
     lib/a2a-rails.rb
     lib/a2a/rails/engine.rb
     lib/a2a/rails/execution_plan.rb
+    lib/a2a/rails/task_execution_arguments.rb
     lib/a2a/rails/task_execution_job.rb
     lib/a2a/rails/task/active_record_store.rb
     lib/tasks/a2a_rails_tasks.rake
