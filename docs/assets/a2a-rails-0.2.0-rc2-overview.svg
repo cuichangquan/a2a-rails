@@ -1,0 +1,115 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1220" height="1290" viewBox="0 0 1220 1290">
+<defs>
+<style>
+.title{font:700 36px 'Noto Sans JP','Hiragino Sans','Yu Gothic',sans-serif;fill:#fff}.subtitle{font:500 18px 'Noto Sans JP','Hiragino Sans','Yu Gothic',sans-serif;fill:#eef7ff}.h2{font:700 25px 'Noto Sans JP','Hiragino Sans','Yu Gothic',sans-serif;fill:#15365c}.h3{font:700 19px 'Noto Sans JP','Hiragino Sans','Yu Gothic',sans-serif;fill:#18324f}.body{font:500 16px 'Noto Sans JP','Hiragino Sans','Yu Gothic',sans-serif;fill:#263746}.small{font:500 14px 'Noto Sans JP','Hiragino Sans','Yu Gothic',sans-serif;fill:#334b5f}.tiny{font:500 13px 'Noto Sans JP','Hiragino Sans','Yu Gothic',sans-serif;fill:#466078}.white{fill:#fff}.check{font:700 16px 'Noto Sans JP','Hiragino Sans','Yu Gothic',sans-serif;fill:#15803d}.warn{font:700 16px 'Noto Sans JP','Hiragino Sans','Yu Gothic',sans-serif;fill:#c2410c}.mono{font:600 14px ui-monospace,SFMono-Regular,Menlo,monospace;fill:#23374b}
+</style>
+<linearGradient id="header" x1="0" x2="1"><stop offset="0" stop-color="#0f5f9f"/><stop offset="1" stop-color="#103d72"/></linearGradient>
+<filter id="shadow" x="-10%" y="-10%" width="120%" height="120%"><feDropShadow dx="0" dy="2" stdDeviation="3" flood-opacity=".12"/></filter>
+</defs>
+<rect width="1220" height="1290" fill="#f7fbff"/>
+<rect x="10" y="10" rx="18" width="1200" height="115" fill="url(#header)"/>
+<text x="610" y="56" text-anchor="middle" class="title">a2a-rails 0.2.0.rc2 に含まれる主な内容</text>
+<text x="610" y="89" text-anchor="middle" class="subtitle">RailsアプリをA2A対応Agentとして公開・利用するRails Integration Gemの新しいリリース候補</text>
+<text x="610" y="114" text-anchor="middle" class="subtitle">0.1.0から、Task永続化・非同期実行・セキュリティ/運用面を大きく強化</text>
+
+<g filter="url(#shadow)">
+<rect x="12" y="145" rx="16" width="382" height="450" fill="#eaf5ff" stroke="#8bc5ef"/>
+<circle cx="58" cy="190" r="24" fill="#1d9bf0"/><text x="58" y="198" text-anchor="middle" class="h2 white">1</text>
+<text x="98" y="184" class="h2">A2A対応の基本機能</text><text x="98" y="210" class="small">（0.1.0から継続）</text>
+<text x="35" y="252" class="body">RailsアプリをA2A Agentとして公開するための</text><text x="35" y="276" class="body">基本機能を提供します。</text>
+<rect x="30" y="300" rx="12" width="346" height="265" fill="#fff" opacity=".72"/>
+<text x="52" y="336" class="h3">● Agent Card の公開</text>
+<text x="52" y="378" class="h3">● SendMessage / GetTask</text><text x="75" y="405" class="body">ListTasks / CancelTask</text>
+<text x="52" y="447" class="h3">● Skill の定義と実行</text>
+<text x="52" y="489" class="h3">● 認証・認可の仕組み</text><text x="75" y="516" class="small">production は fail-closed</text>
+<text x="52" y="550" class="h3">● A2A v1.0 / 公式TCK検証</text>
+</g>
+
+<g filter="url(#shadow)">
+<rect x="419" y="145" rx="16" width="382" height="450" fill="#eefcf2" stroke="#71d49c"/>
+<circle cx="465" cy="190" r="24" fill="#12a150"/><text x="465" y="198" text-anchor="middle" class="h2 white">2</text>
+<text x="505" y="184" class="h2">ActiveRecord Task Store</text><text x="505" y="210" class="small">Step 21</text>
+<text x="442" y="250" class="body">TaskをメモリだけでなくDBへ永続化できる</text><text x="442" y="274" class="body">ようになりました。</text>
+<rect x="448" y="303" rx="10" width="140" height="78" fill="#fff3d6" stroke="#e7ad49"/>
+<text x="518" y="332" text-anchor="middle" class="h3">MemoryStore</text><text x="518" y="355" text-anchor="middle" class="small">デフォルト</text><text x="518" y="375" text-anchor="middle" class="tiny">プロセス内メモリ</text>
+<text x="610" y="350" text-anchor="middle" class="h2">⇄</text>
+<rect x="634" y="303" rx="10" width="140" height="78" fill="#e7f3ff" stroke="#69aee8"/>
+<text x="704" y="332" text-anchor="middle" class="h3">ActiveRecordStore</text><text x="704" y="355" text-anchor="middle" class="small">オプション</text><text x="704" y="375" text-anchor="middle" class="tiny">DBへTask永続化</text>
+<text x="446" y="418" class="h3">主な特徴</text>
+<text x="454" y="448" class="body">• config.task_store = :active_record</text>
+<text x="454" y="474" class="body">• owner_id + task_id で安全にスコープ</text>
+<text x="454" y="500" class="body">• transaction + row lock</text>
+<text x="454" y="526" class="body">• signed keyset pagination</text>
+<text x="454" y="552" class="body">• retention / prune / 上限設定</text>
+</g>
+
+<g filter="url(#shadow)">
+<rect x="826" y="145" rx="16" width="382" height="450" fill="#f5efff" stroke="#b396ec"/>
+<circle cx="872" cy="190" r="24" fill="#7c3aed"/><text x="872" y="198" text-anchor="middle" class="h2 white">3</text>
+<text x="912" y="184" class="h2">ActiveJobによる非同期実行</text><text x="912" y="210" class="small">Step 22</text>
+<text x="849" y="250" class="body">長時間TaskをHTTPリクエストから切り離し、</text><text x="849" y="274" class="body">バックグラウンドで実行できます。</text>
+<rect x="845" y="304" rx="10" width="102" height="60" fill="#ffe8e8" stroke="#ee7777"/><text x="896" y="330" text-anchor="middle" class="small">SendMessage</text><text x="896" y="350" text-anchor="middle" class="tiny">HTTP request</text>
+<text x="960" y="340" class="h2">→</text>
+<rect x="986" y="304" rx="10" width="91" height="60" fill="#ede9fe" stroke="#8b6fe9"/><text x="1032" y="330" text-anchor="middle" class="small">ActiveJob</text><text x="1032" y="350" text-anchor="middle" class="tiny">queue</text>
+<text x="1085" y="340" class="h2">→</text>
+<rect x="1110" y="304" rx="10" width="80" height="60" fill="#e5f8ea" stroke="#53b36f"/><text x="1150" y="329" text-anchor="middle" class="tiny">Task</text><text x="1150" y="347" text-anchor="middle" class="tiny">ExecutionJob</text>
+<text x="850" y="402" class="h3">非同期実行の流れ</text>
+<text x="856" y="432" class="body">1. Task作成 → SUBMITTED</text><text x="856" y="458" class="body">2. Skillを1回だけ選択</text><text x="856" y="484" class="body">3. Jobをenqueue</text><text x="856" y="510" class="body">4. Workerがclaim → WORKING</text><text x="856" y="536" class="body">5. 選択済みSkillを実行</text><text x="856" y="562" class="body">6. COMPLETED / FAILED / REJECTED</text>
+</g>
+
+<g filter="url(#shadow)">
+<rect x="12" y="615" rx="16" width="400" height="310" fill="#fff1f3" stroke="#f3a6b0"/>
+<text x="34" y="657" class="h2" fill="#b4233d">主な改善・強化</text>
+<text x="36" y="695" class="body">✓ Taskの永続化（ActiveRecord）</text><text x="36" y="728" class="body">✓ バックグラウンド実行（ActiveJob）</text><text x="36" y="761" class="body">✓ キャンセル semantics の明確化</text><text x="36" y="794" class="body">✓ 重複Jobの実行抑止</text><text x="36" y="827" class="body">✓ enqueue / error / retry 方針の整理</text><text x="36" y="860" class="body">✓ retention / prune / limits</text><text x="36" y="893" class="body">✓ ドキュメント・検証環境の充実</text>
+</g>
+
+<g filter="url(#shadow)">
+<rect x="430" y="615" rx="16" width="360" height="310" fill="#fff8df" stroke="#e4c75f"/>
+<text x="452" y="657" class="h2" fill="#9a6700">実行モードの優先順位</text><text x="452" y="689" class="small">クライアントからは選択不可。ホスト側で決定。</text>
+<rect x="486" y="716" rx="10" width="248" height="52" fill="#ffe6e6"/><text x="610" y="748" text-anchor="middle" class="h3">Skill execution_mode</text>
+<text x="610" y="788" text-anchor="middle" class="h2">↓</text>
+<rect x="486" y="803" rx="10" width="248" height="52" fill="#e7f1ff"/><text x="610" y="835" text-anchor="middle" class="h3">Agent execution_mode</text>
+<text x="610" y="875" text-anchor="middle" class="h2">↓</text><text x="610" y="904" text-anchor="middle" class="h3">global config（default: sync）</text>
+</g>
+
+<g filter="url(#shadow)">
+<rect x="808" y="615" rx="16" width="400" height="310" fill="#edf7ff" stroke="#8abdea"/>
+<text x="830" y="657" class="h2" fill="#1264b0">実行モードの特徴</text>
+<text x="832" y="696" class="h3">同期実行（デフォルト）</text><text x="844" y="724" class="body">• HTTPリクエスト内で処理</text><text x="844" y="750" class="body">• 結果をすぐ返す</text><text x="844" y="776" class="body">• direct Message は常に同期</text>
+<text x="832" y="822" class="h3">非同期実行（:async）</text><text x="844" y="850" class="body">• すぐSUBMITTEDを返す</text><text x="844" y="876" class="body">• Workerでバックグラウンド実行</text><text x="844" y="902" class="body">• GetTask / ListTasks で進捗確認</text>
+</g>
+
+<g filter="url(#shadow)">
+<rect x="12" y="945" rx="16" width="455" height="330" fill="#f5f0ff" stroke="#b7a3ea"/>
+<text x="34" y="986" class="h2" fill="#6b3fc0">0.2.0.rc2 の検証結果</text>
+<text x="36" y="1022" class="body">Ruby / Rails CI（複数バージョン）</text><text x="430" y="1022" text-anchor="end" class="check">PASS</text>
+<text x="36" y="1055" class="body">PostgreSQL Task Store</text><text x="430" y="1055" text-anchor="end" class="check">PASS</text>
+<text x="36" y="1088" class="body">Solid Queue / Sidekiq + HTTP async E2E</text><text x="430" y="1088" text-anchor="end" class="check">PASS</text>
+<text x="36" y="1121" class="body">Python a2a-sdk 1.2.2</text><text x="430" y="1121" text-anchor="end" class="check">PASS</text>
+<text x="36" y="1154" class="body">Go a2a-go/v2 2.6.0</text><text x="430" y="1154" text-anchor="end" class="check">PASS</text>
+<text x="36" y="1187" class="body">公式A2A TCK</text><text x="430" y="1187" text-anchor="end" class="check">63 passed</text>
+<text x="36" y="1215" class="tiny">※ 1 failed は既知の upstream CORE-SEND-003 fixture issue</text>
+<text x="36" y="1246" class="body">Rails 8.0 / 8.1 installed Gem</text><text x="430" y="1246" text-anchor="end" class="check">PASS</text>
+</g>
+
+<g filter="url(#shadow)">
+<rect x="485" y="945" rx="16" width="320" height="330" fill="#effcf5" stroke="#83cfaa"/>
+<text x="507" y="986" class="h2" fill="#177b49">現在の状況</text>
+<text x="508" y="1025" class="body">Version</text><text x="645" y="1025" class="mono">0.2.0.rc2</text>
+<text x="508" y="1058" class="body">Candidate commit</text><text x="508" y="1082" class="mono">efdec49daa0e...</text>
+<text x="508" y="1118" class="body">Verification</text><text x="765" y="1118" text-anchor="end" class="check">PASS</text>
+<text x="508" y="1151" class="body">Issue #41</text><text x="765" y="1151" text-anchor="end" class="check">Closed</text>
+<text x="508" y="1184" class="body">Issue #54</text><text x="765" y="1184" text-anchor="end" class="check">Closed</text>
+<text x="508" y="1217" class="body">Issue #11</text><text x="765" y="1217" text-anchor="end" class="warn">Open</text>
+<text x="508" y="1250" class="body">公開状況</text><text x="765" y="1250" text-anchor="end" class="warn">未公開</text>
+</g>
+
+<g filter="url(#shadow)">
+<rect x="823" y="945" rx="16" width="385" height="330" fill="#fff6e9" stroke="#efa95b"/>
+<text x="845" y="986" class="h2" fill="#d35b0d">重要な注意点</text>
+<text x="846" y="1025" class="warn">● まだ公開していません</text><text x="860" y="1050" class="small">tag / GitHub Release / RubyGems は未実行</text>
+<text x="846" y="1092" class="warn">● 本番運用は別途レビューが必要</text><text x="860" y="1117" class="small">認証、認可、TLS、rate limit、監視など</text><text x="860" y="1139" class="small">Issue #11 はOpenのまま</text>
+<text x="846" y="1180" class="warn">● async本番には2つが必要</text><text x="860" y="1205" class="small">durable Task Store + durable queue</text>
+<text x="846" y="1246" class="warn">● rc1の古い証拠は再利用しない</text><text x="860" y="1270" class="tiny">Step 21/22後の現在版はrc2で再検証済み</text>
+</g>
+</svg>
