@@ -1,4 +1,8 @@
 A2A::Rails.configure do |config|
   config.agent = "YourAgent"
   config.public_base_url = ENV["A2A_PUBLIC_BASE_URL"]
+
+  # Production/staging A2A requests fail closed unless the host configures
+  # config.authenticate_request and matching Agent Card security metadata.
+  # See: https://github.com/cuichangquan/a2a-rails/blob/main/docs/guides/authentication.md
 end

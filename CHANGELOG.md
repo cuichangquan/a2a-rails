@@ -4,13 +4,13 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased] — proposed v0.2.0-rc.1 preparation (not versioned)
+## [0.2.0.rc1] - 2026-10-07 (release candidate source; not published)
 
-> **Not published on RubyGems.** The released v0.1.0 artifact does not contain these changes. Step 20 uses **v0.2.0-rc.1 only as a working candidate name**; `A2A::Rails::VERSION` remains 0.1.0 until explicit version approval. Distribution readiness and public-production readiness are reviewed separately.
+> **Not published on RubyGems.** The released v0.1.0 artifact does not contain these changes. The candidate source now uses `A2A::Rails::VERSION = "0.2.0.rc1"` for exact artifact verification; no tag/Release/RubyGems publication is authorized yet. Distribution readiness and public-production readiness remain separate decisions.
 
 ### Added
 
-- **Unreleased Step 20:** Release-candidate preparation decision, v0.1.0 → proposed v0.2 upgrade guide, and a revised readiness checklist that separates Gem artifact/publication gates from deployment-specific production gates. No VERSION/tag/RubyGems change.
+- **Step 20 RC verification:** Candidate version `0.2.0.rc1`, exact-artifact CI for one built `.gem` reused across Rails 8.0/8.1 installed-artifact security smoke, release/upgrade guidance, and separated publication vs deployment gates. No tag/RubyGems publication.
 
 - **Unreleased Step 19 (docs / separate repository):** [a2a-rails-demo](https://github.com/cuichangquan/a2a-rails-demo), a standalone Rails 8.1 Echo Agent app with pinned unreleased Gem source, Task/direct Message Quick Start and real localhost HTTP smoke (16 checks passed). No changes to Gem runtime or published RubyGems v0.1.0.
 

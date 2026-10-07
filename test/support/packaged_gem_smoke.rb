@@ -6,6 +6,7 @@ require "json"
 require "open3"
 require "rubygems/package"
 require "tmpdir"
+require_relative "../../lib/a2a/rails/version"
 
 module Step1512PackagedGemSmoke
   module_function
@@ -13,11 +14,17 @@ module Step1512PackagedGemSmoke
   ROOT = File.expand_path("../..", __dir__)
   RAILS_VERSION = ENV.fetch("PACKAGED_RAILS_VERSION", "~> 8.1.0")
   HOMEPAGE = "https://github.com/cuichangquan/a2a-rails"
+  EXPECTED_VERSION = ENV.fetch("PACKAGED_GEM_EXPECTED_VERSION", A2A::Rails::VERSION)
+  OUTPUT_DIR = ENV["PACKAGED_GEM_OUTPUT_DIR"]
 
   INITIALIZER_SCAFFOLD = <<~RUBY.freeze
     A2A::Rails.configure do |config|
       config.agent = "YourAgent"
       config.public_base_url = ENV["A2A_PUBLIC_BASE_URL"]
+
+      # Production/staging A2A requests fail closed unless the host configures
+      # config.authenticate_request and matching Agent Card security metadata.
+      # See: https://github.com/cuichangquan/a2a-rails/blob/main/docs/guides/authentication.md
     end
   RUBY
 
@@ -148,16 +155,16 @@ module Step1512PackagedGemSmoke
   end
 
   def build_and_verify_package(tmpdir)
-    package_dir = File.join(tmpdir, "package")
+    package_dir = OUTPUT_DIR ? File.expand_path(OUTPUT_DIR) : File.join(tmpdir, "package")
     FileUtils.mkdir_p(package_dir)
-    gem_path = File.join(package_dir, "a2a-rails.gem")
+    gem_path = File.join(package_dir, "a2a-rails-#{EXPECTED_VERSION}.gem")
 
     run!("gem", "build", "a2a-rails.gemspec", "--output", gem_path)
 
     package = Gem::Package.new(gem_path)
     spec = package.spec
     assert(spec.name == "a2a-rails", "unexpected packaged gem name")
-    assert(spec.version.to_s == "0.1.0", "unexpected packaged gem version: #{spec.version}")
+    assert(spec.version.to_s == EXPECTED_VERSION, "unexpected packaged gem version: #{spec.version}")
     assert(spec.homepage == HOMEPAGE, "unexpected packaged gem homepage: #{spec.homepage}")
     assert(spec.license == "MIT", "unexpected packaged gem license: #{spec.license}")
     assert(spec.required_ruby_version.satisfied_by?(Gem::Version.new("3.3.0")), "Ruby 3.3 must be supported")

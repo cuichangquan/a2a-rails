@@ -2,7 +2,7 @@
 
 > Status: planning / proposals as of 2026-10-07. These are priorities, not promised release dates or API commitments.
 >
-> **Step 20 in progress:** [Issue #31](https://github.com/cuichangquan/a2a-rails/issues/31) separates **release-candidate preparation** from **public-production readiness**. Working candidate name: `v0.2.0-rc.1`, planning only; VERSION remains 0.1.0 and RubyGems is unchanged. Public/multi-worker production remains NO-GO with the default MemoryStore; security/deployment gates stay in [#11](https://github.com/cuichangquan/a2a-rails/issues/11).
+> **Step 20 in progress:** [Issue #31](https://github.com/cuichangquan/a2a-rails/issues/31) separates **release-candidate artifact verification** from **public-production readiness**. Candidate source version is now `0.2.0.rc1`; RubyGems remains v0.1.0 and no tag/Release has been created. Public/multi-worker production remains NO-GO with the default MemoryStore; security/deployment gates stay in [#11](https://github.com/cuichangquan/a2a-rails/issues/11).
 
 ## Current baseline — v0.1.0 (released)
 
@@ -83,7 +83,7 @@ Completed on `main` (unreleased; **not** part of RubyGems v0.1.0):
 
 ## Step 20 — next release-candidate preparation (in progress)
 
-- [Issue #31](https://github.com/cuichangquan/a2a-rails/issues/31) tracks the release audit. The working name is **v0.2.0-rc.1**, but the repository VERSION is deliberately still `0.1.0`.
+- [Issue #31](https://github.com/cuichangquan/a2a-rails/issues/31) tracks the release audit. The RC branch is versioned **`0.2.0.rc1`** for exact artifact verification; publication is still unapproved.
 - [RC preparation decision](docs/release/v0.2.0-rc.1-preparation.md) says **GO for preparing a reviewable candidate**, **NO-GO for publishing without explicit approval**, and **NO-GO for claiming open public production readiness**.
 - [Upgrade guide](docs/release/upgrading-v0.1.0-to-v0.2.md) records the v0.1.0 compatibility changes: fail-closed production auth, matching Bearer Agent Card metadata, principal Task isolation, stricter HTTP validation and new opt-in output forms.
 - Protocol evidence is already strong enough for candidate planning: pinned TCK **63 pass / 1 upstream failure**, official Python/Go interop PASS and standalone Rails Demo PASS.
