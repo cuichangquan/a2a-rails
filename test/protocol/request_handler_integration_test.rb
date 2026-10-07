@@ -84,6 +84,21 @@ class RequestHandlerIntegrationTest < Minitest::Test
     assert_equal(-32_602, rpc(rack, "GetTask", {}).dig("error", "code"))
   end
 
+  def test_unsupported_push_notification_operations_have_dedicated_a2a_error
+    rack, = build_stack(handler: ->(message:, context:) { "unused" })
+
+    A2A::Rails::Protocol::Agent2AgentAdapter::PUSH_NOTIFICATION_OPERATIONS.each do |operation|
+      response = rpc(rack, operation, {})
+      assert_equal(-32_003, response.dig("error", "code"), operation)
+      assert_match(/push notifications are not supported/i, response.dig("error", "message"), operation)
+      refute response.key?("result"), operation
+    end
+
+    # Unsupported streaming remains a distinct operation error (-32004).
+    streaming = rpc(rack, "SendStreamingMessage", "message" => send_params.fetch("message"))
+    assert_equal(-32_004, streaming.dig("error", "code"))
+  end
+
   def test_cancel_wins_over_late_send_completion
     started = Queue.new
     release = Queue.new

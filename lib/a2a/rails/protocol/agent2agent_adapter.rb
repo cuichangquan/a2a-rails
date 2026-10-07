@@ -12,6 +12,14 @@ module A2A
       class Agent2AgentAdapter < Adapter
         PROTOCOL_VERSION = "1.0"
         SUPPORTED_OPERATIONS = %w[SendMessage GetTask ListTasks CancelTask].freeze
+        # A2A v1.0 distinguishes unsupported push notifications (-32003)
+        # from other unsupported operations (-32004) on the JSON-RPC wire.
+        PUSH_NOTIFICATION_OPERATIONS = %w[
+          CreateTaskPushNotificationConfig
+          GetTaskPushNotificationConfig
+          ListTaskPushNotificationConfigs
+          DeleteTaskPushNotificationConfig
+        ].freeze
         RESPONSE_SCHEMAS = {
           "SendMessage" => "Send Message Response",
           "GetTask" => "Task",
@@ -74,6 +82,9 @@ module A2A
           validate_version!(env)
 
           operation = env.fetch("a2a.operation")
+          if PUSH_NOTIFICATION_OPERATIONS.include?(operation)
+            raise A2A::PushNotificationNotSupportedError.new
+          end
           raise A2A::UnsupportedOperationError.new unless SUPPORTED_OPERATIONS.include?(operation)
 
           request = env.fetch("a2a.request")
