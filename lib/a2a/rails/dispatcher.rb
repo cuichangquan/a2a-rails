@@ -3,8 +3,9 @@
 module A2A
   module Rails
     class Dispatcher
-      def initialize(agent:)
+      def initialize(agent:, configuration: Configuration.new)
         @agent = agent
+        @configuration = configuration
       end
 
       def validate!
@@ -23,12 +24,28 @@ module A2A
         raise ConfigurationError, "response_mode must resolve to :task or :message"
       end
 
-      def call(message:, context:)
+      def plan(message:, context:)
         validate!
         skill = select_skill(message: message, context: context)
+
+        ExecutionPlan.new(
+          agent_class_name: @agent.name,
+          skill_id: skill.id,
+          execution_mode: @configuration.resolve_task_execution_mode(agent: @agent, skill: skill)
+        )
+      end
+
+      def execute(plan:, message:, context:)
+        validate!
+        skill = declared_skill(plan.skill_id)
         handler_context = context.merge(skill_id: skill.id)
 
         skill.handler.call(message: message, context: handler_context)
+      end
+
+      def call(message:, context:)
+        execution_plan = plan(message: message, context: context)
+        execute(plan: execution_plan, message: message, context: context)
       end
 
       private
@@ -44,8 +61,12 @@ module A2A
         )
         selected_id = normalize_selected_id(selected)
 
-        declared.find { |skill| skill.id == selected_id } ||
-          raise(UnknownSkillError, "Router selected unknown skill: #{selected.inspect}")
+        declared_skill(selected_id, selected)
+      end
+
+      def declared_skill(skill_id, original = skill_id)
+        @agent.skills.find { |skill| skill.id == skill_id } ||
+          raise(UnknownSkillError, "Router selected unknown skill: #{original.inspect}")
       end
 
       def normalize_selected_id(value)
