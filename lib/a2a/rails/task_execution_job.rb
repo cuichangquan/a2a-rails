@@ -8,6 +8,17 @@ module A2A
       queue_as :default
 
       def perform(task_id:, principal_id:, agent_class_name:, skill_id:)
+        arguments = TaskExecutionArguments.new(
+          task_id: task_id,
+          principal_id: principal_id,
+          agent_class_name: agent_class_name,
+          skill_id: skill_id
+        )
+        task_id = arguments.task_id
+        principal_id = arguments.principal_id
+        agent_class_name = arguments.agent_class_name
+        skill_id = arguments.skill_id
+
         configuration = A2A::Rails.configuration
         lifecycle = Task::Lifecycle.new(
           store: A2A::Rails.runtime.task_store,
