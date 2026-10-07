@@ -291,6 +291,9 @@ module Step1510Smoke
       )
     )
     assert(wrong_type.status == 415, "non-JSON request was not rejected")
+    assert(wrong_type.body.empty?, "HTTP 415 must not look like malformed JSON-RPC error data")
+    assert(wrong_type["Cache-Control"].to_s.include?("no-store"),
+      "unsupported Content-Type response can be cached")
 
     compressed = request(
       "POST", "/a2a",
@@ -301,6 +304,7 @@ module Step1510Smoke
       )
     )
     assert(compressed.status == 415, "compressed input was not rejected")
+    assert(compressed.body.empty?, "compressed HTTP 415 must not look like malformed JSON-RPC error data")
 
     # Malformed Part objects must be rejected before the upstream SDK's
     # ExtractMessage middleware, which otherwise raises on nil elements.
