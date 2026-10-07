@@ -88,7 +88,7 @@ Completed on `main` (unreleased; **not** part of RubyGems v0.1.0):
 - [Upgrade guide](docs/release/upgrading-v0.1.0-to-v0.2.md) records the v0.1.0 compatibility changes: fail-closed production auth, matching Bearer Agent Card metadata, principal Task isolation, stricter HTTP validation and new opt-in output forms.
 - Protocol evidence is already strong enough for candidate planning: pinned TCK **63 pass / 1 upstream failure**, official Python/Go interop PASS and standalone Rails Demo PASS.
 - Before any Gem upload: explicitly approve version, rerun exact-candidate 13/13 CI, build/inspect exact `.gem`, clean-install Rails 8.0/8.1, run production-shaped installed-artifact smoke, record SHA256, then obtain explicit publication approval.
-- Highest-value framework-level follow-up: durable owner-aware Task persistence with retention/quotas. The default MemoryStore remains a production topology limitation.\n- [Candidate verification record](docs/release/v0.2.0-rc.1-record.md): main `50e488b`, CI 13/13 PASS, exact artifact Rails 8.0/8.1 PASS, SHA256 `1f44bc74…f6d8a5`.
+- Step 21 subsequently delivered durable owner-aware ActiveRecord persistence with retention/quotas. The old [candidate verification record](docs/release/v0.2.0-rc.1-record.md) remains historical evidence for its exact tree only and **must not** be used to publish current main.
 
 ## Suggested release sequence (subject to change)
 
