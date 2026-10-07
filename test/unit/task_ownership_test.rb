@@ -10,14 +10,14 @@ class TaskOwnershipTest < Minitest::Test
     @anonymous = A2A::Rails::Task::Lifecycle.new(store: @store)
   end
 
-  def message
+  def input_message
     { message_id: "m1", role: :user, parts: [{ text: "private" }], metadata: {} }
   end
 
   def test_find_and_cancel_hide_foreign_and_anonymous_tasks
-    a = @alice.create(message: message, context_id: "shared-context")
-    b = @bob.create(message: message, context_id: "shared-context")
-    u = @anonymous.create(message: message, context_id: "shared-context")
+    a = @alice.create(message: input_message, context_id: "shared-context")
+    b = @bob.create(message: input_message, context_id: "shared-context")
+    u = @anonymous.create(message: input_message, context_id: "shared-context")
 
     assert_equal a[:id], @alice.find(a[:id])[:id]
     assert_equal b[:id], @bob.find(b[:id])[:id]
@@ -32,10 +32,10 @@ class TaskOwnershipTest < Minitest::Test
   end
 
   def test_list_is_scoped_before_filter_count_and_pagination
-    a1 = @alice.create(message: message, context_id: "shared-context")
-    a2 = @alice.create(message: message, context_id: "shared-context")
-    b = @bob.create(message: message, context_id: "shared-context")
-    u = @anonymous.create(message: message, context_id: "shared-context")
+    a1 = @alice.create(message: input_message, context_id: "shared-context")
+    a2 = @alice.create(message: input_message, context_id: "shared-context")
+    b = @bob.create(message: input_message, context_id: "shared-context")
+    u = @anonymous.create(message: input_message, context_id: "shared-context")
 
     first = @alice.list(page_size: 1)
     assert_equal 2, first.fetch(:total_size)
@@ -62,7 +62,7 @@ class TaskOwnershipTest < Minitest::Test
   end
 
   def test_transitions_are_scoped_and_atomic_even_during_races
-    a = @alice.create(message: message)
+    a = @alice.create(message: input_message)
     @alice.start(a[:id])
     assert_raises(A2A::Rails::TaskNotFoundError) { @bob.complete(a[:id], "intrusion") }
     assert_raises(A2A::Rails::TaskNotFoundError) { @bob.start(a[:id]) }
@@ -75,7 +75,7 @@ class TaskOwnershipTest < Minitest::Test
   end
 
   def test_private_owner_is_not_serialized_by_task_mapper
-    task = @alice.create(message: message)
+    task = @alice.create(message: input_message)
     assert_equal "alice", task[:owner_id]
     payload = A2A::Rails::Protocol::TaskMapper.new.dump(task)
     refute payload.key?("owner_id")
