@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased after 0.2.0.rc1 candidate]
 
+### Added
+
+- **Step 21 ActiveRecord Task Store core:** optional lazy-loaded ActiveRecord backend, owner-scoped SQL lookups, row-locked transitions/cancellation, signed keyset pagination, migration generator, and durable restart/multi-instance semantics.
+- **Step 21 lifecycle maintenance:** 30-day terminal retention by default for ActiveRecordStore, bounded batch pruning, aggregate maintenance stats, per-owner retained-Task admission guard, and persisted history/artifact collection limits.
+
 ### Planned
 
 - **Step 21:** Optional ActiveRecord Task Store with durable owner-scoped Task state, migration generator, DB locking, keyset pagination, retention/batched pruning, owner quota, payload bounds, maintenance stats and shared Store contract tests. See [design](docs/design/active-record-task-store.md). Runtime changes will require a newly verified release candidate before publication.
