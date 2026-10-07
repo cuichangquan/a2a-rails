@@ -86,6 +86,12 @@ module A2A
           result = {}
           result["text"] = part[:text] if part.key?(:text)
           result["data"] = copy(part[:data]) if part.key?(:data)
+          result["raw"] = part[:raw] if part.key?(:raw)
+          result["url"] = part[:url] if part.key?(:url)
+          result["filename"] = part[:filename] if part.key?(:filename)
+          if part.key?(:raw) || part.key?(:url)
+            result["mediaType"] = part[:media_type] if part.key?(:media_type)
+          end
           result["metadata"] = copy(part[:metadata]) if part.key?(:metadata)
           result
         end

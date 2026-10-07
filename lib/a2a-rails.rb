@@ -2,6 +2,7 @@
 
 require_relative "a2a/rails/version"
 require_relative "a2a/rails/errors"
+require_relative "a2a/rails/file_artifact"
 require_relative "a2a/rails/authentication"
 require_relative "a2a/rails/request_guard"
 require_relative "a2a/rails/configuration"

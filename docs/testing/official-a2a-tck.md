@@ -154,3 +154,30 @@ The aggregate percentage remains unchanged because the `DM-ART-001` requirement 
 
 No assertion of full interoperability, production deployment safety, or published v0.1.0 feature changes is made. The TCK workflow is **informational**: inspect the actual reports, not its green badge.
 
+
+## Step 17-3: real FilePart output via the Gem's Handler result API
+
+[PR #23](https://github.com/cuichangquan/a2a-rails/pull/23) introduces a typed `A2A::Rails::FileArtifact` Handler result for inline raw bytes (Base64 on the wire) and HTTPS file references. The normal ArtifactMapper and SDK serialize `raw`/`url`, `filename`, and `mediaType`; the **test-only** Echo Agent uses the real API for the two official `tck-artifact-file-` and `tck-artifact-file-url-` scenarios.
+
+- New API and safety constraints: [File Artifact guide](../guides/file-artifacts.md).
+- Pinned official TCK rerun (initial feature implementation): [Actions #37573700959](https://github.com/cuichangquan/a2a-rails/actions/runs/37573700959), commit `c4dedfdb79613902bee34edf516be8ad8f80620e`. The final PR revision requires a full Ruby CI pass as well.
+- TCK revision remains `263b9cfaf16a554bdfb166a7ba5b67716e946349` with `--transport jsonrpc --level must`.
+
+| Measurement | Step 17-2 | Step 17-3 |
+| --- | ---: | ---: |
+| pytest passed | 60 | **62** |
+| pytest failed | 4 | **2** |
+| pytest skipped | 171 | 171 |
+| pytest deselected | 30 | 30 |
+| JSON-RPC requirement observations passed | 58 | **60** |
+| JSON-RPC requirement observations failed | 4 | **2** |
+| JSON-RPC skipped | 27 | 27 |
+| Agent Card observations passed | 6 | 6 |
+| TCK-reported MUST compatibility (full suite denominator) | 66.7% | **68.0%** |
+
+**Only two pytest failures remain in this chosen JSON-RPC MUST profile:**
+
+1. **`DM-MSG-001` — direct Message response**: The existing Gem deliberately creates completed Tasks for SendMessage; the TCK's particular fixture requests a Message result. Support must be designed separately without replacing currently supported Task-based semantics.
+2. **`CORE-SEND-003` — upstream TCK expected-error binding**: the Gem rejects unsupported inbound file media with A2A `ContentTypeNotSupportedError (-32005)`, which is correct; the pinned upstream requirement specifies that behavior in prose but does not populate `expected_error`. This is an upstream test issue to track, not grounds to misreport or weaken validation.
+
+**This does not mean 100% protocol conformance.** The TCK report aggregates other transport/capability requirements, and its runner step is deliberately informational; a green workflow is not a TCK pass. The change exists on unreleased source, not published RubyGems v0.1.0.

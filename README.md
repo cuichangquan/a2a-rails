@@ -324,7 +324,13 @@ String       → Text Part
 Hash / Array → Data Part
 nil          → no Artifact
 other object → ArtifactMappingError
+
+Unreleased Step 17-3 (not in RubyGems v0.1.0):
+A2A::Rails::FileArtifact.bytes(...) → File Part with base64 raw bytes
+A2A::Rails::FileArtifact.url(...)   → File Part with an HTTPS URL
 ```
+
+**File Artifact output is unreleased.** Rails Handlers can explicitly return a `FileArtifact.bytes(data:, filename:, media_type:)` or `FileArtifact.url(url:, filename:, media_type:)`. See the [File Artifact output guide](docs/guides/file-artifacts.md). Input file Parts, downloading remote URLs and production file authorization are not supplied by the Gem.
 
 Supported Task operations:
 
