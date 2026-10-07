@@ -38,7 +38,7 @@ module A2A
 
           # Direct Message is an explicit host-side choice, never inferred
           # from an untrusted client flag or forced by the protocol adapter.
-          if @dispatcher.response_mode(message: message) == :message
+          if safe_response_mode(message) == :message
             return send_direct_message(message, context_id)
           end
 
@@ -56,6 +56,14 @@ module A2A
           end
 
           { "task" => @task_mapper.dump(task, history_length: history_length, include_artifacts: true) }
+        end
+
+        def safe_response_mode(message)
+          @dispatcher.response_mode(message: message)
+        rescue StandardError
+          # The selector is host application code and may raise with secrets.
+          # No Task exists yet to record the failure as a Task status.
+          raise A2A::InvalidAgentResponseError.new
         end
 
         def send_direct_message(message, context_id)

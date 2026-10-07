@@ -135,6 +135,16 @@ class RequestHandlerIntegrationTest < Minitest::Test
     assert_equal 0, lifecycle.list.fetch(:total_size)
   end
 
+  def test_response_mode_selector_errors_do_not_leak_application_details_or_create_tasks
+    [->(message:) { raise "secret token in response selector" }, ->(message:) { :unsupported }].each do |selector|
+      rack, lifecycle = build_stack(handler: ->(message:, context:) { "not called" }, response_mode: selector)
+      result = rpc(rack, "SendMessage", send_params)
+      assert_equal(-32_006, result.dig("error", "code"))
+      refute_includes JSON.generate(result), "secret token"
+      assert_equal 0, lifecycle.list.fetch(:total_size)
+    end
+  end
+
   def test_file_raw_artifact_round_trips_through_real_sdk_and_task_queries
     file = A2A::Rails::FileArtifact.bytes(
       data: "binary\x00\xFF".b,
