@@ -1,0 +1,144 @@
+name: Release candidate artifact verification
+
+on:
+  pull_request:
+    paths:
+      - "a2a-rails.gemspec"
+      - "lib/**"
+      - "app/**"
+      - "config/**"
+      - "test/support/packaged_gem_smoke.rb"
+      - "test/support/production_security_http_smoke.rb"
+      - ".github/workflows/release-candidate-artifact.yml"
+      - "docs/release/**"
+      - "CHANGELOG.md"
+      - "README.md"
+      - "ROADMAP.md"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-candidate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.4.10"
+
+      - name: Build and verify exact candidate Gem
+        shell: bash
+        env:
+          PACKAGED_GEM_EXPECTED_VERSION: "0.2.0.rc1"
+          PACKAGED_RAILS_VERSION: "~> 8.1.0"
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/rc"
+          PACKAGED_GEM_OUTPUT_DIR="$RUNNER_TEMP/rc"             ruby test/support/packaged_gem_smoke.rb
+
+          gem_path="$RUNNER_TEMP/rc/a2a-rails-0.2.0.rc1.gem"
+          test -f "$gem_path"
+
+          (
+            cd "$RUNNER_TEMP/rc"
+            sha256sum "a2a-rails-0.2.0.rc1.gem" | tee SHA256SUMS
+          )
+
+          ruby -rrubygems/package -e '
+            path = ARGV.fetch(0)
+            spec = Gem::Package.new(path).spec
+            abort "wrong name" unless spec.name == "a2a-rails"
+            abort "wrong version: #{spec.version}" unless spec.version.to_s == "0.2.0.rc1"
+            puts "Candidate package metadata: #{spec.name} #{spec.version}"
+          ' "$gem_path"
+
+      - name: Upload exact candidate bytes
+        uses: actions/upload-artifact@v4
+        with:
+          name: a2a-rails-0.2.0.rc1-candidate
+          path: |
+            ${{ runner.temp }}/rc/a2a-rails-0.2.0.rc1.gem
+            ${{ runner.temp }}/rc/SHA256SUMS
+          if-no-files-found: error
+          retention-days: 14
+
+  installed-artifact-security:
+    needs: build-candidate
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        rails:
+          - "~> 8.0.0"
+          - "~> 8.1.0"
+    env:
+      TARGET_RAILS: ${{ matrix.rails }}
+      A2A_RAILS_EXPECTED_VERSION: "0.2.0.rc1"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.4.10"
+
+      - name: Download the exact candidate built by build-candidate
+        uses: actions/download-artifact@v4
+        with:
+          name: a2a-rails-0.2.0.rc1-candidate
+          path: ${{ runner.temp }}/rc
+
+      - name: Verify candidate SHA256 before installation
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP/rc"
+          sha256sum -c SHA256SUMS
+
+      - name: Install candidate and selected Rails into a clean bundle
+        shell: bash
+        run: |
+          set -euo pipefail
+          gem_path="$RUNNER_TEMP/rc/a2a-rails-0.2.0.rc1.gem"
+
+          gem install --no-document "$gem_path"
+          gem install --no-document rails -v "$TARGET_RAILS"
+
+          host="$RUNNER_TEMP/clean-host"
+          mkdir -p "$host"
+          cat > "$host/Gemfile" <<GEMFILE
+          source "https://rubygems.org"
+
+          gem "rails", "$TARGET_RAILS"
+          gem "a2a-rails", "= 0.2.0.rc1"
+          GEMFILE
+
+          BUNDLE_GEMFILE="$host/Gemfile" bundle install --local
+
+          BUNDLE_GEMFILE="$host/Gemfile" bundle exec ruby -e '
+            require "rails"
+            require "a2a-rails"
+            abort "unexpected Gem version" unless A2A::Rails::VERSION == "0.2.0.rc1"
+            spec = Gem.loaded_specs.fetch("a2a-rails")
+            source = File.realpath(ENV.fetch("GITHUB_WORKSPACE"))
+            loaded = File.realpath(spec.full_gem_path)
+            abort "loaded source checkout instead of installed Gem" if loaded.start_with?(source + File::SEPARATOR)
+            puts "Installed candidate: #{loaded}"
+            puts "Rails under test: #{Rails.version}"
+          '
+
+      - name: Run production-shaped security smoke against installed candidate
+        shell: bash
+        env:
+          RAILS_ENV: production
+          RACK_ENV: production
+          A2A_RAILS_USE_INSTALLED_GEM: "1"
+          A2A_RAILS_SOURCE_ROOT: ${{ github.workspace }}
+        run: |
+          set -euo pipefail
+          host="$RUNNER_TEMP/clean-host"
+          BUNDLE_GEMFILE="$host/Gemfile"             bundle exec ruby "$GITHUB_WORKSPACE/test/support/production_security_http_smoke.rb"
