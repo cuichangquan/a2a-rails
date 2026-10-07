@@ -22,7 +22,7 @@
 | P0 | 5 | GitHub roadmap visibility | Publish and maintain priorities, milestones and next steps | Now | **In progress** |
 | P1 | 6 | GitHub Issues organization | Create focused issues for approved upcoming changes, with acceptance criteria | Now | Planned |
 | P1 | 7 | [ActiveRecord Task Store](https://github.com/cuichangquan/a2a-rails/issues/35) | Durable owner-scoped Tasks across workers/restarts + lifecycle maintenance | next v0.2 candidate | **Complete — PRs #36–#39** |
-| P1 | 8 | [ActiveJob Task execution](https://github.com/cuichangquan/a2a-rails/issues/41) | Run long-running Tasks asynchronously with explicit lifecycle semantics | v0.2 proposal | **Step 22 implementation in progress** |
+| P1 | 8 | [ActiveJob Task execution](https://github.com/cuichangquan/a2a-rails/issues/41) | Run long-running Tasks asynchronously with explicit lifecycle semantics | next v0.2 candidate | **Complete — Steps 22-1–22-10** |
 | P1 | 9 | A2A Client | Call remote A2A Agents from Rails | v0.3 proposal | Planned |
 | P2 | 10 | SSE Streaming | Stream Task status/results over A2A-compatible transport | v0.4 proposal | Planned |
 | P2 | 11 | Human-in-the-loop | Model INPUT_REQUIRED / AUTH_REQUIRED flows and resume safely | v0.5 proposal | Planned |
@@ -93,7 +93,7 @@ Completed on `main` (unreleased; **not** part of RubyGems v0.1.0):
 ## Suggested release sequence (subject to change)
 
 - **Next release (version TBD):** security changes (potentially incompatible with v0.1.0), conformance evidence, interoperability and reproducible demo. Confirm the release version separately.
-- **v0.2 proposal:** ActiveRecord Task Store is complete; next major runtime capability is ActiveJob execution.
+- **Next v0.2 candidate (version TBD):** ActiveRecord Task Store and ActiveJob Task execution are complete on `main`; choose a fresh candidate version and rerun the full exact-candidate release matrix before any publication.
 - **v0.3 proposal:** A2A Client.
 - **v0.4 proposal:** Streaming / SSE.
 - **v0.5 proposal:** Human-in-the-loop.
@@ -120,7 +120,7 @@ Completed on `main` (unreleased; **not** part of RubyGems v0.1.0):
 - Step 21 changed runtime code after the old `0.2.0.rc1` candidate. A fresh versioned candidate and exact-artifact verification are required before any publication.
 
 
-## Step 22 — ActiveJob Task execution (design in progress)
+## Step 22 — ActiveJob Task execution (complete)
 
 - [Issue #41](https://github.com/cuichangquan/a2a-rails/issues/41) tracks the design and implementation.
 - [Design](docs/design/active-job-task-execution.md) keeps synchronous execution as the default and makes async execution opt-in at global / Agent / Skill scope.
@@ -132,7 +132,7 @@ Completed on `main` (unreleased; **not** part of RubyGems v0.1.0):
 - Step 22-7 pins duplicate suppression during WORKING and after terminal outcomes, stable Task idempotency keys, and PostgreSQL cross-process claim contention. Business side effects and distinct SendMessage submissions require host idempotency.
 - Step 22-8 adds real Solid Queue / Sidekiq adapter and separate-worker smoke coverage on Rails 8.0 / 8.1; queue payloads, outcomes, duplicate/canceled delivery, and queued work after worker restart. See [reproduction and limits](docs/testing/queue-adapters.md).
 - Step 22-9 ([PR #51](https://github.com/cuichangquan/a2a-rails/pull/51)) verifies loopback HTTP async E2E with separate Web/worker processes: SendMessage SUBMITTED, Get/List WORKING and terminal outcomes, owner isolation, route-once, cancellation and Web/worker restart persistence.
-- Next: **22-10 Docs / roadmap / release gates**.
+- Step 22-10 aligns README, design, CHANGELOG, roadmap and release/deployment gates with the implemented behavior. The next work is a **fresh release-candidate decision and verification**, handled separately from Step 22 and requiring explicit approval before any tag/Release/RubyGems publication.
 - The proposed worker payload is minimal: Task ID, verified non-secret principal ID, Agent class name and selected Skill ID. The original Message remains in the Task Store.
 - Routing is resolved once before enqueue; the background Job executes the selected Skill directly.
 - Async execution now uses an atomic `SUBMITTED -> WORKING` execution claim so duplicate queue deliveries cannot both start the same Task.

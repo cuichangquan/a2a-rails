@@ -5,14 +5,14 @@
 
 Rails-native integration for exposing Rails applications as A2A v1.0 agents.
 
-> **Status:** v0.1.0 is the published RubyGems release. Current `main` contains unreleased Steps 16–21, including the optional durable ActiveRecord Task Store. The historical `0.2.0.rc1` verification predates Step 21 runtime changes and is **not** a current release candidate; a fresh candidate is required before publication.
+> **Status:** v0.1.0 is the published RubyGems release. Current `main` contains unreleased Steps 16–22, including the optional durable ActiveRecord Task Store and opt-in ActiveJob Task execution. The historical `0.2.0.rc1` verification predates Step 21 runtime changes and is **not** a current release candidate; a fresh candidate is required before publication.
 
 - RubyGems: https://rubygems.org/gems/a2a-rails
 - GitHub Release: https://github.com/cuichangquan/a2a-rails/releases/tag/v0.1.0
 - Changelog: [CHANGELOG.md](CHANGELOG.md)
 - Release record: [docs/release/v0.1.0-record.md](docs/release/v0.1.0-record.md)
 - **Release readiness:** [current release/deployment checklist](docs/release/security-hardening-release-checklist.md) · [v0.1.0 → proposed v0.2 upgrade guide](docs/release/upgrading-v0.1.0-to-v0.2.md). The old rc1 record is historical evidence only.
-- **Roadmap / 次にやること:** [ROADMAP.md](ROADMAP.md) — Step 21 durable Task persistence is complete; deployment security [#11](https://github.com/cuichangquan/a2a-rails/issues/11) remains open.
+- **Roadmap / 次にやること:** [ROADMAP.md](ROADMAP.md) — Step 22 ActiveJob Task execution is complete on `main`; the next release candidate still requires a fresh version decision and full candidate verification. Deployment security [#11](https://github.com/cuichangquan/a2a-rails/issues/11) remains open.
 - **Official A2A TCK results:** [Pinned JSON-RPC MUST report and reproduction](docs/testing/official-a2a-tck.md) — after Step 17-4: **63 passed / 1 failed / 171 skipped / 30 deselected** (pytest). The remaining `CORE-SEND-003` mismatch is tracked [upstream in #202](https://github.com/a2aproject/a2a-tck/issues/202). The TCK workflow is informational, **not** an A2A conformance certificate.
 
 - [A2Aの全体像（日本語・A4 1枚PDF）](docs/guides/a2a-protocol-overview-ja.pdf) — 登場人物・依頼の流れ・主要用語・MCPとの違いをまとめた学習資料。
@@ -49,7 +49,7 @@ The Gem provides:
 - a Rails-native Agent / Skill DSL;
 - A2A Agent Card generation;
 - automatically mounted A2A HTTP endpoints;
-- synchronous Task execution;
+- synchronous Task execution by default, plus opt-in ActiveJob-backed async Task execution on unreleased `main`;
 - SDK-independent Handler inputs;
 - a process-local MemoryStore by default, plus an optional durable ActiveRecordStore on unreleased main;
 - Rails generators for initial setup;
@@ -283,7 +283,7 @@ Rate limiting, application-specific authorization and production deployment safe
 
 ### Production deployment review (Step 16-6)
 
-**Current verdict: NO-GO by default for open public production.** The default MemoryStore remains process-local. Step 21 now provides an optional durable ActiveRecordStore with retention/pruning/quota controls and PostgreSQL durability evidence, but a real deployment must explicitly enable/operate it and still provide verifier, business authorization, TLS/proxy restrictions, distributed rate limits, execution budgets and deployment-specific verification.
+**Current verdict: NO-GO by default for open public production.** The default MemoryStore remains process-local. Step 21 provides an optional durable ActiveRecordStore, and Step 22 provides optional ActiveJob Task execution, but production async operation requires **both** a shared/durable Task Store and a durable queue backend operated by the host. A real deployment must also provide credential verification, business authorization, TLS/proxy restrictions, distributed rate limits, execution budgets, observability and deployment-specific verification.
 
 - [Production security & deployment guide](docs/guides/production-security.md) — responsibilities, sample configuration, security checks and current blockers.
 - [Security release checklist](docs/release/security-hardening-release-checklist.md) — release/upgrade decision, acceptance criteria and artifact verification.
@@ -357,6 +357,29 @@ Supported Task operations:
 The default `Task::MemoryStore` is thread-safe but process-local. Tasks and pagination cursors are not durable across process restarts and are not shared between processes.
 
 **Unreleased Step 21:** applications that need durable, multi-worker Task state can opt into `config.task_store = :active_record`. The ActiveRecordStore uses owner-scoped SQL access, row-locked transitions, signed keyset cursors, terminal retention, bounded pruning and maintenance limits. See [ActiveRecord Task Store](docs/guides/active-record-task-store.md). PostgreSQL 16 persistence/locking smoke is verified in CI.
+
+**Unreleased Step 22:** Task execution remains synchronous by default. Hosts can opt into ActiveJob-backed async execution globally, per Agent, or per Skill; precedence is **Skill > Agent > global**.
+
+```ruby
+A2A::Rails.configure do |config|
+  config.task_store = :active_record
+  config.task_execution_mode = :async
+end
+
+class ReportsAgent < A2A::Rails::Agent
+  execution_mode :sync
+
+  skill :build_report,
+    description: "Build a report",
+    tags: %w[report],
+    handler: Reports::Build,
+    execution_mode: :async
+end
+```
+
+Async `SendMessage` persists and returns a `SUBMITTED` Task, then a Gem-owned ActiveJob worker claims it atomically and executes the already-selected Skill. Direct-Message responses remain synchronous because they do not create a persisted Task to poll.
+
+Production async use requires a shared/durable Task Store plus a durable ActiveJob backend. The Gem does not provide a distributed transaction between Task persistence and queue enqueue: a small crash window remains after Task commit and before queue acknowledgement. Generic Handler retries are intentionally disabled; duplicate Job delivery is suppressed at Task claim, but exactly-once external side effects are **not** guaranteed. Running cancellation is logical/best-effort, and ambiguous `WORKING` Tasks are not automatically replayed after a worker crash. See [ActiveJob Task Execution](docs/design/active-job-task-execution.md) and [queue adapter / HTTP async verification](docs/testing/queue-adapters.md).
 
 Cancellation changes Task state atomically, but does not stop already-running Handler code or reverse application side effects.
 

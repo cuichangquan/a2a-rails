@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- **Step 22-10 docs / release gates:** README, roadmap, ActiveJob design and release checklist now describe the implemented async configuration, durable Store + durable queue production requirements, enqueue crash window, retry/idempotency limits, best-effort cancellation, ambiguous WORKING recovery policy, and the fresh-candidate verification gates required before publication.
+
 - **Step 22-9 HTTP async verification:** real Rails HTTP plus separate Solid Queue/Sidekiq workers cover SUBMITTED/WORKING/terminal state visibility, owner propagation/isolation, route-once, cancellation and Web/worker restart persistence. Shared smoke setup keeps adapter coverage consistent.
 
 - **Step 22-8 queue-adapter verification:** isolated Solid Queue and Sidekiq smoke tests use real queues and separate workers on Rails 8.0 / 8.1, covering minimal payloads, terminal outcomes, duplicate/canceled delivery and queued work after worker restart. Backend Gems remain smoke-only dependencies.
@@ -19,10 +21,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - **Step 22 ActiveJob execution core:** synchronous Task execution remains the default; hosts can opt into async execution globally, per Agent, or per Skill with `Skill > Agent > global` precedence. Async `SendMessage` now persists and returns `SUBMITTED`, enqueues a Gem-owned `ActiveJob` job, reloads the original Message from the Task Store, executes the already-selected Skill, and transitions to a terminal Task state. MemoryStore and ActiveRecordStore provide an atomic `SUBMITTED -> WORKING` execution claim to suppress duplicate starts.
 - **Step 21 ActiveRecord Task Store core:** optional lazy-loaded ActiveRecord backend, owner-scoped SQL lookups, row-locked transitions/cancellation, signed keyset pagination, migration generator, and durable restart/multi-instance semantics.
 - **Step 21 lifecycle maintenance:** 30-day terminal retention by default for ActiveRecordStore, bounded batch pruning, aggregate maintenance stats, per-owner retained-Task admission guard, and persisted history/artifact collection limits.
-
-### Planned
-
-- **Step 21:** Optional ActiveRecord Task Store with durable owner-scoped Task state, migration generator, DB locking, keyset pagination, retention/batched pruning, owner quota, payload bounds, maintenance stats and shared Store contract tests. See [design](docs/design/active-record-task-store.md). Runtime changes will require a newly verified release candidate before publication.
 
 ## [0.2.0.rc1] - 2026-10-07 (release candidate source; not published)
 
