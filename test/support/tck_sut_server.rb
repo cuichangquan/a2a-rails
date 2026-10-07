@@ -15,8 +15,17 @@ end
 module Step17TckSut
   class Handler
     def self.call(message:, context:)
-      message.fetch(:parts).filter_map { |part| part[:text] }.join("\n").then do |text|
-        "TCK echo: #{text}"
+      # The official TCK uses messageId prefixes to request deterministic
+      # sample responses. These are local-only test fixtures, NOT special
+      # production Agent behavior or changes to a2a-rails protocol semantics.
+      case message.fetch(:message_id)
+      when /\Aartifact-text-/
+        "Generated text content"
+      when /\Aartifact-data-/
+        { "key" => "value", "count" => 42 }
+      else
+        text = message.fetch(:parts).filter_map { |part| part[:text] }.join("\n")
+        "TCK echo: #{'#{text}'}"
       end
     end
   end
