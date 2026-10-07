@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- **Step 22 enqueue/retry semantics:** ActiveJob enqueue success is checked explicitly, enqueue failure becomes a sanitized FAILED Task, the Gem-owned Task job enqueues immediately rather than deferring to a surrounding Active Record transaction, and Handler exceptions are converted to terminal Task state without generic automatic retry.
 - **Step 22 ActiveJob execution core:** synchronous Task execution remains the default; hosts can opt into async execution globally, per Agent, or per Skill with `Skill > Agent > global` precedence. Async `SendMessage` now persists and returns `SUBMITTED`, enqueues a Gem-owned `ActiveJob` job, reloads the original Message from the Task Store, executes the already-selected Skill, and transitions to a terminal Task state. MemoryStore and ActiveRecordStore provide an atomic `SUBMITTED -> WORKING` execution claim to suppress duplicate starts.
 - **Step 21 ActiveRecord Task Store core:** optional lazy-loaded ActiveRecord backend, owner-scoped SQL lookups, row-locked transitions/cancellation, signed keyset pagination, migration generator, and durable restart/multi-instance semantics.
 - **Step 21 lifecycle maintenance:** 30-day terminal retention by default for ActiveRecordStore, bounded batch pruning, aggregate maintenance stats, per-owner retained-Task admission guard, and persisted history/artifact collection limits.
