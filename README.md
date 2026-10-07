@@ -11,7 +11,8 @@ Rails-native integration for exposing Rails applications as A2A v1.0 agents.
 - GitHub Release: https://github.com/cuichangquan/a2a-rails/releases/tag/v0.1.0
 - Changelog: [CHANGELOG.md](CHANGELOG.md)
 - Release record: [docs/release/v0.1.0-record.md](docs/release/v0.1.0-record.md)
-- **Roadmap / 次にやること:** [ROADMAP.md](ROADMAP.md) — 15 prioritized items, current Step 16 security hardening.
+- **Roadmap / 次にやること:** [ROADMAP.md](ROADMAP.md) — active Step 17 A2A TCK interoperability work.
+- **Official A2A TCK baseline:** [JSON-RPC MUST report and reproduction guide](docs/testing/official-a2a-tck.md) — initial pinned official run: 56 passed, **9 failed**, 170 skipped (pytest); **not yet fully conformant**. The green workflow is informational, not proof of certification.
 
 - [A2Aの全体像（日本語・A4 1枚PDF）](docs/guides/a2a-protocol-overview-ja.pdf) — 登場人物・依頼の流れ・主要用語・MCPとの違いをまとめた学習資料。
 - [A2A at a glance (English, A4 one-page PDF)](docs/guides/a2a-protocol-overview-en.pdf) — Roles, workflow, key terms, and how MCP fits.

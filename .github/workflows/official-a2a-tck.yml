@@ -1,0 +1,170 @@
+name: Official A2A TCK (baseline, informational)
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/official-a2a-tck.yml"
+      - "test/support/tck_sut_server.rb"
+      - "lib/**"
+      - "app/**"
+      - "config/**"
+      - "a2a-rails.gemspec"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  tck-jsonrpc-must:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      RAILS_ENV: test
+      RACK_ENV: test
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Ruby 3.4 and development dependencies
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.4"
+          bundler-cache: true
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+
+      - name: Checkout pinned official A2A TCK
+        uses: actions/checkout@v4
+        with:
+          repository: a2aproject/a2a-tck
+          ref: 263b9cfaf16a554bdfb166a7ba5b67716e946349
+          path: .tck
+          persist-credentials: false
+
+      - name: Install pinned TCK dependencies
+        working-directory: .tck
+        run: uv sync
+
+      - name: Start loopback-only Rails A2A test server
+        shell: bash
+        run: |
+          set -euo pipefail
+          bundle exec ruby test/support/tck_sut_server.rb > "$RUNNER_TEMP/tck-sut.log" 2>&1 &
+          echo "$!" > "$RUNNER_TEMP/tck-sut.pid"
+          for attempt in $(seq 1 60); do
+            if curl --fail --silent --show-error http://127.0.0.1:9999/.well-known/agent-card.json > "$RUNNER_TEMP/tck-agent-card.json" 2>/dev/null; then
+              cat "$RUNNER_TEMP/tck-agent-card.json"
+              exit 0
+            fi
+            if ! kill -0 "$(cat "$RUNNER_TEMP/tck-sut.pid")" 2>/dev/null; then
+              cat "$RUNNER_TEMP/tck-sut.log"
+              echo "Rails TCK SUT exited before it was ready" >&2
+              exit 1
+            fi
+            sleep 1
+          done
+          cat "$RUNNER_TEMP/tck-sut.log"
+          echo "Timed out waiting for the Rails TCK SUT" >&2
+          exit 1
+
+      - name: Diagnose direct HTTP JSON-RPC request paths (local only)
+        shell: bash
+        run: |
+          set -euo pipefail
+          printf '%s' '{"jsonrpc":"2.0","id":"diagnostic","method":"SendMessage","params":{"message":{"messageId":"diagnostic","role":"ROLE_USER","parts":[{"text":"hello"}]}}}' > "$RUNNER_TEMP/tck-direct-request.json"
+          for path in /a2a /a2a/; do
+            code=$(curl --silent --show-error -o "$RUNNER_TEMP/direct-response.json" -w '%{http_code}' \
+              -X POST "http://127.0.0.1:9999$path" \
+              -H 'A2A-Version: 1.0' -H 'Content-Type: application/json' \
+              --data-binary "@$RUNNER_TEMP/tck-direct-request.json")
+            echo "Direct A2A POST path=$path HTTP=$code"
+            head -c 500 "$RUNNER_TEMP/direct-response.json"
+            echo
+          done
+
+      # Intentionally non-gating until the baseline conformance results have
+      # been triaged. A green workflow is NOT a TCK conformance certificate.
+      - name: Run JSON-RPC MUST conformance baseline (informational)
+        id: tck
+        working-directory: .tck
+        continue-on-error: true
+        timeout-minutes: 12
+        shell: bash
+        run: |
+          set +e
+          uv run python run_tck.py --sut-host http://127.0.0.1:9999 --transport jsonrpc --level must             > "$RUNNER_TEMP/tck-run.log" 2>&1
+          exit_code=$?
+          echo "exit_code=$exit_code" >> "$GITHUB_OUTPUT"
+          tail -n 120 "$RUNNER_TEMP/tck-run.log"
+          exit "$exit_code"
+
+      - name: Summarize exact TCK results
+        if: always()
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import json, os, pathlib, xml.etree.ElementTree as ET
+          report = pathlib.Path(".tck/reports/compatibility.json")
+          junit = pathlib.Path(".tck/reports/junitreport.xml")
+          summary_path = pathlib.Path(os.environ["GITHUB_STEP_SUMMARY"])
+          lines = [
+              "## Official A2A TCK baseline (informational)",
+              "",
+              "- Upstream: a2aproject/a2a-tck `263b9cfaf16a554bdfb166a7ba5b67716e946349`",
+              "- Mode: `--transport jsonrpc --level must`, Rails `test`, loopback only",
+              "- **Do not interpret a green workflow as A2A conformance.**",
+              "",
+          ]
+          if report.exists():
+              parsed = json.loads(report.read_text())
+              summ = parsed.get("summary", {})
+              lines.append(f"- MUST compatibility (TCK report): **{summ.get('must_compatibility', 'not reported')}**")
+              lines.append("")
+              lines.append("| Transport | Total | Passed | Failed | Skipped |")
+              lines.append("| --- | ---: | ---: | ---: | ---: |")
+              for name, data in parsed.get("per_transport", {}).items():
+                  lines.append(f"| {name} | {data.get('total', 0)} | {data.get('passed', 0)} | {data.get('failed', 0)} | {data.get('skipped', 0)} |")
+              failures = [
+                  (key, value) for key, value in parsed.get("per_requirement", {}).items()
+                  if value.get("status") in {"FAIL", "FAILED"}
+              ]
+              if failures:
+                  lines.append("")
+                  lines.append(f"- Failing requirement IDs: {', '.join(key for key, _ in failures[:40])}")
+          else:
+              lines.append("- **No compatibility.json generated** — inspect uploaded server and runner logs.")
+          if junit.exists():
+              root = ET.parse(junit).getroot()
+              suites = [root] if root.tag == "testsuite" else list(root.iter("testsuite"))
+              if suites:
+                  data = suites[0]
+                  lines.append(
+                      f"- pytest JUnit: {data.attrib.get('tests', '?')} cases, "
+                      f"{data.attrib.get('failures', '?')} failures, "
+                      f"{data.attrib.get('errors', '?')} errors, "
+                      f"{data.attrib.get('skipped', '?')} skipped"
+                  )
+          output = "\n".join(lines) + "\n"
+          summary_path.write_text(output, encoding="utf-8")
+          print(output)
+          PY
+
+      - name: Upload TCK reports and Rails server logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: a2a-tck-jsonrpc-must-baseline
+          path: |
+            .tck/reports/
+            ${{ runner.temp }}/tck-agent-card.json
+            ${{ runner.temp }}/tck-run.log
+            ${{ runner.temp }}/tck-sut.log
+          retention-days: 14
+
+      - name: Stop local Rails test server
+        if: always()
+        shell: bash
+        run: |
+          if [ -f "$RUNNER_TEMP/tck-sut.pid" ]; then
+            kill "$(cat "$RUNNER_TEMP/tck-sut.pid")" 2>/dev/null || true
+          fi
