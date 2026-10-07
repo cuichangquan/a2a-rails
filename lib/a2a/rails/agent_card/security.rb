@@ -6,10 +6,8 @@ module A2A
       # A2A v1.0 Agent Card security metadata is declarative. The host Rails
       # application MUST independently verify the advertised credentials.
       #
-      # Only HTTP authentication and header/cookie API keys are supported
-      # by this configuration validation boundary for now. Do not advertise
-      # unimplemented OAuth2/OIDC/mTLS flows until the host integration and
-      # schema handling for those schemes have been tested.
+      # Step 16-5 supports a verified HTTP Bearer profile only. Do not
+      # advertise unimplemented API key, OAuth2, OIDC or mTLS profiles.
       class Security
         def initialize(configuration:)
           @configuration = configuration
@@ -44,8 +42,6 @@ module A2A
             case scheme_type
             when "httpAuthSecurityScheme"
               validate_http_auth!(details)
-            when "apiKeySecurityScheme"
-              validate_api_key!(details)
             else
               raise ConfigurationError, "unsupported Agent Card authentication scheme type"
             end
@@ -66,7 +62,7 @@ module A2A
                 raise ConfigurationError, "Agent Card requirement references unknown or invalid scheme"
               end
               unless scope_list["list"].empty?
-                raise ConfigurationError, "HTTP auth and API keys must not advertise OAuth scopes"
+                raise ConfigurationError, "Bearer HTTP auth must not advertise OAuth scopes"
               end
               output[name] = { "list" => [] }
             end
@@ -102,16 +98,6 @@ module A2A
           Authentication.validate_challenge!(@configuration.authentication_challenge)
           unless @configuration.authentication_challenge.match?(/\ABearer(?:\s|\z)/i)
             raise ConfigurationError, "Bearer Agent Card must use a Bearer WWW-Authenticate challenge"
-          end
-        end
-
-        def validate_api_key!(details)
-          unless details.is_a?(Hash) &&
-              (details.keys - %w[location name description]).empty? &&
-              %w[header cookie].include?(details["location"]) &&
-              nonempty_string?(details["name"]) &&
-              optional_text?(details, "description")
-            raise ConfigurationError, "invalid API key security declaration"
           end
         end
 
