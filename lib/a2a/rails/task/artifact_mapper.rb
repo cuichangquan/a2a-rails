@@ -18,6 +18,8 @@ module A2A
             artifact(parts: [{ text: value }])
           when Hash, Array
             artifact(parts: [{ data: copy(value) }])
+          when A2A::Rails::FileArtifact
+            artifact(parts: [value.to_part])
           else
             raise ArtifactMappingError, "Unsupported Handler result type: #{value.class}"
           end
