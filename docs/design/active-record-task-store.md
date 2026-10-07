@@ -1,7 +1,8 @@
 # Step 21 — ActiveRecord Task Store and lifecycle maintenance
 
-Status: **design approved for implementation planning**  
+Status: **implemented and verified (Step 21 complete)**  
 Tracking: [Issue #35](https://github.com/cuichangquan/a2a-rails/issues/35)  
+Implementation evidence: [PR #37](https://github.com/cuichangquan/a2a-rails/pull/37) core · [PR #38](https://github.com/cuichangquan/a2a-rails/pull/38) maintenance · [PR #39](https://github.com/cuichangquan/a2a-rails/pull/39) shared contract/PostgreSQL  
 Baseline: default `A2A::Rails::Task::MemoryStore` remains supported.
 
 ## 1. Goal
@@ -34,7 +35,7 @@ Task::Store contract
 
 The default remains zero-config memory storage.
 
-Proposed configuration:
+Configuration:
 
 ```ruby
 A2A::Rails.configure do |config|

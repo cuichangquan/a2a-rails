@@ -12,8 +12,8 @@ This guide distinguishes what **a2a-rails enforces** from what the **host Rails 
 | --- | --- | --- |
 | Local Echo Quick Start in Rails development/test | Supported for local experimentation | Authenticator may be omitted in development/test. **Do not expose this bypass to a network.** |
 | Isolated single-process staging with trusted test clients | Conditional, reviewed experiment only | Host authenticator + business policy, TLS, ingress restrictions, quotas, monitoring and documented restart consequences required. |
-| Public Internet / untrusted clients | **NO-GO by default** | No built-in distributed rate limiting, execution budget or durable Task Store; full gateway and application hardening is not yet demonstrated. |
-| Multiple workers, replicas, or restart-resilient Task queries | **NO-GO with default MemoryStore** | Each Rails process has a different Task Store; Tasks are lost on restart. |
+| Public Internet / untrusted clients | **NO-GO by default** | ActiveRecordStore now provides a durable option, but distributed rate limiting, execution budgets, real verifier/business policy and deployment-specific hardening are still required. |
+| Multiple workers, replicas, or restart-resilient Task queries | **NO-GO with default MemoryStore; durable option available** | Configure the Step 21 ActiveRecordStore and run its migration/maintenance policy. PostgreSQL 16 durability and row-locking smoke is green, but the host deployment must still be reviewed. |
 
 Passing the checks below can inform a **deployment-specific risk decision**, not a global production-ready statement about the Gem.
 
@@ -23,12 +23,12 @@ Passing the checks below can inform a **deployment-specific risk decision**, not
 | --- | --- |
 | `POST /a2a` authentication | Host-provided `config.authenticate_request`; production/staging fail closed when no verifier is configured. |
 | A2A Agent Card | Public `GET /.well-known/agent-card.json` declares supported HTTP **Bearer** requirements when configured. Absent/inconsistent security config fails closed in non-development/test environments. |
-| Task authorization | Verified principal ID determines Task owner. `GetTask`, `ListTasks`, `CancelTask`, attempted Task continuation, filters and pagination are owner scoped in the default store. |
+| Task authorization | Verified principal ID determines Task owner. `GetTask`, `ListTasks`, `CancelTask`, attempted Task continuation, filters and pagination are owner scoped in both MemoryStore and ActiveRecordStore. |
 | Input handling | Bounded JSON request body, default 1 MiB; max configured limit 16 MiB; JSON Content-Type; compressed bodies rejected. |
 | Error/log handling | Controlled 401/403/400/413/415/500 responses, `Cache-Control: no-store`, no raw Handler exception message in the Gem Task lifecycle log. |
-| Pagination | Query and principal-bound opaque cursors, at most 128 in-process snapshots. **This is not Task retention.** |
+| Pagination | Query/principal-bound opaque cursors. MemoryStore caps in-process snapshots at 128; ActiveRecordStore uses signed keyset cursors with an insert snapshot boundary. **This is not Task retention.** |
 
-**Important limits:** The Gem does **not** verify Bearer tokens itself, decide permissions for business operations, issue OAuth tokens, authorize other services, provide a rate limiter, forcibly stop a Handler, or durably persist Tasks.
+**Important limits:** The Gem does **not** verify Bearer tokens itself, decide permissions for business operations, issue OAuth tokens, authorize other services, provide a distributed rate limiter, or forcibly stop a Handler. Durable persistence is optional and must be explicitly selected/configured with ActiveRecordStore; MemoryStore remains the default.
 
 ## 2. Required host application configuration
 
@@ -39,6 +39,8 @@ A2A::Rails.configure do |config|
   config.agent = "YourAgent"
   config.public_base_url = "https://agents.example.com"
   config.max_request_bytes = 1_048_576
+  # For multi-worker/restart-safe Task queries:
+  config.task_store = :active_record
 
   config.security_schemes = {
     "bearer" => {
@@ -77,7 +79,7 @@ The public Agent Card exposes Agent and Skill names, endpoint URLs and descripti
 - **Traffic shaping:** Apply a shared/distributed rate limiter **at the ingress, before Rails parses the body**, with per-client/principal and network-based abuse limits. Return `429` and a suitable `Retry-After` value. Apply concurrent request and connection caps.
 - **Payload limits:** Set the reverse proxy body cap at or below the chosen Rails limit. Limit header size and time spent receiving a request. An application-side 1 MiB cap does not protect the upstream proxy from slow-body attacks.
 - **Compute/cost:** Synchronous Handlers block Rails request workers. Enforce maximum execution time, DB/API timeouts, upstream spending limits, concurrency caps, and idempotent side effects. A Task cancellation does **not** interrupt running Handler code or roll back side effects.
-- **Task storage:** The included MemoryStore retains Tasks without a TTL or total-count cap. A process restart loses all Tasks; multiple workers cannot see one another's Tasks. Snapshot cursor count is bounded to 128, but each snapshot can still hold many Tasks. **Do not rely on this store for public or multi-worker operation.** A durable, owner-aware, quota-controlled store is a separate roadmap item.
+- **Task storage:** MemoryStore remains process-local and must not be used for restart-safe or multi-worker Task queries. Step 21 adds optional [ActiveRecordStore](active-record-task-store.md) with owner-scoped SQL access, DB row locking, 30-day terminal retention by default, bounded pruning, owner admission guard and persisted collection limits. **The host must explicitly enable it, run the migration and operate pruning.** This removes the framework-level durability gap; it does not replace ingress/application security controls.
 - **Observability:** Scrub Authorization headers, tokens, request/response bodies and SDK payloads from gateway, Rails, APM, error trackers, error pages and Handler logs. The Gem's own log filtering cannot sanitize all host middleware.
 - **Credentials:** Use secret storage and rotate keys; never commit real tokens. Deny unauthenticated/invalid or revoked clients and minimize credentials' permitted scope.
 - **Outbound dependencies:** Use allowlists, egress restrictions, HTTP timeouts and SSRF protections in every Handler that follows caller-supplied URLs, interacts with services or retrieves files.
@@ -93,7 +95,7 @@ The public Agent Card exposes Agent and Skill names, endpoint URLs and descripti
 4. A valid authorized request reaches its Handler; unauthorized business operations must still be rejected by the Handler/application policy.
 5. Two distinct tenant-qualified principals cannot read/list/cancel each other's Tasks or reuse each other's page tokens, even with a known `taskId` or `contextId`.
 6. Oversized body returns **413**, non-JSON Content-Type or compressed request **415**, malformed input **400**; failures do not echo secret values.
-7. Exercise timeouts, parallel requests, restarts and gateway limits. Verify the **known MemoryStore loss and isolation**, not persistence.
+7. Exercise timeouts, parallel requests, restarts and gateway limits. If using MemoryStore, verify/document its expected loss/isolation. If using ActiveRecordStore, verify Tasks survive restart and are visible across workers against the actual deployment database.
 8. Test TLS, trusted proxy headers, host allowlisting, 429/rate limits and secret scrubbing **at the deployed ingress**, not only through unit tests.
 9. Inspect real production-shaped logs, traces and monitoring events for tokens, internal errors and sensitive Task content.
 10. Run the Gem's 13-job CI matrix and packaged-Gem verification against the proposed release candidate.
@@ -118,7 +120,7 @@ These changes can break previously functional deployments and clients. Choose an
 | --- | --- |
 | Authentication / Task owner isolation / security metadata | Implemented in unreleased main; CI-covered. Application verifier and business authorization are still host responsibilities. |
 | HTTP input checks and safer Gem error logging | Implemented in unreleased main; CI-covered. Gateway/middleware controls remain external. |
-| Public multi-worker or restart-safe production | **Blocked** by process-local unbounded MemoryStore and missing operational resource limits. |
+| Public multi-worker or restart-safe production | **Still not globally approved.** The Step 21 ActiveRecordStore removes the Gem-level persistence/worker-sharing blocker when explicitly configured and maintained, but deployment-specific auth, authorization, rate/concurrency limits, TLS/proxy policy, observability and execution budgets remain mandatory. |
 | End-to-end production security | **Not approved** without a specific deployment review and the completed release checklist. |
 | New RubyGems publication | **Not authorized by Step 16-6.** Prepare separately once user approves scope, version and artifact checks. |
 

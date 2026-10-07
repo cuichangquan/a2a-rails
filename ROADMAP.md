@@ -2,7 +2,7 @@
 
 > Status: planning / proposals as of 2026-10-07. These are priorities, not promised release dates or API commitments.
 >
-> **Step 21 in progress:** [Issue #35](https://github.com/cuichangquan/a2a-rails/issues/35) adds an optional durable ActiveRecord Task Store plus retention/pruning/quota/payload-maintenance semantics. [Design](docs/design/active-record-task-store.md). Step 20's verified `0.2.0.rc1` remains historical release-candidate evidence only; Step 21 runtime changes require a new future candidate before publication.
+> **Step 21 complete:** [Issue #35](https://github.com/cuichangquan/a2a-rails/issues/35) delivered an optional durable ActiveRecord Task Store, owner-scoped SQL access, row locking, keyset pagination, retention/pruning/quota/payload maintenance, shared Store contract tests and PostgreSQL 16 durability/locking smoke. [Design](docs/design/active-record-task-store.md) · [Guide](docs/guides/active-record-task-store.md). Step 20's `0.2.0.rc1` artifact is now **historical only**; current main requires a newly versioned/reverified candidate before publication.
 
 ## Current baseline — v0.1.0 (released)
 
@@ -21,7 +21,7 @@
 | P0 | 4 | [Runnable Rails example](https://github.com/cuichangquan/a2a-rails/issues/28) | [Separate demo](https://github.com/cuichangquan/a2a-rails-demo), Rails 8 Echo | unreleased Git-pinned Gem source | **Complete — Demo PR #1 merged; CI green** |
 | P0 | 5 | GitHub roadmap visibility | Publish and maintain priorities, milestones and next steps | Now | **In progress** |
 | P1 | 6 | GitHub Issues organization | Create focused issues for approved upcoming changes, with acceptance criteria | Now | Planned |
-| P1 | 7 | [ActiveRecord Task Store](https://github.com/cuichangquan/a2a-rails/issues/35) | Durable owner-scoped Tasks across workers/restarts + lifecycle maintenance | next v0.2 candidate | **Step 21 in progress — core merged, maintenance in review** |
+| P1 | 7 | [ActiveRecord Task Store](https://github.com/cuichangquan/a2a-rails/issues/35) | Durable owner-scoped Tasks across workers/restarts + lifecycle maintenance | next v0.2 candidate | **Complete — PRs #36–#39** |
 | P1 | 8 | ActiveJob Task execution | Run long-running Tasks asynchronously with explicit lifecycle semantics | v0.2 proposal | Planned |
 | P1 | 9 | A2A Client | Call remote A2A Agents from Rails | v0.3 proposal | Planned |
 | P2 | 10 | SSE Streaming | Stream Task status/results over A2A-compatible transport | v0.4 proposal | Planned |
@@ -41,7 +41,7 @@ Completed on `main` (unreleased; **not** part of RubyGems v0.1.0):
 - [x] [Step 16-4 / PR #16: bounded HTTP bodies, defensive input checks, pagination cache cap and safer logs](https://github.com/cuichangquan/a2a-rails/pull/16). Distributed rate limiting remains the host's responsibility.
 - [x] [Step 16-5 / PR #17: remaining security tests and explicit Bearer Agent Card security advertisement](https://github.com/cuichangquan/a2a-rails/pull/17).
 - [x] [Step 16-6 / PR #18: production deployment security review, release gates and real production HTTP smoke](https://github.com/cuichangquan/a2a-rails/pull/18) — [CI 13/13 green](https://github.com/cuichangquan/a2a-rails/actions/runs/37570771822).
-- **Remaining security deployment blockers:** Default MemoryStore is not durable or worker-shared and has unbounded Task retention; host must provide credential verification, business authorization, TLS/ingress controls, distributed rate limits and execution budgets. Public production remains **NO-GO** by default. See [production review](docs/guides/production-security.md) and [release checklist](docs/release/security-hardening-release-checklist.md).
+- **Remaining security deployment blockers:** the default MemoryStore is still process-local, but Step 21 now provides an optional owner-aware ActiveRecordStore with retention/quotas and PostgreSQL durability evidence. A real deployment must explicitly select/configure the durable Store and still provide credential verification, business authorization, TLS/ingress controls, distributed rate limits and execution budgets. Public production remains **NO-GO by default**. See [production review](docs/guides/production-security.md) and [release checklist](docs/release/security-hardening-release-checklist.md).
 
 
 **Reason for priority:** published v0.1.0 is a minimal server, **not** a production-ready authorization solution. The unreleased main branch now has authentication and owner-scoped Task access, but deployment-specific security controls, durability, versioning and artifact validation are still required.
@@ -88,12 +88,12 @@ Completed on `main` (unreleased; **not** part of RubyGems v0.1.0):
 - [Upgrade guide](docs/release/upgrading-v0.1.0-to-v0.2.md) records the v0.1.0 compatibility changes: fail-closed production auth, matching Bearer Agent Card metadata, principal Task isolation, stricter HTTP validation and new opt-in output forms.
 - Protocol evidence is already strong enough for candidate planning: pinned TCK **63 pass / 1 upstream failure**, official Python/Go interop PASS and standalone Rails Demo PASS.
 - Before any Gem upload: explicitly approve version, rerun exact-candidate 13/13 CI, build/inspect exact `.gem`, clean-install Rails 8.0/8.1, run production-shaped installed-artifact smoke, record SHA256, then obtain explicit publication approval.
-- Highest-value framework-level follow-up: durable owner-aware Task persistence with retention/quotas. The default MemoryStore remains a production topology limitation.\n- [Candidate verification record](docs/release/v0.2.0-rc.1-record.md): main `50e488b`, CI 13/13 PASS, exact artifact Rails 8.0/8.1 PASS, SHA256 `1f44bc74…f6d8a5`.
+- Step 21 subsequently delivered durable owner-aware ActiveRecord persistence with retention/quotas. The old [candidate verification record](docs/release/v0.2.0-rc.1-record.md) remains historical evidence for its exact tree only and **must not** be used to publish current main.
 
 ## Suggested release sequence (subject to change)
 
 - **Next release (version TBD):** security changes (potentially incompatible with v0.1.0), conformance evidence, interoperability and reproducible demo. Confirm the release version separately.
-- **v0.2 proposal:** persistent Task Store + ActiveJob.
+- **v0.2 proposal:** ActiveRecord Task Store is complete; next major runtime capability is ActiveJob execution.
 - **v0.3 proposal:** A2A Client.
 - **v0.4 proposal:** Streaming / SSE.
 - **v0.5 proposal:** Human-in-the-loop.
@@ -107,14 +107,14 @@ Completed on `main` (unreleased; **not** part of RubyGems v0.1.0):
 - Reprioritize based on real adopter feedback and A2A specification changes.
 
 
-## Step 21 — ActiveRecord Task Store + lifecycle maintenance (in progress)
+## Step 21 — ActiveRecord Task Store + lifecycle maintenance (complete)
 
-- [Issue #35](https://github.com/cuichangquan/a2a-rails/issues/35) tracks implementation.
+- [Issue #35](https://github.com/cuichangquan/a2a-rails/issues/35) tracks the completed implementation.
 - [Design](docs/design/active-record-task-store.md) preserves the existing `Task::Store` boundary: MemoryStore remains default, ActiveRecordStore is optional, and host custom Stores remain supported.
-- Proposed table `a2a_rails_tasks` uses an internal Rails PK plus unique protocol `task_id`; owner/context/state/time remain first-class indexed columns and A2A history/artifacts remain portable JSON.
+- Table `a2a_rails_tasks` uses an internal Rails PK plus unique protocol `task_id`; owner/context/state/time are first-class indexed columns and A2A history/artifacts use portable JSON.
 - Owner isolation happens in SQL. Transition/cancel use DB row locking.
 - Maintenance scope includes terminal-task `expires_at`, bounded batch pruning, per-owner admission quota, stored history/artifact limits and maintenance stats.
 - Pagination uses opaque keyset cursors; inserts after page 1 are excluded, while full point-in-time semantics for later state updates are explicitly out of scope.
 - ActiveJob/background execution is not part of Step 21.
-- Core persistence is merged in PR #37; maintenance follow-up adds 30-day terminal expiry, bounded prune Rake tasks, aggregate stats, owner admission quota and persisted collection bounds.
-- Once Step 21 runtime code merges, the old `0.2.0.rc1` candidate must not be published as verification for new main; a fresh candidate is required.
+- [PR #36](https://github.com/cuichangquan/a2a-rails/pull/36) design; [#37](https://github.com/cuichangquan/a2a-rails/pull/37) durable core; [#38](https://github.com/cuichangquan/a2a-rails/pull/38) maintenance; [#39](https://github.com/cuichangquan/a2a-rails/pull/39) shared Store contract + PostgreSQL verification. PostgreSQL 16 [run #37595993690](https://github.com/cuichangquan/a2a-rails/actions/runs/37595993690) PASS, including fork/reconnect persistence and concurrent terminal transition consistency.
+- Step 21 changed runtime code after the old `0.2.0.rc1` candidate. A fresh versioned candidate and exact-artifact verification are required before any publication.
