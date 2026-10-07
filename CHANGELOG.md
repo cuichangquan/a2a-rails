@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- **Step 22-8 queue-adapter verification:** isolated Solid Queue and Sidekiq smoke tests use real queues and separate workers on Rails 8.0 / 8.1, covering minimal payloads, terminal outcomes, duplicate/canceled delivery and queued work after worker restart. Backend Gems remain smoke-only dependencies.
+
 - **Step 22-7 duplicate/idempotency verification:** serialized duplicate delivery during WORKING cannot start another Handler or finalize its Task. Added terminal-claim contracts and PostgreSQL cross-process claim contention coverage; documented Task-key scope and host business idempotency.
 
 - **Step 22 cancellation semantics:** canceling a queued SUBMITTED Task prevents later execution claim; canceling a WORKING Task is logical/best-effort and terminal-state immutability prevents late Handler completion from replacing CANCELED. No queue-backend-specific force-kill API is used.
