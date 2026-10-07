@@ -16,7 +16,7 @@
 | Priority | # | Work item | Outcome | Proposed phase | Status |
 | --- | ---: | --- | --- | --- | --- |
 | P0 | 1 | [Security hardening](https://github.com/cuichangquan/a2a-rails/issues/11) | Authenticate requests; protect Task reads/lists/cancellation per principal; safe production guidance | Version to decide | **Steps 16-1–16-6 merged; public production NO-GO** |
-| P0 | 2 | [Official A2A TCK tests](https://github.com/cuichangquan/a2a-rails/issues/19) | Pin and run official JSON-RPC MUST suite, report results, fix genuine mismatches | Version to decide | **In progress — baseline PR #20 (9 failing pytest cases)** |
+| P0 | 2 | [Official A2A TCK tests](https://github.com/cuichangquan/a2a-rails/issues/19) | Pin and run official JSON-RPC MUST suite, report results, fix genuine mismatches | Version to decide | **In progress — baseline #20 and error fixes #21 (6 failing pytest cases)** |
 | P0 | 3 | Cross-language interoperability | Validate calls from official Python / Go clients and version negotiation | v0.1.x | Planned |
 | P0 | 4 | Runnable Rails example | Provide a reproducible Rails Agent demo outside the Gem repo | v0.1.x | Planned |
 | P0 | 5 | GitHub roadmap visibility | Publish and maintain priorities, milestones and next steps | Now | **In progress** |
@@ -61,6 +61,7 @@ Completed on `main` (unreleased; **not** part of RubyGems v0.1.0):
 - [Step 17 / PR #20 — pinned official A2A TCK JSON-RPC MUST baseline](https://github.com/cuichangquan/a2a-rails/pull/20).
 - [Reproduce and inspect TCK results](docs/testing/official-a2a-tck.md) — official Puma/loopback SUT, pinned TCK commit `263b9cfaf16a554bdfb166a7ba5b67716e946349`.
 - **Initial actual test results:** 56 pytest passed, **9 failed**, 170 skipped, 30 deselected. The informational TCK workflow is **not** a conformance certificate.
+- **After [Step 17-1 / PR #21](https://github.com/cuichangquan/a2a-rails/pull/21):** 58 passed, **6 failed**, 171 skipped, 30 deselected; actual pinned TCK [run #37572266638](https://github.com/cuichangquan/a2a-rails/actions/runs/37572266638). Remaining failures: Artifact fixtures (4), direct Message fixture (1), upstream CORE-SEND-003 expected-error mismatch (1).
 - **Next:** fix push-not-supported code mapping and HTTP 415 representation, improve fixture fidelity, then rerun the same pinned suite. Track remaining tasks in [Issue #19](https://github.com/cuichangquan/a2a-rails/issues/19).
 
 ## Suggested release sequence (subject to change)
