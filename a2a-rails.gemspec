@@ -36,7 +36,6 @@ Gem::Specification.new do |spec|
 
   spec.add_development_dependency "minitest", "~> 5.25"
   spec.add_development_dependency "rake", "~> 13.2"
-  # Localhost-only HTTP server for the pinned official A2A TCK SUT.
-  spec.add_development_dependency "rackup", "~> 2.2"
-  spec.add_development_dependency "webrick", "~> 1.9"
+  # Puma only serves the localhost-only official A2A TCK SUT in CI/dev.
+  spec.add_development_dependency "puma", ">= 6.6", "< 8"
 end
