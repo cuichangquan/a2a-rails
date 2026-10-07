@@ -50,7 +50,7 @@ The test SUT binds **only** 127.0.0.1, refuses non-test Rails environments, and 
 
 ## Evidence
 
-**Verified 2026-10-07** on [PR #27](https://github.com/cuichangquan/a2a-rails/pull/27): [official-client CI #37576586235](https://github.com/cuichangquan/a2a-rails/actions/runs/37576586235) completed successfully. **All 15 Python and all 16 Go checks passed**, including real SDK decoding of Task and direct Message. The Go test confirmed its outgoing A2A-Version: 1.0 header. Independent [Ruby/Rails regression CI #37576586239](https://github.com/cuichangquan/a2a-rails/actions/runs/37576586239) completed **13/13 jobs**.
+**Verified and merged 2026-10-07** via [PR #27](https://github.com/cuichangquan/a2a-rails/pull/27) (main `c7956cec9d75f71ce0face76e770a2d553316663`). [Final official-client CI #37576849497](https://github.com/cuichangquan/a2a-rails/actions/runs/37576849497) succeeded with **15 Python checks PASS and 16 Go checks PASS**, including Task/direct Message decoding and actual Go SDK A2A-Version: 1.0 headers. Independent [final Ruby/Rails CI #37576849516](https://github.com/cuichangquan/a2a-rails/actions/runs/37576849516) completed **13/13** jobs.
 
 Scope is limited to the declared JSON-RPC v1.0 functionality and this test-only Rails SUT. It does not establish protocol-wide conformance or approval for public production.
 
