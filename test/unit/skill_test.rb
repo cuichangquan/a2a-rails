@@ -67,6 +67,44 @@ class SkillTest < Minitest::Test
     assert_raises(A2A::Rails::ConfigurationError) { skill.validate! }
   end
 
+  def test_execution_mode_is_optional
+    skill = A2A::Rails::Skill.new(
+      id: :reply,
+      description: "Echo",
+      tags: ["echo"],
+      handler: Callable
+    )
+
+    assert_nil skill.execution_mode
+    assert_same skill, skill.validate!
+  end
+
+  def test_async_execution_mode_is_preserved
+    skill = A2A::Rails::Skill.new(
+      id: :reply,
+      description: "Echo",
+      tags: ["echo"],
+      handler: Callable,
+      execution_mode: :async
+    )
+
+    assert_equal :async, skill.execution_mode
+    assert_same skill, skill.validate!
+  end
+
+  def test_invalid_execution_mode_is_rejected
+    skill = A2A::Rails::Skill.new(
+      id: :reply,
+      description: "Echo",
+      tags: ["echo"],
+      handler: Callable,
+      execution_mode: :later
+    )
+
+    error = assert_raises(A2A::Rails::ConfigurationError) { skill.validate! }
+    assert_match(/execution_mode/, error.message)
+  end
+
   def test_description_is_required
     skill = A2A::Rails::Skill.new(id: :reply, description: " ", tags: ["echo"], handler: Callable)
 

@@ -7,6 +7,7 @@ module A2A
   module Rails
     class Configuration
       TASK_STORE_METHODS = %i[save find transition cancel list].freeze
+      TASK_EXECUTION_MODES = %i[sync async].freeze
       DEFAULT_TASK_RETENTION_SECONDS = 30 * 24 * 60 * 60
       DEFAULT_TASK_PRUNE_BATCH_SIZE = 1_000
       DEFAULT_MAX_TASKS_PER_OWNER = 10_000
@@ -17,7 +18,8 @@ module A2A
         :max_request_bytes, :security_schemes, :security_requirements,
         :task_store, :task_page_token_secret, :task_retention,
         :task_prune_batch_size, :max_tasks_per_owner,
-        :max_task_history_entries, :max_task_artifacts
+        :max_task_history_entries, :max_task_artifacts,
+        :task_execution_mode
 
       def initialize
         @agent = nil
@@ -34,6 +36,7 @@ module A2A
         @max_tasks_per_owner = DEFAULT_MAX_TASKS_PER_OWNER
         @max_task_history_entries = DEFAULT_MAX_TASK_HISTORY_ENTRIES
         @max_task_artifacts = DEFAULT_MAX_TASK_ARTIFACTS
+        @task_execution_mode = :sync
         @logger_set = false
       end
 
@@ -52,7 +55,14 @@ module A2A
       def validate!
         validate_agent_name!
         normalized_public_base_url
+        validate_task_execution_mode!(@task_execution_mode, "config.task_execution_mode")
         self
+      end
+
+      def resolve_task_execution_mode(agent:, skill:)
+        mode = skill.execution_mode || agent.execution_mode || @task_execution_mode
+        validate_task_execution_mode!(mode, "task execution mode")
+        mode
       end
 
       def resolve_agent
@@ -88,6 +98,12 @@ module A2A
       end
 
       private
+
+      def validate_task_execution_mode!(mode, label)
+        return if TASK_EXECUTION_MODES.include?(mode)
+
+        raise ConfigurationError, "#{label} must be :sync or :async"
+      end
 
       def resolve_active_record_store
         require_relative "task/active_record_store"

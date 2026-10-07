@@ -3,9 +3,9 @@
 module A2A
   module Rails
     class Skill
-      attr_reader :id, :name, :description, :tags, :handler, :examples, :input_modes, :output_modes
+      attr_reader :id, :name, :description, :tags, :handler, :examples, :input_modes, :output_modes, :execution_mode
 
-      def initialize(id:, description:, tags:, handler:, name: nil, examples: nil, input_modes: nil, output_modes: nil)
+      def initialize(id:, description:, tags:, handler:, name: nil, examples: nil, input_modes: nil, output_modes: nil, execution_mode: nil)
         @id = normalize_id(id)
         @name = normalize_text(name || humanize_id(@id))
         @description = normalize_optional_text(description)
@@ -14,6 +14,7 @@ module A2A
         @examples = normalize_optional_collection(examples)
         @input_modes = normalize_optional_collection(input_modes)
         @output_modes = normalize_optional_collection(output_modes)
+        @execution_mode = execution_mode
         freeze
       end
 
@@ -33,6 +34,10 @@ module A2A
         validate_optional_strings!(:examples, @examples, allow_empty: true)
         validate_optional_strings!(:input_modes, @input_modes, allow_empty: false)
         validate_optional_strings!(:output_modes, @output_modes, allow_empty: false)
+
+        unless @execution_mode.nil? || Configuration::TASK_EXECUTION_MODES.include?(@execution_mode)
+          raise ConfigurationError, "Skill #{@id.inspect} execution_mode must be :sync or :async"
+        end
 
         unless @handler.respond_to?(:call)
           raise InvalidHandlerError, "Handler #{handler_label} must respond to .call"

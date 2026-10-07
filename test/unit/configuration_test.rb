@@ -59,6 +59,68 @@ class ConfigurationTest < Minitest::Test
     assert_raises(A2A::Rails::ConfigurationError) { config.normalized_public_base_url }
   end
 
+  def test_task_execution_mode_defaults_to_sync
+    config = A2A::Rails::Configuration.new
+
+    assert_equal :sync, config.task_execution_mode
+  end
+
+  def test_task_execution_mode_resolves_skill_then_agent_then_global
+    handler = ->(message:, context:) { [message, context] }
+
+    global_agent = Class.new(A2A::Rails::Agent) do
+      name "Global"
+      description "Uses global execution mode"
+      version "1.0"
+      skill :reply, description: "Reply", tags: ["reply"], handler: handler
+    end
+
+    agent_override = Class.new(A2A::Rails::Agent) do
+      name "Agent Override"
+      description "Overrides global execution mode"
+      version "1.0"
+      execution_mode :sync
+      skill :reply, description: "Reply", tags: ["reply"], handler: handler
+    end
+
+    skill_override = Class.new(A2A::Rails::Agent) do
+      name "Skill Override"
+      description "Overrides agent execution mode"
+      version "1.0"
+      execution_mode :sync
+      skill :reply,
+        description: "Reply",
+        tags: ["reply"],
+        handler: handler,
+        execution_mode: :async
+    end
+
+    config = A2A::Rails::Configuration.new
+    config.task_execution_mode = :async
+
+    assert_equal :async, config.resolve_task_execution_mode(
+      agent: global_agent,
+      skill: global_agent.skills.first
+    )
+    assert_equal :sync, config.resolve_task_execution_mode(
+      agent: agent_override,
+      skill: agent_override.skills.first
+    )
+    assert_equal :async, config.resolve_task_execution_mode(
+      agent: skill_override,
+      skill: skill_override.skills.first
+    )
+  end
+
+  def test_invalid_global_task_execution_mode_is_rejected
+    config = A2A::Rails::Configuration.new
+    config.agent = "ConfigurationTest::Fixtures::RegisteredAgent"
+    config.task_execution_mode = :later
+
+    error = assert_raises(A2A::Rails::ConfigurationError) { config.validate! }
+    assert_match(/task_execution_mode/, error.message)
+  end
+
   def test_active_record_maintenance_defaults_are_explicit
     config = A2A::Rails::Configuration.new
 
