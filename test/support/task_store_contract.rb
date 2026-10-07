@@ -34,6 +34,42 @@ module TaskStoreContract
     end
   end
 
+  def test_store_contract_execution_claim_only_starts_submitted_once
+    store = build_contract_store
+    store.save(contract_task("claim", state: :submitted))
+
+    first = store.claim_execution(
+      "claim",
+      timestamp: Time.utc(2026, 10, 7, 1),
+      principal_id: "tenant-A:user-1"
+    )
+    second = store.claim_execution(
+      "claim",
+      timestamp: Time.utc(2026, 10, 7, 2),
+      principal_id: "tenant-A:user-1"
+    )
+
+    assert_equal :working, first.dig(:status, :state)
+    assert_nil second
+    assert_equal :working,
+      store.find("claim", principal_id: "tenant-A:user-1").dig(:status, :state)
+  end
+
+  def test_store_contract_execution_claim_is_owner_scoped
+    store = build_contract_store
+    store.save(contract_task("private-claim", state: :submitted))
+
+    assert_raises(A2A::Rails::TaskNotFoundError) do
+      store.claim_execution(
+        "private-claim",
+        principal_id: "tenant-B:user-1"
+      )
+    end
+
+    assert_equal :submitted,
+      store.find("private-claim", principal_id: "tenant-A:user-1").dig(:status, :state)
+  end
+
   def test_store_contract_terminal_transition_is_idempotent
     store = build_contract_store
     store.save(contract_task("terminal"))
