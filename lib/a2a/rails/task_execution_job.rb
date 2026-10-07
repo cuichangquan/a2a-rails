@@ -6,6 +6,9 @@ module A2A
   module Rails
     class TaskExecutionJob < ::ActiveJob::Base
       queue_as :default
+      # The Task is already persisted before enqueue. Keep the enqueue boundary
+      # immediate and independent from any surrounding host Active Record transaction.
+      self.enqueue_after_transaction_commit = false
 
       def perform(task_id:, principal_id:, agent_class_name:, skill_id:)
         arguments = TaskExecutionArguments.new(
