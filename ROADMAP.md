@@ -22,7 +22,7 @@
 | P0 | 5 | GitHub roadmap visibility | Publish and maintain priorities, milestones and next steps | Now | **In progress** |
 | P1 | 6 | GitHub Issues organization | Create focused issues for approved upcoming changes, with acceptance criteria | Now | Planned |
 | P1 | 7 | [ActiveRecord Task Store](https://github.com/cuichangquan/a2a-rails/issues/35) | Durable owner-scoped Tasks across workers/restarts + lifecycle maintenance | next v0.2 candidate | **Complete — PRs #36–#39** |
-| P1 | 8 | ActiveJob Task execution | Run long-running Tasks asynchronously with explicit lifecycle semantics | v0.2 proposal | Planned |
+| P1 | 8 | [ActiveJob Task execution](https://github.com/cuichangquan/a2a-rails/issues/41) | Run long-running Tasks asynchronously with explicit lifecycle semantics | v0.2 proposal | **Step 22 design in progress** |
 | P1 | 9 | A2A Client | Call remote A2A Agents from Rails | v0.3 proposal | Planned |
 | P2 | 10 | SSE Streaming | Stream Task status/results over A2A-compatible transport | v0.4 proposal | Planned |
 | P2 | 11 | Human-in-the-loop | Model INPUT_REQUIRED / AUTH_REQUIRED flows and resume safely | v0.5 proposal | Planned |
@@ -118,3 +118,16 @@ Completed on `main` (unreleased; **not** part of RubyGems v0.1.0):
 - ActiveJob/background execution is not part of Step 21.
 - [PR #36](https://github.com/cuichangquan/a2a-rails/pull/36) design; [#37](https://github.com/cuichangquan/a2a-rails/pull/37) durable core; [#38](https://github.com/cuichangquan/a2a-rails/pull/38) maintenance; [#39](https://github.com/cuichangquan/a2a-rails/pull/39) shared Store contract + PostgreSQL verification. PostgreSQL 16 [run #37595993690](https://github.com/cuichangquan/a2a-rails/actions/runs/37595993690) PASS, including fork/reconnect persistence and concurrent terminal transition consistency.
 - Step 21 changed runtime code after the old `0.2.0.rc1` candidate. A fresh versioned candidate and exact-artifact verification are required before any publication.
+
+
+## Step 22 — ActiveJob Task execution (design in progress)
+
+- [Issue #41](https://github.com/cuichangquan/a2a-rails/issues/41) tracks the design and implementation.
+- [Design](docs/design/active-job-task-execution.md) keeps synchronous execution as the default and makes async execution opt-in at global / Agent / Skill scope.
+- The proposed worker payload is minimal: Task ID, verified non-secret principal ID, Agent class name and selected Skill ID. The original Message remains in the Task Store.
+- Routing is resolved once before enqueue; the background Job executes the selected Skill directly.
+- Async execution adds an atomic `SUBMITTED -> WORKING` execution claim so duplicate queue deliveries cannot both start the same Task.
+- Generic automatic Handler retry is intentionally disabled in the initial design because the Gem cannot guarantee exactly-once external business side effects.
+- CancelTask remains best effort. A queued canceled Task will not start; arbitrary running Handler code is not force-killed through backend-specific APIs.
+- Production async operation requires both a shared/durable Task Store and a durable ActiveJob backend. Issue #11 deployment gates remain open.
+- No release version bump or publication is authorized by Step 22.
