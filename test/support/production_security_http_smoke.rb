@@ -6,7 +6,22 @@ require "json"
 require "logger"
 require "rack/mock"
 require "action_controller/railtie"
-require_relative "../../lib/a2a-rails"
+
+if ENV["A2A_RAILS_USE_INSTALLED_GEM"] == "1"
+  require "a2a-rails"
+  expected_version = ENV.fetch("A2A_RAILS_EXPECTED_VERSION")
+  loaded_spec = Gem.loaded_specs.fetch("a2a-rails")
+  source_root = ENV["A2A_RAILS_SOURCE_ROOT"]
+
+  abort "unexpected installed Gem version: #{A2A::Rails::VERSION}" unless A2A::Rails::VERSION == expected_version
+  if source_root && File.realpath(loaded_spec.full_gem_path).start_with?(File.realpath(source_root) + File::SEPARATOR)
+    abort "production security smoke loaded a2a-rails from source checkout"
+  end
+
+  puts "Installed Gem under test: #{loaded_spec.full_gem_path} (#{A2A::Rails::VERSION})"
+else
+  require_relative "../../lib/a2a-rails"
+end
 
 module Step166ProductionSecuritySmoke
   class EchoHandler
@@ -128,6 +143,41 @@ module Step166ProductionSecuritySmoke
     forbidden = rpc("forbidden", "SendMessage", send_params("blocked"))
     assert(forbidden.status == 403, "host policy denial should be forbidden")
     assert(EchoHandler.calls.zero?, "unauthorized Handler invoked")
+
+    unsupported_type = request(
+      "POST", "/a2a",
+      body: "{}",
+      headers: {
+        "CONTENT_TYPE" => "text/plain",
+        "HTTP_A2A_VERSION" => "1.0",
+        "HTTP_AUTHORIZATION" => "Bearer client-a"
+      }
+    )
+    assert(unsupported_type.status == 415, "non-JSON Content-Type must be rejected before dispatch")
+
+    compressed = request(
+      "POST", "/a2a",
+      body: "{}",
+      headers: {
+        "CONTENT_TYPE" => "application/json",
+        "HTTP_CONTENT_ENCODING" => "gzip",
+        "HTTP_A2A_VERSION" => "1.0",
+        "HTTP_AUTHORIZATION" => "Bearer client-a"
+      }
+    )
+    assert(compressed.status == 415, "compressed request body must be rejected")
+
+    malformed = request(
+      "POST", "/a2a",
+      body: "{",
+      headers: {
+        "CONTENT_TYPE" => "application/json",
+        "HTTP_A2A_VERSION" => "1.0",
+        "HTTP_AUTHORIZATION" => "Bearer client-a"
+      }
+    )
+    assert(malformed.status == 400, "malformed JSON request body must be rejected")
+    assert(EchoHandler.calls.zero?, "invalid HTTP bodies reached Handler")
 
     a = rpc("client-a", "SendMessage", send_params("hello"))
     assert(a.status == 200, "valid client-a request did not succeed: #{a.status}")
