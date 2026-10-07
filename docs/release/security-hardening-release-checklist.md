@@ -2,7 +2,7 @@
 
 Last reviewed: **2026-10-07 (Step 20)**  
 Baseline published release: **a2a-rails 0.1.0** (2026-10-06)  
-Working candidate name: **v0.2.0-rc.1** — planning only; repository VERSION is still 0.1.0.
+Candidate: **v0.2.0-rc.1** — source/Gem version `0.2.0.rc1` for artifact verification; not tagged or published.
 
 ## Decision
 
@@ -35,7 +35,7 @@ A Gem may be distributed with accurately documented limitations. That does **not
 - [x] [Upgrade guide from v0.1.0](upgrading-v0.1.0-to-v0.2.md) documents fail-closed production auth, matching Bearer metadata, principal Task isolation, stricter HTTP handling and new opt-in outputs.
 - [x] README / CHANGELOG / Roadmap distinguish published v0.1.0 from unreleased source features.
 - [x] Current main is regularly exercised on Ruby 3.3/3.4/4.0 and Rails 8.0/8.1. **The exact versioned candidate must still rerun the matrix below.**
-- [ ] Explicitly approve the candidate version before changing `A2A::Rails::VERSION`.
+- [x] Candidate version approved for verification; `A2A::Rails::VERSION = "0.2.0.rc1"`. Tag/Release/RubyGems still require separate approval.
 
 ## B. Public-production deployment gates
 
