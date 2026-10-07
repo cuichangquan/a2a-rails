@@ -1,0 +1,59 @@
+name: ActiveJob queue adapter compatibility
+
+on:
+  pull_request:
+    paths:
+      - "spikes/queue_adapters/**"
+      - ".github/workflows/queue-adapters.yml"
+      - "lib/**"
+      - "app/**"
+      - "a2a-rails.gemspec"
+  push:
+    branches: [main]
+    paths:
+      - "spikes/queue_adapters/**"
+      - ".github/workflows/queue-adapters.yml"
+      - "lib/**"
+      - "app/**"
+      - "a2a-rails.gemspec"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  queue-adapter:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        adapter: [solid_queue, sidekiq]
+        rails: ["~> 8.0.0", "~> 8.1.0"]
+    services:
+      redis:
+        image: redis:7
+        ports: ["6379:6379"]
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      QUEUE_ADAPTER: ${{ matrix.adapter }}
+      QUEUE_RAILS_VERSION: ${{ matrix.rails }}
+      # Dedicated ephemeral service/database per matrix job, not a host Redis.
+      REDIS_URL: redis://127.0.0.1:6379/15
+    defaults:
+      run:
+        working-directory: spikes/queue_adapters
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.4"
+          working-directory: spikes/queue_adapters
+          bundler-cache: true
+          cache-version: ${{ matrix.rails }}
+      - name: Run real queue and separate-worker smoke
+        run: bundle exec ruby smoke.rb
