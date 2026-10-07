@@ -21,6 +21,18 @@ module Step17TckSut
       case message.fetch(:message_id)
       when /\Atck-artifact-text-/
         "Generated text content"
+      when /\Atck-artifact-file-url-/
+        A2A::Rails::FileArtifact.url(
+          url: "https://files.example.test/output.txt",
+          filename: "output.txt",
+          media_type: "text/plain"
+        )
+      when /\Atck-artifact-file-/
+        A2A::Rails::FileArtifact.bytes(
+          data: "TCK file bytes",
+          filename: "output.txt",
+          media_type: "text/plain"
+        )
       when /\Atck-artifact-data-/
         { "key" => "value", "count" => 42 }
       else
