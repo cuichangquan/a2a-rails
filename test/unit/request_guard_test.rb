@@ -31,8 +31,8 @@ class RequestGuardTest < Minitest::Test
   end
 
   def test_exact_limit_is_allowed_and_limit_plus_one_is_rejected
-    assert enforce(env("a" * 32), max_bytes: 32)
-    assert_raises(GUARD::PayloadTooLarge) { enforce(env("a" * 33), max_bytes: 32) }
+    assert enforce(env(JSON.generate("x" * 30)), max_bytes: 32)
+    assert_raises(GUARD::PayloadTooLarge) { enforce(env(JSON.generate("x" * 31)), max_bytes: 32) }
   end
 
   def test_rejects_oversized_declared_length_before_reading
@@ -77,6 +77,24 @@ class RequestGuardTest < Minitest::Test
     input = env("{}")
     input.delete("rack.input")
     assert_raises(GUARD::InvalidBody) { enforce(input) }
+  end
+
+  def test_preflight_rejects_sdk_sensitive_malformed_part_shapes
+    [nil, 1, "bad", []].each do |part|
+      body = JSON.generate(
+        "jsonrpc" => "2.0",
+        "method" => "SendMessage",
+        "id" => "bad-part",
+        "params" => {
+          "message" => { "messageId" => "m1", "role" => "ROLE_USER", "parts" => [part] }
+        }
+      )
+      assert_raises(GUARD::InvalidBody) { enforce(env(body)) }
+    end
+  end
+
+  def test_preflight_rejects_invalid_json
+    assert_raises(GUARD::InvalidBody) { enforce(env("{malformed")) }
   end
 
   def test_invalid_limit_fails_closed_without_reading_input
