@@ -5,13 +5,21 @@ require_relative "../test_helper"
 class TaskExecutionJobTest < Minitest::Test
   class Handler
     class << self
-      attr_accessor :calls
+      attr_accessor :calls, :behavior
     end
 
     def self.call(message:, context:)
       self.calls ||= []
       calls << [message, context]
-      "job result"
+
+      case behavior
+      when :fail
+        raise "sensitive handler failure"
+      when :reject
+        raise A2A::Rails::RejectedTask, "Request is not allowed"
+      else
+        "job result"
+      end
     end
   end
 
@@ -36,6 +44,7 @@ class TaskExecutionJobTest < Minitest::Test
     A2A::Rails.instance_variable_set(:@runtime, A2A::Rails::Runtime.new(store: @store))
 
     Handler.calls = []
+    Handler.behavior = :success
     @lifecycle = A2A::Rails::Task::Lifecycle.new(
       store: @store,
       principal_id: "owner-1"
@@ -55,6 +64,11 @@ class TaskExecutionJobTest < Minitest::Test
     A2A::Rails.instance_variable_set(:@configuration, @original_configuration)
     A2A::Rails.instance_variable_set(:@runtime, @original_runtime)
     Handler.calls = []
+    Handler.behavior = :success
+  end
+
+  def test_task_job_forces_immediate_enqueue_boundary
+    assert_equal false, A2A::Rails::TaskExecutionJob.enqueue_after_transaction_commit
   end
 
   def test_perform_claims_executes_selected_skill_and_completes_task
@@ -72,6 +86,33 @@ class TaskExecutionJobTest < Minitest::Test
     assert_equal @task.fetch(:id), context.fetch(:idempotency_key)
     assert_equal @task.fetch(:id), context.fetch(:task_id)
     assert_equal "context-1", context.fetch(:context_id)
+  end
+
+  def test_handler_failure_becomes_failed_without_generic_retry
+    Handler.behavior = :fail
+
+    perform_task
+
+    failed = @lifecycle.find(@task.fetch(:id))
+    assert_equal :failed, failed.dig(:status, :state)
+    assert_equal "Task execution failed", failed.dig(:status, :message)
+    assert_equal 1, Handler.calls.length
+
+    # A later duplicate delivery sees the terminal Task and cannot execute
+    # the Handler again.
+    perform_task
+    assert_equal 1, Handler.calls.length
+  end
+
+  def test_rejected_handler_becomes_rejected_without_retry
+    Handler.behavior = :reject
+
+    perform_task
+
+    rejected = @lifecycle.find(@task.fetch(:id))
+    assert_equal :rejected, rejected.dig(:status, :state)
+    assert_equal "Request is not allowed", rejected.dig(:status, :message)
+    assert_equal 1, Handler.calls.length
   end
 
   def test_duplicate_delivery_does_not_execute_handler_twice
