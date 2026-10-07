@@ -31,10 +31,10 @@ A Gem may be distributed with accurately documented limitations. That does **not
 
 ## A. Candidate version and consumer compatibility
 
-- [x] Working candidate documented as **v0.2.0-rc.1**, without changing VERSION or publishing. A patch-only 0.1.x label is not preferred because production auth/Task visibility behavior changed.
+- [x] Candidate version is **v0.2.0-rc.1** / Gem version **0.2.0.rc1**. VERSION is changed for candidate verification; the candidate is not tagged or published.
 - [x] [Upgrade guide from v0.1.0](upgrading-v0.1.0-to-v0.2.md) documents fail-closed production auth, matching Bearer metadata, principal Task isolation, stricter HTTP handling and new opt-in outputs.
 - [x] README / CHANGELOG / Roadmap distinguish published v0.1.0 from unreleased source features.
-- [x] Current main is regularly exercised on Ruby 3.3/3.4/4.0 and Rails 8.0/8.1. **The exact versioned candidate must still rerun the matrix below.**
+- [x] Exact main candidate commit `50e488b` passed the Ruby 3.3/3.4/4.0 and Rails 8.0/8.1 **13/13** matrix ([run #37583446432](https://github.com/cuichangquan/a2a-rails/actions/runs/37583446432)).
 - [x] Candidate version approved for verification; `A2A::Rails::VERSION = "0.2.0.rc1"`. Tag/Release/RubyGems still require separate approval.
 
 ## B. Public-production deployment gates
@@ -55,13 +55,13 @@ These are deployment gates, not a statement that source code cannot be packaged 
 
 All items below are required before any RubyGems publication.
 
-- [ ] Change VERSION only after explicit version approval and identify the exact candidate commit.
-- [ ] Run **13/13 CI** on that exact versioned candidate commit.
-- [ ] Run production-mode HTTP security smoke against the exact candidate: fail-closed Agent Card, 401/403, valid Bearer, foreign Task isolation, malformed/oversized requests.
+- [x] VERSION approved for candidate verification; exact main candidate commit is `50e488b893fdbfd63f1a874beedbebb36dc50181`.
+- [x] Run **13/13 CI** on the exact versioned main candidate — [#37583446432](https://github.com/cuichangquan/a2a-rails/actions/runs/37583446432), **13/13 PASS**.
+- [x] Production-shaped HTTP security smoke passed against the **installed exact candidate Gem** on Rails 8.0.5.1 and 8.1.4, including fail-closed Card, 401/403, valid Bearer, foreign Task isolation, malformed/compressed/non-JSON and oversized requests ([#37583446435](https://github.com/cuichangquan/a2a-rails/actions/runs/37583446435)).
 - [x] Record protocol evidence against independent clients / pinned official TCK. Re-run if candidate code later changes protocol behavior.
-- [ ] Build the `.gem` from the exact candidate; inspect package contents/metadata and record SHA256.
-- [ ] Install **that exact built artifact** into clean Rails 8.0 and Rails 8.1 hosts; do not rely only on source checkout tests.
-- [ ] Repeat relevant security and protocol smoke against the installed artifact.
+- [x] Built and inspected `a2a-rails-0.2.0.rc1.gem`; SHA256 `1f44bc740dd90c205fbbe2a90d3e7341a799c3a7b514b265e41a79f5a4f6d8a5`.
+- [x] Installed **the same uploaded Gem bytes** into clean Rails 8.0 and Rails 8.1 Bundler environments; SHA256 rechecked before each install.
+- [x] Installed-artifact production security smoke passed on Rails 8.0/8.1; independent Python/Go and pinned TCK evidence passed on the identical candidate Git tree. See [candidate record](v0.2.0-rc.1-record.md).
 - [ ] Obtain explicit approval for tag, GitHub Release and RubyGems publication.
 - [ ] After upload, fetch the published Gem and confirm its SHA256 matches the approved artifact.
 
