@@ -123,6 +123,17 @@ module Step1510Smoke
     # Step 16-2: the host application verifies credentials before the SDK
     # sees the request; a denied call must not execute a Handler.
     configuration.authentication_challenge = 'Bearer realm="echo-agent"'
+    configuration.security_schemes = {
+      "bearer" => {
+        "httpAuthSecurityScheme" => {
+          "scheme" => "Bearer",
+          "bearerFormat" => "opaque-or-JWT"
+        }
+      }
+    }
+    configuration.security_requirements = [
+      { "schemes" => { "bearer" => { "list" => [] } } }
+    ]
     configuration.authenticate_request = lambda do |rails_request|
       authorization = rails_request.get_header("HTTP_AUTHORIZATION")
       raise A2A::Rails::Authentication::Forbidden if authorization == "Bearer forbidden-token"
@@ -132,6 +143,17 @@ module Step1510Smoke
       when "Bearer second-token" then "verified-client-2"
       end
     end
+
+    secured_card_response = request("GET", "/.well-known/agent-card.json")
+    assert(secured_card_response.status == 200, "secured Agent Card unavailable")
+    secured_card = JSON.parse(secured_card_response.body)
+    assert(secured_card.dig("securitySchemes", "bearer", "httpAuthSecurityScheme", "scheme") == "Bearer",
+      "Agent Card did not advertise Bearer authentication")
+    assert(secured_card.fetch("securityRequirements") ==
+      [{ "schemes" => { "bearer" => { "list" => [] } } }],
+      "Agent Card security requirements did not match request authentication")
+    assert(secured_card_response["Cache-Control"].to_s.include?("no-store"),
+      "Agent Card security metadata can be cached unexpectedly")
 
     auth_payload = JSON.generate(
       "jsonrpc" => "2.0",
