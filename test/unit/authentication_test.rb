@@ -67,7 +67,7 @@ class AuthenticationTest < Minitest::Test
   def test_nil_and_false_from_verifier_are_unauthorized
     [nil, false].each do |value|
       advertise_bearer!
-    @config.authenticate_request = ->(_request) { value }
+      @config.authenticate_request = ->(_request) { value }
       assert_raises(A2A::Rails::Authentication::Unauthorized) { authenticate }
     end
   end
@@ -85,9 +85,16 @@ class AuthenticationTest < Minitest::Test
 
     [true, 123, {}, "", " ", "a\nb", "x" * 257].each do |value|
       advertise_bearer!
-    @config.authenticate_request = ->(_request) { value }
+      @config.authenticate_request = ->(_request) { value }
       assert_raises(A2A::Rails::Authentication::ConfigurationError) { authenticate }
     end
+  end
+
+  def test_verifier_without_agent_card_security_fails_closed
+    @config.authenticate_request = ->(_request) { "verified-client" }
+
+    assert_raises(A2A::Rails::ConfigurationError) { authenticate }
+    refute @request.env.key?("a2a.rails.principal_id")
   end
 
   def test_challenge_rejects_response_splitting_and_invalid_values
