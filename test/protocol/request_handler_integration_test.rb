@@ -110,6 +110,66 @@ class RequestHandlerIntegrationTest < Minitest::Test
     assert_equal :reply, sync_context.fetch(:skill_id)
   end
 
+  def test_async_enqueue_false_marks_task_failed
+    fake_job = Object.new
+    fake_job.define_singleton_method(:perform_later) { |**| false }
+
+    rack, lifecycle = build_stack(
+      handler: ->(message:, context:) { "unused" },
+      execution_mode: :async,
+      task_job: fake_job
+    )
+
+    sent = rpc(rack, "SendMessage", send_params).dig("result", "task")
+
+    assert_equal "TASK_STATE_FAILED", sent.dig("status", "state")
+    assert_equal "Task execution failed", sent.dig("status", "message", "parts", 0, "text")
+    assert_equal :failed, lifecycle.find(sent.fetch("id")).dig(:status, :state)
+  end
+
+  def test_async_unsuccessful_job_object_marks_task_failed
+    fake_job = Object.new
+    fake_job.define_singleton_method(:perform_later) do |**|
+      Object.new.tap do |job|
+        job.define_singleton_method(:successfully_enqueued?) { false }
+        job.define_singleton_method(:enqueue_error) { nil }
+      end
+    end
+
+    rack, lifecycle = build_stack(
+      handler: ->(message:, context:) { "unused" },
+      execution_mode: :async,
+      task_job: fake_job
+    )
+
+    sent = rpc(rack, "SendMessage", send_params).dig("result", "task")
+
+    assert_equal "TASK_STATE_FAILED", sent.dig("status", "state")
+    assert_equal :failed, lifecycle.find(sent.fetch("id")).dig(:status, :state)
+  end
+
+  def test_async_enqueue_error_on_job_marks_task_failed_without_leaking_detail
+    fake_job = Object.new
+    fake_job.define_singleton_method(:perform_later) do |**|
+      Object.new.tap do |job|
+        job.define_singleton_method(:successfully_enqueued?) { false }
+        job.define_singleton_method(:enqueue_error) { RuntimeError.new("secret backend credential") }
+      end
+    end
+
+    rack, lifecycle = build_stack(
+      handler: ->(message:, context:) { "unused" },
+      execution_mode: :async,
+      task_job: fake_job
+    )
+
+    sent = rpc(rack, "SendMessage", send_params).dig("result", "task")
+
+    assert_equal "TASK_STATE_FAILED", sent.dig("status", "state")
+    refute_includes JSON.generate(sent), "secret backend credential"
+    assert_equal :failed, lifecycle.find(sent.fetch("id")).dig(:status, :state)
+  end
+
   def test_async_enqueue_failure_marks_task_failed_without_leaking_adapter_error
     fake_job = Object.new
     fake_job.define_singleton_method(:perform_later) do |**|
