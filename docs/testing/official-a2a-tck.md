@@ -67,17 +67,34 @@ Keep these categories separate when reviewing the report:
 
 The TCK may exercise behavior outside v0.1's intentionally minimal server feature set, especially asynchronous/in-progress task flows. Distinguish mandatory protocol violations from valid capability-dependent skips with evidence; do not weaken production authentication or falsify the Agent Card solely to improve a score.
 
-## Baseline evidence
+## Baseline evidence (2026-10-07)
 
-- **CI run:** [PR #20 / official TCK workflow](https://github.com/cuichangquan/a2a-rails/pull/20).
-- Actual results and failure classification will be recorded after reviewing the reports; there is **no claim of full conformance** here.
-- Official Ruby/Rails regression CI is separate from the TCK baseline.
-- Tracking: [Issue #19](https://github.com/cuichangquan/a2a-rails/issues/19); [ROADMAP.md](../../ROADMAP.md).
+- **Verified upstream TCK run:** [GitHub Actions #37571735872](https://github.com/cuichangquan/a2a-rails/actions/runs/37571735872).
+- **Reports:** [download compatibility JSON, HTML, JUnit and server logs](https://github.com/cuichangquan/a2a-rails/actions/runs/37571735872/artifacts/11461346352) (artifact retention: 14 days).
+- **SUT:** Puma on `127.0.0.1:9999` using current source, not the released v0.1.0 Gem.
+- **Official pytest outcome:** **56 passed, 9 failed, 170 skipped, 30 deselected**. The job intentionally preserves the failure in the report while allowing the workflow to finish.
+- **TCK-reported MUST compatibility:** **64.0%**. The denominator includes requirements outside this specific transport/profile, so **do not** interpret this as 64% of JSON-RPC operations passing.
+- **JSON-RPC requirement breakdown:** **54 passed / 9 failed / 27 skipped** (90 recorded transport results).
+- **Agent Card:** **6 passed / 0 failed**. gRPC and HTTP+JSON were not exercised as usable transport bindings.
+
+### Failure classification (9 pytest failures)
+
+| Area | Observed issue | Assessment |
+| --- | --- | --- |
+| Artifact content — 4 cases | The Echo fixture returns text, but the TCK requests canned text, file, file-URL and structured-data outputs. | **Fixture behavior / coverage gap:** not proof that all such Artifacts are impossible. Validate the Gem's supported artifact mapping separately. |
+| Message response — 1 case | The fixture always returns a Task; TCK expects a Message response for its special scenario. | **Fixture/API coverage gap:** Task and Message are both allowed by the A2A SendMessage response union; assess a purpose-built SUT before calling this a protocol violation. |
+| Push notification errors — 2 cases | Unsupported push methods return `UnsupportedOperationError (-32004)` instead of the more specific `PushNotificationNotSupportedError (-32003)`. | **Confirmed protocol error-mapping defect.** Fix the adapter in a targeted follow-up with regression tests. |
+| Unsupported input media — 1 case | `CORE-SEND-003` describes an expected `ContentTypeNotSupportedError`, but the pinned TCK registry does not set `expected_error`, causing the parameterized test to treat an appropriate error as a failure. | **TCK requirement/test mismatch to investigate:** the Gem emits `-32005`; don't hide this or change it to success. |
+| HTTP Content-Type error — 1 case | Wrong `Content-Type` currently returns HTTP 415 with a JSON `{"error":"..."}` body, which the TCK interprets as a malformed JSON-RPC error. | **HTTP boundary representation mismatch:** return an unambiguous non-JSON HTTP 415 or a valid JSON-RPC error envelope; keep authentication/body validation fail-closed. |
+
+The **initial** WEBrick SUT run ([#37571366500](https://github.com/cuichangquan/a2a-rails/actions/runs/37571366500)) showed 51 pytest failures because its forward-only `rack.input` did not satisfy the Rails body parsing/replay expectations. **Do not use that run to assess protocol compliance.** The SUT was switched to Puma, and the valid POST endpoints were checked with direct HTTP requests before running the pinned TCK.
+
+A clean **13-job Ruby/Rails regression CI** independently passed on the initial TCK integration commit: [#37571366462](https://github.com/cuichangquan/a2a-rails/actions/runs/37571366462). The new TCK workflow itself is **informational/non-gating**, not a substitute for the regression suite.
 
 ## Next actions
 
-1. Confirm the pinned test server starts and the official CLI writes complete reports.
-2. Review actual MUST-level JSON-RPC passes/failures/skips and identify the high-value compatibility defects.
-3. Apply narrow fixes with regression tests (without weakening production security).
-4. Re-run the official TCK on the same pinned revision and record before/after evidence.
+1. Fix push-not-supported error mapping (`-32003`) and wrong Content-Type HTTP boundary representation, with narrow regression tests.
+2. Extend the standalone TCK SUT to deliberately produce file/data artifacts and the expected response profile *only where the Gem supports them*; do not implement bogus protocol output to satisfy a test.
+3. Investigate and, if appropriate, report the `CORE-SEND-003` upstream TCK expectation mismatch.
+4. Re-run the pinned TCK and record the exact before/after delta and remaining failures.
 5. Follow with independent Python/Go client interoperability and protocol coverage expansion.
