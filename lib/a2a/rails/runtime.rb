@@ -14,7 +14,8 @@ module A2A
         AgentCard::Builder.new(
           agent: agent,
           public_base_url: configuration.normalized_public_base_url,
-          request_base_url: request_base_url
+          request_base_url: request_base_url,
+          security: AgentCard::Security.new(configuration: configuration).fields
         ).call
       end
 
@@ -24,7 +25,8 @@ module A2A
         card = AgentCard::Builder.new(
           agent: agent,
           public_base_url: configuration.normalized_public_base_url,
-          request_base_url: request_base_url
+          request_base_url: request_base_url,
+          security: AgentCard::Security.new(configuration: configuration).fields
         ).call
         # The controller has already verified this Rack-scoped principal.
         # Never read identity from A2A JSON-RPC parameters or metadata.

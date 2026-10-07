@@ -34,6 +34,13 @@ module A2A
           raise ConfigurationError, "authenticate_request must respond to #call"
         end
 
+        # A host verifier is only available when its advertised security
+        # requirements are valid. Never silently publish an open Agent Card.
+        AgentCard::Security.new(
+          configuration: configuration,
+          rails_environment: rails_environment
+        ).fields
+
         principal_id = authenticator.call(request)
         raise Unauthorized if principal_id.nil? || principal_id == false
 

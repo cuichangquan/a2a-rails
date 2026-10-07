@@ -9,10 +9,11 @@ module A2A
         DEFAULT_INPUT_MODES = ["text/plain"].freeze
         DEFAULT_OUTPUT_MODES = ["text/plain"].freeze
 
-        def initialize(agent:, public_base_url: nil, request_base_url: nil, validator: Validator.new)
+        def initialize(agent:, public_base_url: nil, request_base_url: nil, security: {}, validator: Validator.new)
           @agent = agent
           @public_base_url = public_base_url
           @request_base_url = request_base_url
+          @security = security
           @validator = validator
         end
 
@@ -40,6 +41,7 @@ module A2A
             "skills" => @agent.skills.map { |skill| skill_hash(skill) }
           }
 
+          card.merge!(@security) unless @security.empty?
           @validator.validate!(card)
         end
 

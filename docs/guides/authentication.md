@@ -19,18 +19,32 @@ A2A::Rails.configure do |config|
   config.agent = "EchoAgent"
   config.public_base_url = ENV["A2A_PUBLIC_BASE_URL"]
 
-  # Must verify signature/token validity, expiry, issuer, audience and relevant
-  # scopes. The verifier below is application-owned; it is NOT provided by
-  # a2a-rails.
+  # Step 16-5: declare the same Bearer security profile that the host
+  # application actually enforces. The Gem does not mint or verify tokens.
+  config.security_schemes = {
+    "bearer" => {
+      "httpAuthSecurityScheme" => {
+        "scheme" => "Bearer",
+        "bearerFormat" => "JWT"
+      }
+    }
+  }
+  config.security_requirements = [
+    { "schemes" => { "bearer" => { "list" => [] } } }
+  ]
+
+  # Must verify token validity, expiry, issuer, audience and relevant
+  # application permissions. The verifier below is application-owned.
   config.authenticate_request = lambda do |request|
     identity = MyApp::A2ATokenVerifier.verify(request.authorization)
     identity&.subject # stable, non-secret String such as "agent-client-42"
   end
 
-  # Override when your verifier uses a different authentication mechanism.
   config.authentication_challenge = 'Bearer realm="a2a"'
 end
 ```
+
+The public Agent Card now advertises A2A v1.0 `securitySchemes` and `securityRequirements` that correspond to the configured verifier. A verifier without matching security metadata is rejected, and production/staging Agent Cards fail closed instead of looking unauthenticated. Step 16-5 intentionally supports the HTTP Bearer profile only; do not advertise API-key, OAuth2, OIDC or mTLS profiles until those host integrations are implemented and tested.
 
 ### Callback contract
 

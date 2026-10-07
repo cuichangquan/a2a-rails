@@ -10,6 +10,15 @@ class AuthenticationTest < Minitest::Test
     @request = Request.new({})
   end
 
+  def advertise_bearer!
+    @config.security_schemes = {
+      "bearer" => { "httpAuthSecurityScheme" => { "scheme" => "Bearer" } }
+    }
+    @config.security_requirements = [
+      { "schemes" => { "bearer" => { "list" => [] } } }
+    ]
+  end
+
   def authenticate(environment = "production")
     A2A::Rails::Authentication.authenticate!(
       request: @request,
@@ -36,6 +45,7 @@ class AuthenticationTest < Minitest::Test
   def test_configured_verifier_sets_only_verified_opaque_principal
     @request.env["a2a.rails.principal_id"] = "forged"
     seen = []
+    advertise_bearer!
     @config.authenticate_request = lambda do |request|
       seen << request
       "verified-client-1"
@@ -49,30 +59,42 @@ class AuthenticationTest < Minitest::Test
   end
 
   def test_verifier_always_applies_even_in_development
+    advertise_bearer!
     @config.authenticate_request = ->(_request) { nil }
     assert_raises(A2A::Rails::Authentication::Unauthorized) { authenticate("development") }
   end
 
   def test_nil_and_false_from_verifier_are_unauthorized
     [nil, false].each do |value|
+      advertise_bearer!
       @config.authenticate_request = ->(_request) { value }
       assert_raises(A2A::Rails::Authentication::Unauthorized) { authenticate }
     end
   end
 
   def test_forbidden_from_application_verifier_is_preserved
+    advertise_bearer!
     @config.authenticate_request = ->(_request) { raise A2A::Rails::Authentication::Forbidden }
     assert_raises(A2A::Rails::Authentication::Forbidden) { authenticate }
   end
 
   def test_bad_verifier_or_principal_is_a_configuration_error
+    advertise_bearer!
     @config.authenticate_request = "not-callable"
     assert_raises(A2A::Rails::Authentication::ConfigurationError) { authenticate }
 
     [true, 123, {}, "", " ", "a\nb", "x" * 257].each do |value|
+      advertise_bearer!
       @config.authenticate_request = ->(_request) { value }
       assert_raises(A2A::Rails::Authentication::ConfigurationError) { authenticate }
     end
+  end
+
+  def test_verifier_without_agent_card_security_fails_closed
+    @config.authenticate_request = ->(_request) { "verified-client" }
+
+    assert_raises(A2A::Rails::ConfigurationError) { authenticate }
+    refute @request.env.key?("a2a.rails.principal_id")
   end
 
   def test_challenge_rejects_response_splitting_and_invalid_values
