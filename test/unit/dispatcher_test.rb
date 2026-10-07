@@ -65,6 +65,29 @@ class DispatcherTest < Minitest::Test
     assert_raises(FrozenError) { router_seen[2] << :another }
   end
 
+  def test_plan_resolves_execution_mode_and_execute_does_not_route_again
+    router_calls = 0
+    router = lambda do |**|
+      router_calls += 1
+      :other
+    end
+    handler = ->(message:, context:) { [message, context[:skill_id]] }
+    agent = build_agent(handler: handler, router: router, two_skills: true)
+    agent.execution_mode :async
+    dispatcher = A2A::Rails::Dispatcher.new(agent: agent)
+    message = { role: :user }
+    context = { task_id: "task-1", context_id: "context-1" }
+
+    plan = dispatcher.plan(message: message, context: context)
+    result = dispatcher.execute(plan: plan, message: message, context: context)
+
+    assert plan.async?
+    assert_equal :other, plan.skill_id
+    assert_equal 1, router_calls
+    assert_equal [message, :other], result
+    assert_equal 1, router_calls
+  end
+
   def test_unknown_router_selection_raises_unknown_skill_error
     router = ->(**) { :missing }
     handler = ->(message:, context:) { [message, context] }
