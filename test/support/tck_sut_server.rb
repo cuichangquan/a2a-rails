@@ -5,8 +5,7 @@
 # anonymous development/test fallback to public networks.
 require "logger"
 require "action_controller/railtie"
-require "rackup"
-require "webrick"
+require "puma"
 require_relative "../../lib/a2a-rails"
 
 unless ENV.fetch("RAILS_ENV", "test") == "test" && ::Rails.env.test?
@@ -54,30 +53,10 @@ end
 
 Step17TckSut::Application.initialize!
 
-# Test-only diagnostics: log metadata, never raw request bodies/credentials.
-# Helps establish whether a TCK client and the Rails Rack adapter disagree
-# about the Content-Length / rack.input contract.
-module Step17InputDiagnostics
-  def enforce!(env:, max_bytes:)
-    super
-  rescue A2A::Rails::RequestGuard::InvalidBody => error
-    input = env["rack.input"]
-    position = input.pos if input.respond_to?(:pos)
-    warn "[tck-local] invalid Rack body: path=#{env['PATH_INFO'].inspect} " \
-      "declared_bytes=#{env['CONTENT_LENGTH'].inspect} " \
-      "stream_pos=#{position.inspect} input_class=#{input.class}"
-    raise
-  end
-end
-A2A::Rails::RequestGuard.singleton_class.prepend(Step17InputDiagnostics)
-
-server = Rackup::Handler.get("webrick")
-abort "WEBrick Rack handler unavailable" unless server
-$stderr.puts "Step 17 TCK SUT listening on http://127.0.0.1:9999"
-server.run(
-  Step17TckSut::Application.instance,
-  Host: "127.0.0.1",
-  Port: 9999,
-  Logger: WEBrick::Log.new(File::NULL, WEBrick::Log::WARN),
-  AccessLog: []
-)
+# Puma is the standard Rails HTTP server. Unlike WEBrick's forward-only Rack
+# input, its Rack input supports Rails' parameter-parser/request-guard flow.
+# Bind ONLY to IPv4 loopback; never run this anonymous test SUT publicly.
+server = Puma::Server.new(Step17TckSut::Application.instance)
+server.add_tcp_listener("127.0.0.1", 9999)
+$stderr.puts "Step 17 TCK SUT (Puma) listening on http://127.0.0.1:9999"
+server.run.join
