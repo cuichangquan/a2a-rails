@@ -5,13 +5,14 @@
 
 Rails-native integration for exposing Rails applications as A2A v1.0 agents.
 
-> **Status: v0.1.0 is released and available on RubyGems.**
+> **Status:** v0.1.0 is the published RubyGems release. Current `main` contains unreleased Steps 16–20 work. Step 20 is preparing a **proposed `v0.2.0-rc.1`** review candidate, but VERSION is still 0.1.0 and no new tag/Gem has been published.
 
 - RubyGems: https://rubygems.org/gems/a2a-rails
 - GitHub Release: https://github.com/cuichangquan/a2a-rails/releases/tag/v0.1.0
 - Changelog: [CHANGELOG.md](CHANGELOG.md)
 - Release record: [docs/release/v0.1.0-record.md](docs/release/v0.1.0-record.md)
-- **Roadmap / 次にやること:** [ROADMAP.md](ROADMAP.md) — Step 19 runnable Rails Demo complete; deployment security [#11](https://github.com/cuichangquan/a2a-rails/issues/11) remains a blocker.
+- **Next release-candidate preparation:** [v0.2.0-rc.1 decision](docs/release/v0.2.0-rc.1-preparation.md) · [v0.1.0 → proposed v0.2 upgrade guide](docs/release/upgrading-v0.1.0-to-v0.2.md) · [Step 20 Issue #31](https://github.com/cuichangquan/a2a-rails/issues/31).
+- **Roadmap / 次にやること:** [ROADMAP.md](ROADMAP.md) — RC preparation is separate from public-production readiness; deployment security [#11](https://github.com/cuichangquan/a2a-rails/issues/11) remains open.
 - **Official A2A TCK results:** [Pinned JSON-RPC MUST report and reproduction](docs/testing/official-a2a-tck.md) — after Step 17-4: **63 passed / 1 failed / 171 skipped / 30 deselected** (pytest). The remaining `CORE-SEND-003` mismatch is tracked [upstream in #202](https://github.com/a2aproject/a2a-tck/issues/202). The TCK workflow is informational, **not** an A2A conformance certificate.
 
 - [A2Aの全体像（日本語・A4 1枚PDF）](docs/guides/a2a-protocol-overview-ja.pdf) — 登場人物・依頼の流れ・主要用語・MCPとの違いをまとめた学習資料。
