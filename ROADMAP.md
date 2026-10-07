@@ -2,7 +2,7 @@
 
 > Status: planning / proposals as of 2026-10-07. These are priorities, not promised release dates or API commitments.
 >
-> **Next:** [#11 Security hardening (Step 16)](https://github.com/cuichangquan/a2a-rails/issues/11).
+> **Next implementation:** [#19 — Step 17: Official A2A TCK verification](https://github.com/cuichangquan/a2a-rails/issues/19). Security deployment blockers remain tracked in [#11](https://github.com/cuichangquan/a2a-rails/issues/11).
 
 ## Current baseline — v0.1.0 (released)
 
@@ -15,8 +15,8 @@
 
 | Priority | # | Work item | Outcome | Proposed phase | Status |
 | --- | ---: | --- | --- | --- | --- |
-| P0 | 1 | [Security hardening](https://github.com/cuichangquan/a2a-rails/issues/11) | Authenticate requests; protect Task reads/lists/cancellation per principal; safe production guidance | v0.1.x | **In progress — Step 16-6** |
-| P0 | 2 | Official A2A TCK tests | Verify interoperability/conformance against the current A2A test suite | v0.1.x | Planned |
+| P0 | 1 | [Security hardening](https://github.com/cuichangquan/a2a-rails/issues/11) | Authenticate requests; protect Task reads/lists/cancellation per principal; safe production guidance | Version to decide | **Steps 16-1–16-6 merged; public production NO-GO** |
+| P0 | 2 | [Official A2A TCK tests](https://github.com/cuichangquan/a2a-rails/issues/19) | Verify interoperability/conformance against the current A2A test suite | Version to decide | **Next: Step 17 / #19** |
 | P0 | 3 | Cross-language interoperability | Validate calls from official Python / Go clients and version negotiation | v0.1.x | Planned |
 | P0 | 4 | Runnable Rails example | Provide a reproducible Rails Agent demo outside the Gem repo | v0.1.x | Planned |
 | P0 | 5 | GitHub roadmap visibility | Publish and maintain priorities, milestones and next steps | Now | **In progress** |
@@ -40,12 +40,13 @@ Completed on `main` (unreleased; **not** part of RubyGems v0.1.0):
 - [x] [Step 16-3 / PR #15: owner-scoped Task access and pagination](https://github.com/cuichangquan/a2a-rails/pull/15) — restacked replacement for closed #14.
 - [x] [Step 16-4 / PR #16: bounded HTTP bodies, defensive input checks, pagination cache cap and safer logs](https://github.com/cuichangquan/a2a-rails/pull/16). Distributed rate limiting remains the host's responsibility.
 - [x] [Step 16-5 / PR #17: remaining security tests and explicit Bearer Agent Card security advertisement](https://github.com/cuichangquan/a2a-rails/pull/17).
-- [ ] [Step 16-6 / Draft PR #18: production deployment security review, release gates and production HTTP smoke](https://github.com/cuichangquan/a2a-rails/pull/18) — **in progress**; public production remains NO-GO pending durable Task storage and deployment-specific controls.
+- [x] [Step 16-6 / PR #18: production deployment security review, release gates and real production HTTP smoke](https://github.com/cuichangquan/a2a-rails/pull/18) — [CI 13/13 green](https://github.com/cuichangquan/a2a-rails/actions/runs/37570771822).
+- **Remaining security deployment blockers:** Default MemoryStore is not durable or worker-shared and has unbounded Task retention; host must provide credential verification, business authorization, TLS/ingress controls, distributed rate limits and execution budgets. Public production remains **NO-GO** by default. See [production review](docs/guides/production-security.md) and [release checklist](docs/release/security-hardening-release-checklist.md).
 
 
-**Reason for priority:** published v0.1.0 is a minimal server, **not** a production-ready authorization solution. The unreleased main branch now has authentication and owner-scoped Task access, but further security review and deployment controls are required.
+**Reason for priority:** published v0.1.0 is a minimal server, **not** a production-ready authorization solution. The unreleased main branch now has authentication and owner-scoped Task access, but deployment-specific security controls, durability, versioning and artifact validation are still required.
 
-**Immediate work:**
+**Step 16 work completed on main (unreleased):**
 
 1. Document threat model: what is public, trusted caller identity, secrets, tenant isolation, proxy assumptions.
 2. Specify a generic integration point for host Rails authentication/authorization. Avoid coupling to Devise or one identity provider.
@@ -53,11 +54,11 @@ Completed on `main` (unreleased; **not** part of RubyGems v0.1.0):
 4. Review input validation, request/response logging, HTTPS and DoS controls.
 5. Add negative security tests and Rails integration tests; document compatibility and deployment behavior before release.
 
-**Production warning:** Until a supported and tested authentication/authorization integration is available, do **not** expose the Gem's A2A Task endpoint to untrusted clients. For local demos, follow the Quick Start; for production experiments, restrict access at the network/application boundary and review your host application's security policy.
+**Production warning:** Published v0.1.0 does **not** include authentication/owner scoping. The unreleased main branch adds these protections but is **not automatically production safe**, especially with the default in-memory Task Store. Do not expose it to untrusted clients until the [deployment gates](docs/release/security-hardening-release-checklist.md) are met.
 
 ## Suggested release sequence (subject to change)
 
-- **v0.1.x:** security, conformance tests, interoperability, reproducible demo.
+- **Next release (version TBD):** security changes (potentially incompatible with v0.1.0), conformance evidence, interoperability and reproducible demo. Confirm the release version separately.
 - **v0.2 proposal:** persistent Task Store + ActiveJob.
 - **v0.3 proposal:** A2A Client.
 - **v0.4 proposal:** Streaming / SSE.
