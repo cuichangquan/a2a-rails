@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased after 0.2.0.rc1 candidate]
+
+### Planned
+
+- **Step 21:** Optional ActiveRecord Task Store with durable owner-scoped Task state, migration generator, DB locking, keyset pagination, retention/batched pruning, owner quota, payload bounds, maintenance stats and shared Store contract tests. See [design](docs/design/active-record-task-store.md). Runtime changes will require a newly verified release candidate before publication.
+
 ## [0.2.0.rc1] - 2026-10-07 (release candidate source; not published)
 
 > **Not published on RubyGems.** The released v0.1.0 artifact does not contain these changes. The candidate source now uses `A2A::Rails::VERSION = "0.2.0.rc1"` for exact artifact verification; no tag/Release/RubyGems publication is authorized yet. Distribution readiness and public-production readiness remain separate decisions.
