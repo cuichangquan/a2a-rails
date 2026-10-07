@@ -187,9 +187,9 @@ The safe portable ordering is:
 3. return SUBMITTED Task
 ```
 
-Do not rely on a queue sharing the same database transaction as the Task Store.
+Do not rely on a queue sharing the same database transaction as the Task Store. The Gem-owned Task job explicitly sets `enqueue_after_transaction_commit = false`, because the Task has already been persisted before enqueue and the request needs an immediate enqueue result.
 
-If enqueue returns false or raises synchronously, transition the Task to FAILED with sanitized status data.
+If enqueue returns false, reports `successfully_enqueued? == false`, exposes an `enqueue_error`, or raises synchronously, transition the Task to FAILED with sanitized status data. Step 22-5 implements these checks.
 
 A process can still crash between Task commit and queue acknowledgement. This design does not claim a distributed transaction. Atomic execution claim makes future reconciliation/re-enqueue possible without allowing two Jobs to start the same SUBMITTED Task.
 
@@ -197,7 +197,7 @@ A process can still crash between Task commit and queue acknowledgement. This de
 
 No generic automatic Handler retry in the initial implementation.
 
-The Gem-owned Job should not define `retry_on StandardError`.
+The Gem-owned Job does not define `retry_on StandardError`. Handler exceptions are converted to FAILED/REJECTED Task outcomes and are not re-raised merely to ask the queue backend for another execution.
 
 Reason:
 
