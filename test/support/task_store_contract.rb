@@ -55,6 +55,16 @@ module TaskStoreContract
       store.find("claim", principal_id: "tenant-A:user-1").dig(:status, :state)
   end
 
+  def test_store_contract_terminal_tasks_cannot_be_claimed_again
+    store = build_contract_store
+    %i[completed failed rejected canceled].each do |state|
+      id = "terminal-claim-#{state}"
+      original = store.save(contract_task(id, state: state))
+      assert_nil store.claim_execution(id, principal_id: "tenant-A:user-1")
+      assert_equal original, store.find(id, principal_id: "tenant-A:user-1")
+    end
+  end
+
   def test_store_contract_execution_claim_is_owner_scoped
     store = build_contract_store
     store.save(contract_task("private-claim", state: :submitted))

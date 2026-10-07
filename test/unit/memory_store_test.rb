@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require_relative "../test_helper"
+require "timeout"
 require_relative "../support/task_store_contract"
 
 class MemoryStoreTest < Minitest::Test
@@ -22,6 +23,29 @@ class MemoryStoreTest < Minitest::Test
       history: [{ message_id: "message-#{id}" }],
       artifacts: [{ artifact_id: "artifact-#{id}", parts: [{ text: id }] }]
     }
+  end
+
+  def test_simultaneous_execution_claim_has_one_winner
+    @store.save(task("duplicate", state: :submitted))
+    ready = Queue.new
+    go = Queue.new
+    workers = 4.times.map do
+      Thread.new do
+        ready << true
+        go.pop
+        @store.claim_execution("duplicate")
+      end
+    end
+
+    claims = Timeout.timeout(5) do
+      workers.length.times { ready.pop }
+      workers.length.times { go << true }
+      workers.map(&:value)
+    end
+    assert_equal 1, claims.compact.length
+    assert_equal :working, @store.find("duplicate").dig(:status, :state)
+  ensure
+    workers&.each { |thread| thread.kill if thread.alive? }
   end
 
   def test_save_and_find_return_isolated_copies
