@@ -6,10 +6,11 @@ module A2A
   module Rails
     module Protocol
       class RequestHandler
-        def initialize(dispatcher:, lifecycle:, task_mapper: TaskMapper.new)
+        def initialize(dispatcher:, lifecycle:, task_mapper: TaskMapper.new, task_job: TaskExecutionJob)
           @dispatcher = dispatcher
           @lifecycle = lifecycle
           @task_mapper = task_mapper
+          @task_job = task_job
         end
 
         def call(operation:, params:)
@@ -43,19 +44,60 @@ module A2A
           end
 
           task = @lifecycle.create(message: message, context_id: context_id)
-          @lifecycle.start(task.fetch(:id))
-          context = { task_id: task.fetch(:id), context_id: task.fetch(:context_id) }
+          context = execution_context(task)
 
-          task = begin
-            result = @dispatcher.call(message: message, context: context)
-            @lifecycle.complete(task.fetch(:id), result)
+          plan = begin
+            @dispatcher.plan(message: message, context: context)
           rescue RejectedTask => error
-            @lifecycle.reject(task.fetch(:id), error)
+            task = @lifecycle.reject(task.fetch(:id), error)
+            nil
           rescue StandardError => error
-            @lifecycle.fail(task.fetch(:id), error)
+            task = @lifecycle.fail(task.fetch(:id), error)
+            nil
+          end
+
+          if plan&.async?
+            task = enqueue_async_task(task, plan)
+          elsif plan
+            @lifecycle.start(task.fetch(:id))
+            task = begin
+              result = @dispatcher.execute(plan: plan, message: message, context: context)
+              @lifecycle.complete(task.fetch(:id), result)
+            rescue RejectedTask => error
+              @lifecycle.reject(task.fetch(:id), error)
+            rescue StandardError => error
+              @lifecycle.fail(task.fetch(:id), error)
+            end
           end
 
           { "task" => @task_mapper.dump(task, history_length: history_length, include_artifacts: true) }
+        end
+
+        def enqueue_async_task(task, plan)
+          job = @task_job.perform_later(
+            task_id: task.fetch(:id),
+            principal_id: @lifecycle.principal_id,
+            agent_class_name: plan.agent_class_name,
+            skill_id: plan.skill_id.to_s
+          )
+          enqueue_error = job.respond_to?(:enqueue_error) ? job.enqueue_error : nil
+          return task if job && enqueue_error.nil?
+
+          @lifecycle.fail(
+            task.fetch(:id),
+            enqueue_error || ConfigurationError.new("Task execution job was not enqueued")
+          )
+        rescue StandardError => error
+          @lifecycle.fail(task.fetch(:id), error)
+        end
+
+        def execution_context(task)
+          {
+            task_id: task.fetch(:id),
+            context_id: task.fetch(:context_id),
+            principal_id: @lifecycle.principal_id,
+            idempotency_key: task.fetch(:id)
+          }
         end
 
         def safe_response_mode(message)
