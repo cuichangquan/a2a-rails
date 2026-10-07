@@ -58,15 +58,16 @@ module A2A
 
           Record.transaction do
             record = locked_record!(task_id, principal_id: principal_id)
-            return deserialize(record) if terminal_record?(record)
 
-            attributes = {
-              state: state.to_s,
-              status_timestamp: normalize_time(timestamp),
-              status_message: message.equal?(UNSET) ? nil : deep_stringify(message)
-            }
-            attributes[:artifacts] = deep_stringify(artifacts) unless artifacts.equal?(UNSET)
-            record.update!(attributes)
+            unless terminal_record?(record)
+              attributes = {
+                state: state.to_s,
+                status_timestamp: normalize_time(timestamp),
+                status_message: message.equal?(UNSET) ? nil : deep_stringify(message)
+              }
+              attributes[:artifacts] = deep_stringify(artifacts) unless artifacts.equal?(UNSET)
+              record.update!(attributes)
+            end
 
             deserialize(record)
           end
@@ -111,12 +112,12 @@ module A2A
               raise InvalidTaskQueryError, "Invalid page_token or changed query"
             end
 
-            snapshot_at = normalize_time(payload.fetch("snapshot_at"))
+            snapshot_id = Integer(payload.fetch("snapshot_id"))
             last_timestamp = normalize_time(payload.fetch("last_timestamp"))
             last_task_id = payload.fetch("last_task_id")
             total_size = Integer(payload.fetch("total_size"))
           else
-            snapshot_at = now
+            snapshot_id = Record.maximum(:id).to_i
             last_timestamp = nil
             last_task_id = nil
             total_size = filtered_scope(
@@ -124,7 +125,7 @@ module A2A
               context_id: context_id,
               status: status,
               status_timestamp_after: after,
-              snapshot_at: snapshot_at
+              snapshot_id: snapshot_id
             ).count
           end
 
@@ -133,7 +134,7 @@ module A2A
             context_id: context_id,
             status: status,
             status_timestamp_after: after,
-            snapshot_at: snapshot_at
+            snapshot_id: snapshot_id
           )
 
           if last_timestamp
@@ -156,7 +157,7 @@ module A2A
             last = page.last
             next_page_token = encode_cursor(
               "fingerprint" => fingerprint,
-              "snapshot_at" => snapshot_at.iso8601(6),
+              "snapshot_id" => snapshot_id,
               "last_timestamp" => last.status_timestamp.utc.iso8601(6),
               "last_task_id" => last.task_id,
               "total_size" => total_size
@@ -189,9 +190,9 @@ module A2A
           record
         end
 
-        def filtered_scope(principal_id:, context_id:, status:, status_timestamp_after:, snapshot_at:)
+        def filtered_scope(principal_id:, context_id:, status:, status_timestamp_after:, snapshot_id:)
           scope = Record.where(owner_id: principal_id)
-            .where("created_at <= ?", snapshot_at)
+            .where("id <= ?", snapshot_id)
 
           scope = scope.where(context_id: context_id) if context_id
           scope = scope.where(state: status.to_s) if status
