@@ -43,6 +43,23 @@ class TaskLifecycleTest < Minitest::Test
     assert_equal input_message, completed[:history].first
   end
 
+  def test_claim_execution_delegates_to_store_and_exposes_principal
+    lifecycle = A2A::Rails::Task::Lifecycle.new(
+      store: @store,
+      principal_id: "tenant-A:user-1",
+      clock: -> { Time.utc(2026, 10, 6, 9, 30) },
+      id_generator: -> { "claimed-task" }
+    )
+    submitted = lifecycle.create(message: input_message, context_id: "context-claim")
+
+    claimed = lifecycle.claim_execution(submitted[:id])
+    duplicate = lifecycle.claim_execution(submitted[:id])
+
+    assert_equal "tenant-A:user-1", lifecycle.principal_id
+    assert_equal :working, claimed.dig(:status, :state)
+    assert_nil duplicate
+  end
+
   def test_missing_context_id_is_generated
     submitted = @lifecycle.create(message: input_message)
 

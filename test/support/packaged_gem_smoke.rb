@@ -122,6 +122,8 @@ module Step1512PackagedGemSmoke
   REQUIRED_PACKAGE_FILES = %w[
     lib/a2a-rails.rb
     lib/a2a/rails/engine.rb
+    lib/a2a/rails/execution_plan.rb
+    lib/a2a/rails/task_execution_job.rb
     lib/a2a/rails/task/active_record_store.rb
     lib/tasks/a2a_rails_tasks.rake
     lib/generators/a2a/rails/install_generator.rb

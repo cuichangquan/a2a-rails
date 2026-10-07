@@ -32,6 +32,16 @@ module A2A
           @mutex.synchronize { copy(find!(task_id, principal_id: principal_id)) }
         end
 
+        def claim_execution(task_id, timestamp: Time.now.utc, principal_id: nil)
+          @mutex.synchronize do
+            task = find!(task_id, principal_id: principal_id)
+            return nil unless task.dig(:status, :state) == :submitted
+
+            task[:status] = status_hash(:working, timestamp, UNSET)
+            copy(task)
+          end
+        end
+
         def transition(task_id, state:, timestamp: Time.now.utc, artifacts: UNSET, message: UNSET,
           principal_id: nil)
           validate_state!(state)

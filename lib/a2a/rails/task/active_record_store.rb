@@ -76,6 +76,22 @@ module A2A
           deserialize(find_record!(task_id, principal_id: principal_id))
         end
 
+        def claim_execution(task_id, timestamp: Time.now.utc, principal_id: nil)
+          timestamp = normalize_time(timestamp, field: "task status timestamp")
+
+          Record.transaction do
+            record = locked_record!(task_id, principal_id: principal_id)
+            if record.state == "submitted"
+              record.update!(
+                state: "working",
+                status_timestamp: timestamp,
+                status_message: nil
+              )
+              deserialize(record)
+            end
+          end
+        end
+
         def transition(task_id, state:, timestamp: Time.now.utc, artifacts: UNSET, message: UNSET,
           principal_id: nil)
           state = normalized_state(state)

@@ -6,6 +6,8 @@ module A2A
   module Rails
     module Task
       class Lifecycle
+        attr_reader :principal_id
+
         def initialize(store:, result_mapper: ResultMapper.new, logger: nil,
           clock: -> { Time.now.utc }, id_generator: -> { SecureRandom.uuid },
           principal_id: nil)
@@ -31,6 +33,10 @@ module A2A
 
         def start(task_id)
           @store.transition(task_id, state: :working, timestamp: now, principal_id: @principal_id)
+        end
+
+        def claim_execution(task_id)
+          @store.claim_execution(task_id, timestamp: now, principal_id: @principal_id)
         end
 
         def complete(task_id, result)

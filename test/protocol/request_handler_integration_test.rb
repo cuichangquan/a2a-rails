@@ -52,6 +52,58 @@ class RequestHandlerIntegrationTest < Minitest::Test
     refute listed.fetch("tasks").first.key?("artifacts")
   end
 
+  def test_async_task_returns_submitted_and_enqueues_selected_skill_without_running_handler_inline
+    enqueued = []
+    fake_job = Object.new
+    fake_job.define_singleton_method(:perform_later) do |**arguments|
+      enqueued << arguments
+      Object.new.tap do |job|
+        job.define_singleton_method(:enqueue_error) { nil }
+      end
+    end
+    handler_called = false
+
+    rack, lifecycle = build_stack(
+      handler: ->(message:, context:) {
+        handler_called = true
+        "should run in job"
+      },
+      execution_mode: :async,
+      task_job: fake_job,
+      principal_id: "owner-1"
+    )
+
+    sent = rpc(rack, "SendMessage", send_params).dig("result", "task")
+
+    assert_equal "TASK_STATE_SUBMITTED", sent.dig("status", "state")
+    refute handler_called
+    assert_equal 1, enqueued.length
+    assert_equal sent.fetch("id"), enqueued.first.fetch(:task_id)
+    assert_equal "owner-1", enqueued.first.fetch(:principal_id)
+    assert_equal "reply", enqueued.first.fetch(:skill_id)
+    assert_equal :submitted, lifecycle.find(sent.fetch("id")).dig(:status, :state)
+  end
+
+  def test_async_enqueue_failure_marks_task_failed_without_leaking_adapter_error
+    fake_job = Object.new
+    fake_job.define_singleton_method(:perform_later) do |**|
+      raise "secret queue credential"
+    end
+
+    rack, lifecycle = build_stack(
+      handler: ->(message:, context:) { "unused" },
+      execution_mode: :async,
+      task_job: fake_job
+    )
+
+    sent = rpc(rack, "SendMessage", send_params).dig("result", "task")
+
+    assert_equal "TASK_STATE_FAILED", sent.dig("status", "state")
+    assert_equal "Task execution failed", sent.dig("status", "message", "parts", 0, "text")
+    refute_includes JSON.generate(sent), "secret queue credential"
+    assert_equal :failed, lifecycle.find(sent.fetch("id")).dig(:status, :state)
+  end
+
   def test_opt_in_direct_message_round_trips_through_real_sdk_without_creating_a_task
     rack, lifecycle = build_stack(
       handler: ->(message:, context:) {
@@ -320,22 +372,24 @@ class RequestHandlerIntegrationTest < Minitest::Test
 
   private
 
-  def build_stack(handler:, response_mode: :task)
+  def build_stack(handler:, response_mode: :task, execution_mode: nil, task_job: A2A::Rails::TaskExecutionJob, principal_id: nil)
     agent = Class.new(A2A::Rails::Agent)
     agent.name "Integrated Test Agent"
     agent.description "Step 15-8"
     agent.version "1.0"
     agent.response_mode response_mode
+    agent.execution_mode execution_mode if execution_mode
     agent.skill :reply,
       description: "Reply",
       tags: %w[test],
       handler: handler
 
     store = A2A::Rails::Task::MemoryStore.new
-    lifecycle = A2A::Rails::Task::Lifecycle.new(store: store)
+    lifecycle = A2A::Rails::Task::Lifecycle.new(store: store, principal_id: principal_id)
     request_handler = A2A::Rails::Protocol::RequestHandler.new(
       dispatcher: A2A::Rails::Dispatcher.new(agent: agent),
-      lifecycle: lifecycle
+      lifecycle: lifecycle,
+      task_job: task_job
     )
     adapter = A2A::Rails::Protocol::Agent2AgentAdapter.new(
       agent_card: AGENT_CARD,

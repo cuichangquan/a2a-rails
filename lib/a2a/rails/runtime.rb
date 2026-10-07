@@ -33,7 +33,7 @@ module A2A
         principal_id ||= env[Authentication::PRINCIPAL_ENV_KEY]
         lifecycle = Task::Lifecycle.new(store: task_store, logger: configuration.logger, principal_id: principal_id)
         request_handler = Protocol::RequestHandler.new(
-          dispatcher: Dispatcher.new(agent: agent),
+          dispatcher: Dispatcher.new(agent: agent, configuration: configuration),
           lifecycle: lifecycle
         )
         adapter = Protocol::Agent2AgentAdapter.new(
@@ -43,8 +43,6 @@ module A2A
 
         adapter.call(env)
       end
-
-      private
 
       def task_store
         @store ||= A2A::Rails.configuration.resolve_task_store
