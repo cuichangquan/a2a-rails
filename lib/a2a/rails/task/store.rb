@@ -23,6 +23,14 @@ module A2A
         def list(principal_id: nil, **_filters)
           raise NotImplementedError, "Task stores must implement #list"
         end
+
+        def prune_expired(**_options)
+          raise NotImplementedError, "Task store does not implement maintenance pruning"
+        end
+
+        def maintenance_stats(**_options)
+          raise NotImplementedError, "Task store does not implement maintenance stats"
+        end
       end
     end
   end
