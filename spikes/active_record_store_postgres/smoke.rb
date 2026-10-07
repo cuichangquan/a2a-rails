@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "active_record"
+require "timeout"
 require "a2a-rails"
 require "a2a/rails/task/active_record_store"
 
@@ -125,5 +126,71 @@ assert(
   "second Store instance did not list shared Tasks"
 )
 
+# Two independent worker processes contend for the same SUBMITTED Task.
+# Pipes provide a readiness barrier; no timing sleeps decide the winner.
+store_a.save(task("duplicate-claim", state: :submitted))
+workers = []
+begin
+  2.times do
+    ready_reader, ready_writer = IO.pipe
+    go_reader, go_writer = IO.pipe
+    result_reader, result_writer = IO.pipe
+    pid = fork do
+      begin
+        ready_reader.close
+        go_writer.close
+        result_reader.close
+        ActiveRecord::Base.connection_pool.disconnect!
+        connect!
+        worker_store = A2A::Rails::Task::ActiveRecordStore.new(cursor_secret: SECRET)
+        ready_writer.puts "ready"
+        ready_writer.close
+        go_reader.gets
+        claimed = worker_store.claim_execution("duplicate-claim", principal_id: OWNER)
+        result_writer.puts(claimed ? "won" : "duplicate")
+        result_writer.close
+        exit! 0
+      rescue StandardError => error
+        warn "claim worker failed: #{error.class}"
+        exit! 1
+      end
+    end
+    ready_writer.close
+    go_reader.close
+    result_writer.close
+    workers << [pid, ready_reader, go_writer, result_reader]
+  end
+
+  outcomes = Timeout.timeout(15) do
+    workers.each { |_, ready, _, _| assert(ready.gets == "ready\n", "claim worker not ready") }
+    workers.each { |_, _, go_pipe, _| go_pipe.puts "go"; go_pipe.close }
+    workers.map do |worker|
+      pid, _, _, result = worker
+      outcome = result.gets&.strip
+      _, status = Process.wait2(pid)
+      worker[0] = nil
+      assert(status.success?, "claim worker failed")
+      outcome
+    end
+  end
+  assert(outcomes.sort == %w[duplicate won], "duplicate workers both claimed: #{outcomes.inspect}")
+  assert(store_b.find("duplicate-claim", principal_id: OWNER).dig(:status, :state) == :working,
+    "claimed Task did not remain WORKING")
+  assert(store_b.claim_execution("duplicate-claim", principal_id: OWNER).nil?,
+    "ambiguous WORKING Task was claimed again")
+ensure
+  workers.each do |pid, *pipes|
+    pipes.each { |pipe| pipe.close unless pipe.closed? }
+    next unless pid
+    begin
+      Process.kill("KILL", pid)
+      Process.wait(pid)
+    rescue Errno::ESRCH, Errno::ECHILD
+      # Already reaped after successful completion.
+    end
+  end
+end
+
+puts "Cross-process duplicate execution claim: PASS (one winner)"
 puts "ActiveRecord Task Store PostgreSQL smoke: PASS"
 puts "Final concurrent terminal state: #{final_state}"

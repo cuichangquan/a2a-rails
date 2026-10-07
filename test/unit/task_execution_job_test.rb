@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require_relative "../test_helper"
+require "timeout"
 
 class TaskExecutionJobTest < Minitest::Test
   class Handler
@@ -131,6 +132,53 @@ class TaskExecutionJobTest < Minitest::Test
     assert_equal :completed, @lifecycle.find(@task.fetch(:id)).dig(:status, :state)
   end
 
+  def test_duplicate_delivery_while_handler_is_working_does_not_run_or_finish_it
+    Handler.behavior = :block
+    worker = Thread.new { perform_task }
+
+    Timeout.timeout(5) { Handler.started.pop }
+    before = @lifecycle.find(@task.fetch(:id))
+    assert_equal :working, before.dig(:status, :state)
+
+    # Deliver a separately deserialized copy of the same queued Job while the
+    # winning Handler is blocked. A duplicate must neither run nor finalize it.
+    duplicate = Thread.new do
+      A2A::Rails::TaskExecutionJob.deserialize(serialized_task_job).perform_now
+    end
+    assert duplicate.join(5), "duplicate delivery did not exit"
+    duplicate.value
+    assert_equal 1, Handler.calls.length
+    assert_equal before, @lifecycle.find(@task.fetch(:id))
+
+    Handler.release << true
+    assert worker.join(5), "winning Handler did not finish"
+    worker.value
+    final = @lifecycle.find(@task.fetch(:id))
+    assert_equal :completed, final.dig(:status, :state)
+    assert_equal 1, final.fetch(:artifacts).length
+    assert_equal @task.fetch(:id), Handler.calls.first.last.fetch(:idempotency_key)
+
+    A2A::Rails::TaskExecutionJob.deserialize(serialized_task_job).perform_now
+    assert_equal 1, Handler.calls.length
+    assert_equal final, @lifecycle.find(@task.fetch(:id))
+  ensure
+    Handler.release << true if Handler.release && worker&.alive?
+    [duplicate, worker].compact.each do |thread|
+      thread.join(2)
+      thread.kill if thread.alive?
+    end
+  end
+
+  def test_ambiguous_working_task_is_not_replayed
+    @lifecycle.claim_execution(@task.fetch(:id))
+    before = @lifecycle.find(@task.fetch(:id))
+
+    perform_task
+
+    assert_empty Handler.calls
+    assert_equal before, @lifecycle.find(@task.fetch(:id))
+  end
+
   def test_cancel_while_handler_is_working_wins_over_late_job_completion
     Handler.behavior = :block
     worker = Thread.new { perform_task }
@@ -207,6 +255,15 @@ class TaskExecutionJobTest < Minitest::Test
   end
 
   private
+
+  def serialized_task_job
+    A2A::Rails::TaskExecutionJob.new(
+      task_id: @task.fetch(:id),
+      principal_id: "owner-1",
+      agent_class_name: AsyncAgent.name,
+      skill_id: "reply"
+    ).serialize
+  end
 
   def perform_task
     A2A::Rails::TaskExecutionJob.perform_now(

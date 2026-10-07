@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- **Step 22-7 duplicate/idempotency verification:** serialized duplicate delivery during WORKING cannot start another Handler or finalize its Task. Added terminal-claim contracts and PostgreSQL cross-process claim contention coverage; documented Task-key scope and host business idempotency.
+
 - **Step 22 cancellation semantics:** canceling a queued SUBMITTED Task prevents later execution claim; canceling a WORKING Task is logical/best-effort and terminal-state immutability prevents late Handler completion from replacing CANCELED. No queue-backend-specific force-kill API is used.
 - **Step 22 enqueue/retry semantics:** ActiveJob enqueue success is checked explicitly, enqueue failure becomes a sanitized FAILED Task, the Gem-owned Task job enqueues immediately rather than deferring to a surrounding Active Record transaction, and Handler exceptions are converted to terminal Task state without generic automatic retry.
 - **Step 22 ActiveJob execution core:** synchronous Task execution remains the default; hosts can opt into async execution globally, per Agent, or per Skill with `Skill > Agent > global` precedence. Async `SendMessage` now persists and returns `SUBMITTED`, enqueues a Gem-owned `ActiveJob` job, reloads the original Message from the Task Store, executes the already-selected Skill, and transitions to a terminal Task state. MemoryStore and ActiveRecordStore provide an atomic `SUBMITTED -> WORKING` execution claim to suppress duplicate starts.

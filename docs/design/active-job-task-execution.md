@@ -218,6 +218,21 @@ Queue delivery itself can still be at-least-once. The atomic Task claim prevents
 
 Hosts must use `task_id` / `idempotency_key` with their own database or external API when exactly-once business semantics matter.
 
+### Step 22-7 duplicate and business idempotency contract
+
+- Concurrent copies of one Job compete for one atomic, owner-scoped claim.
+- A duplicate observing WORKING exits without executing the Handler or changing Task status/artifacts.
+- Delivery after COMPLETED, FAILED, REJECTED or CANCELED is also a no-op.
+- An ambiguous WORKING Task is not automatically reclaimed, even after worker restart.
+- `context[:idempotency_key] == context[:task_id]` is stable for that Task in both sync and async execution. It is not the ActiveJob Job ID or Message ID.
+- A new SendMessage that creates another Task receives another key. Step 22 does not deduplicate separate client submissions by Message ID.
+
+For a local database mutation, a host can store `principal_id + idempotency_key` under a unique database constraint and commit that marker and the business mutation in the same transaction. A check-then-write without a unique constraint is insufficient under concurrency. For remote mutations, pass the key to an API with its own idempotency support; a local marker alone cannot atomically cover a remote side effect.
+
+Do not reset WORKING to SUBMITTED or configure blind retries to recover an uncertain side effect. Reconcile the business outcome first. These guarantees assume a shared Store with atomic claim semantics; process-local MemoryStore does not coordinate separate workers.
+
+Verification covers serialized duplicate Jobs delivered while the winning Handler is blocked, terminal redelivery, non-replay of ambiguous WORKING Tasks, shared Store terminal-claim contracts, and two PostgreSQL worker processes contending for a single SUBMITTED Task.
+
 ## Worker restart and crash
 
 Three cases have different guarantees.
