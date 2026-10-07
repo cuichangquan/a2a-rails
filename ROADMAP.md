@@ -127,7 +127,8 @@ Completed on `main` (unreleased; **not** part of RubyGems v0.1.0):
 - Step 22-2 implements the configuration surface and `Skill > Agent > global` resolution.
 - Step 22-3 ([PR #44](https://github.com/cuichangquan/a2a-rails/pull/44)) adds the `ExecutionPlan`, Gem-owned ActiveJob class, async `SUBMITTED` response path, route-once Skill execution, minimal Job payload, and atomic execution claim for MemoryStore/ActiveRecordStore.
 - Step 22-4 ([PR #46](https://github.com/cuichangquan/a2a-rails/pull/46)) constrains Job arguments to validated Task/principal/Agent/Skill identifiers and verifies foreign-principal isolation.
-- Step 22-5 hardens enqueue success/failure handling and pins the no-generic-Handler-retry policy; the Task job opts out of transaction-deferred enqueue.
+- Step 22-5 ([PR #47](https://github.com/cuichangquan/a2a-rails/pull/47)) hardens enqueue success/failure handling and pins the no-generic-Handler-retry policy; the Task job opts out of transaction-deferred enqueue.
+- Step 22-6 pins cancellation semantics: a canceled SUBMITTED Task cannot be claimed later, while WORKING cancellation is logical/best-effort and late completion cannot overwrite CANCELED.
 - The proposed worker payload is minimal: Task ID, verified non-secret principal ID, Agent class name and selected Skill ID. The original Message remains in the Task Store.
 - Routing is resolved once before enqueue; the background Job executes the selected Skill directly.
 - Async execution now uses an atomic `SUBMITTED -> WORKING` execution claim so duplicate queue deliveries cannot both start the same Task.
