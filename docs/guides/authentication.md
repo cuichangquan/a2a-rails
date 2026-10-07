@@ -74,4 +74,4 @@ These remain tracked in [Issue #11](https://github.com/cuichangquan/a2a-rails/is
 - Rails HTTP smoke tests for 401/403/200 and a sanitized 500 verifier failure.
 - Existing published Echo Quick Start and Gem package smoke tests should continue to pass.
 
-See also: [Roadmap](../../ROADMAP.md), [Security Threat Model](../design/security-threat-model.md) (in Step 16-1 draft branch).
+See also: [Roadmap](../../ROADMAP.md), [Security Threat Model draft (PR #12)](https://github.com/cuichangquan/a2a-rails/pull/12).
