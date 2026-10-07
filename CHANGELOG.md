@@ -10,6 +10,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- **Unreleased Step 17-3:** Explicit `A2A::Rails::FileArtifact.bytes(data:, filename:, media_type:)` and `.url(url:, filename:, media_type:)` Handler output for A2A v1.0 file `raw`/HTTPS `url` Parts. Raw bytes are Base64-encoded, metadata validated, and existing String/Hash/Array/nil returns remain unchanged. Local official TCK and SDK integration coverage track progress.
+
 - Host-owned `config.authenticate_request` and explicit Agent Card Bearer security declaration (`security_schemes` / `security_requirements`).
 - Owner-scoped Task retrieval, listing, cancellation and pagination, with host-verified opaque principal IDs.
 - Input body limit (`max_request_bytes`, default 1 MiB), defensive message/query type checks and HTTP boundary errors.
