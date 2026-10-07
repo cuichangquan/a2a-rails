@@ -59,6 +59,47 @@ class ConfigurationTest < Minitest::Test
     assert_raises(A2A::Rails::ConfigurationError) { config.normalized_public_base_url }
   end
 
+  def test_memory_store_is_the_default_task_store
+    config = A2A::Rails::Configuration.new
+
+    assert_equal :memory, config.task_store
+    assert_instance_of A2A::Rails::Task::MemoryStore, config.resolve_task_store
+  end
+
+  def test_custom_task_store_must_satisfy_store_contract
+    config = A2A::Rails::Configuration.new
+    custom = Object.new
+    %i[save find transition cancel list].each do |method_name|
+      custom.define_singleton_method(method_name) { |*, **| nil }
+    end
+    config.task_store = custom
+
+    assert_same custom, config.resolve_task_store
+
+    config.task_store = Object.new
+    error = assert_raises(A2A::Rails::ConfigurationError) { config.resolve_task_store }
+    assert_match(/missing methods/, error.message)
+  end
+
+  def test_active_record_store_is_lazy_and_uses_explicit_cursor_secret
+    config = A2A::Rails::Configuration.new
+    config.task_store = :active_record
+    config.task_page_token_secret = "x" * 32
+
+    store = config.resolve_task_store
+
+    assert_instance_of A2A::Rails::Task::ActiveRecordStore, store
+  end
+
+  def test_active_record_store_rejects_short_explicit_cursor_secret
+    config = A2A::Rails::Configuration.new
+    config.task_store = :active_record
+    config.task_page_token_secret = "short"
+
+    error = assert_raises(A2A::Rails::ConfigurationError) { config.resolve_task_store }
+    assert_match(/at least 32 bytes/, error.message)
+  end
+
   def test_explicit_logger_overrides_rails_default_lookup
     config = A2A::Rails::Configuration.new
     logger = Object.new
