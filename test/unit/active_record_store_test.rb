@@ -300,16 +300,16 @@ class ActiveRecordStoreTest < Minitest::Test
       retention: 60
     )
 
-    store.save(task("active", timestamp: now.iso8601(6)))
-    store.save(task("expired", timestamp: now.iso8601(6)))
-    store.transition("expired", state: :completed, timestamp: now,
+    store.save(task("task-active-123", timestamp: now.iso8601(6)))
+    store.save(task("task-terminal-456", timestamp: now.iso8601(6)))
+    store.transition("task-terminal-456", state: :completed, timestamp: now,
       principal_id: "tenant-A:user-1")
 
     stats = store.maintenance_stats(at: now + 61)
 
     assert_equal({ total: 2, terminal: 1, active: 1, expired: 1 }, stats)
     refute_includes stats.to_s, "tenant-A:user-1"
-    refute_includes stats.to_s, "expired"
+    refute_includes stats.to_s, "task-terminal-456"
   end
 
 end
