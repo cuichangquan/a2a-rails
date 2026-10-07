@@ -125,3 +125,32 @@ The three reduced failures are **two fixed push-notification error mappings** an
 3. Investigate/report the upstream TCK `CORE-SEND-003` expected-error registry inconsistency.
 4. Re-run the pinned TCK and document the true remaining pass/fail/skip counts.
 5. Follow with official Python/Go client interoperability and protocol coverage expansion.
+
+## Step 17-2: verify existing Text/Data Artifact mapping with official fixtures
+
+[PR #22](https://github.com/cuichangquan/a2a-rails/pull/22) adapts only the **local test SUT** to return deterministic outputs for the official TCK's session-unique `tck-artifact-text-` and `tck-artifact-data-` message IDs. The Gem's ordinary `ArtifactMapper` maps a String to a TextPart and a Hash to a DataPart; there are **no special wire responses or production behavior changes**.
+
+**Official pinned rerun:** [GitHub Actions #37572722890](https://github.com/cuichangquan/a2a-rails/actions/runs/37572722890), TCK `263b9cfaf16a554bdfb166a7ba5b67716e946349`, JSON-RPC MUST only.
+
+| Measurement | After Step 17-1 | After Step 17-2 |
+| --- | ---: | ---: |
+| pytest passed | 58 | **60** |
+| pytest failed | 6 | **4** |
+| pytest skipped | 171 | 171 |
+| pytest deselected | 30 | 30 |
+| JSON-RPC requirement observations passed | 56 | **58** |
+| JSON-RPC requirement observations failed | 6 | **4** |
+| JSON-RPC skipped | 27 | 27 |
+| Agent Card observations passed | 6 | 6 |
+| Overall TCK-reported MUST compatibility | 66.7% | **66.7%** |
+
+The aggregate percentage remains unchanged because the `DM-ART-001` requirement is *still* marked FAIL while its file-related test cases fail. This is not a conformance pass.
+
+### Remaining four pytest failures
+
+1. **Two file Artifact cases (`DM-ART-001`).** Current `Task::ArtifactMapper` / `Protocol::TaskMapper` support Handler outputs as text or structured data, not outbound A2A file bytes/URLs with `filename`/`mediaType`. Implement genuine file output mapping, schema validation and tests in a separate feature PR; do **not** fabricate a FilePart in the test SUT.
+2. **One direct-Message case (`DM-MSG-001`).** This minimal server always returns a Task from SendMessage. The protocol permits a Task-or-Message result; the pinned TCK requires a special fixture `Direct message response`. Evaluate adding opt-in Message results via the existing SDK before expanding the public Handler contract.
+3. **One unsupported input-media case (`CORE-SEND-003`).** The Gem correctly rejects the unsupported media with `ContentTypeNotSupportedError (-32005)`. The pinned TCK definition of this requirement does not include `expected_error`, while its implementation interprets the error as unexpected. Treat as an upstream TCK registry mismatch, not a reason to accept unsupported media.
+
+No assertion of full interoperability, production deployment safety, or published v0.1.0 feature changes is made. The TCK workflow is **informational**: inspect the actual reports, not its green badge.
+
