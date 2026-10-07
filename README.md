@@ -267,7 +267,7 @@ The unreleased `main` branch includes a host-provided `config.authenticate_reque
 
 The unreleased main branch adds a bounded JSON-RPC body (`config.max_request_bytes`, default 1 MiB), Content-Type validation, stricter parameter checks, a pagination snapshot cap, and reduced exception logging. See [Request Hardening Guide](docs/guides/request-hardening.md).
 
-Rate limiting, application-specific authorization, Agent Card authentication advertisement and production deployment safeguards remain the host's responsibility or future work. **These improvements are not included in the published v0.1.0 Gem.**
+Rate limiting, application-specific authorization and production deployment safeguards remain the host's responsibility or future work. Step 16-5 adds explicit A2A Agent Card Bearer authentication advertisement on the unreleased main development line; it must match the host verifier. **These improvements are not included in the published v0.1.0 Gem.**
 
 
 ## Agent Card
