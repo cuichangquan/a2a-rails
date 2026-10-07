@@ -14,18 +14,32 @@ module A2A
         UNSET = Object.new.freeze
         DEFAULT_PAGE_SIZE = 50
         MAX_PAGE_SIZE = 100
+        MAX_PRUNE_BATCH_SIZE = 10_000
         CURSOR_PURPOSE = "a2a-rails/task-page".freeze
 
         class Record < ::ActiveRecord::Base
           self.table_name = "a2a_rails_tasks"
         end
 
-        def initialize(cursor_secret:, clock: -> { Time.now.utc })
+        def initialize(cursor_secret:, clock: -> { Time.now.utc }, retention: nil,
+          prune_batch_size: 1_000, max_tasks_per_owner: nil,
+          max_history_entries: 100, max_artifacts: 50)
           unless cursor_secret.is_a?(String) && cursor_secret.bytesize >= 32
             raise ArgumentError, "cursor_secret must be at least 32 bytes"
           end
 
           @clock = clock
+          @retention_seconds = normalize_retention(retention)
+          @prune_batch_size = normalize_prune_batch_size(prune_batch_size)
+          @max_tasks_per_owner = normalize_optional_positive_integer(
+            max_tasks_per_owner,
+            "max_tasks_per_owner"
+          )
+          @max_history_entries = normalize_positive_integer(
+            max_history_entries,
+            "max_history_entries"
+          )
+          @max_artifacts = normalize_positive_integer(max_artifacts, "max_artifacts")
           @verifier = ActiveSupport::MessageVerifier.new(
             cursor_secret,
             digest: "SHA256",
@@ -34,16 +48,26 @@ module A2A
         end
 
         def save(task)
-          record = Record.create!(
-            task_id: task.fetch(:id),
-            owner_id: task[:owner_id],
-            context_id: task.fetch(:context_id),
-            state: normalized_state(task.dig(:status, :state)).to_s,
-            status_timestamp: normalize_time(task.dig(:status, :timestamp)),
-            status_message: task.dig(:status, :message),
-            history: task.key?(:history) ? deep_stringify(task[:history]) : nil,
-            artifacts: task.key?(:artifacts) ? deep_stringify(task[:artifacts]) : nil
-          )
+          state = normalized_state(task.dig(:status, :state))
+          timestamp = normalize_time(task.dig(:status, :timestamp), field: "task status timestamp")
+          validate_payload_collection!("history", task[:history], @max_history_entries) if task.key?(:history)
+          validate_payload_collection!("artifacts", task[:artifacts], @max_artifacts) if task.key?(:artifacts)
+
+          record = Record.transaction do
+            enforce_owner_quota!(task[:owner_id], at: now)
+
+            Record.create!(
+              task_id: task.fetch(:id),
+              owner_id: task[:owner_id],
+              context_id: task.fetch(:context_id),
+              state: state.to_s,
+              status_timestamp: timestamp,
+              status_message: task.dig(:status, :message),
+              history: task.key?(:history) ? deep_stringify(task[:history]) : nil,
+              artifacts: task.key?(:artifacts) ? deep_stringify(task[:artifacts]) : nil,
+              expires_at: terminal_state?(state) ? expiration_at(timestamp) : nil
+            )
+          end
 
           deserialize(record)
         end
@@ -55,6 +79,8 @@ module A2A
         def transition(task_id, state:, timestamp: Time.now.utc, artifacts: UNSET, message: UNSET,
           principal_id: nil)
           state = normalized_state(state)
+          timestamp = normalize_time(timestamp, field: "task status timestamp")
+          validate_payload_collection!("artifacts", artifacts, @max_artifacts) unless artifacts.equal?(UNSET)
 
           Record.transaction do
             record = locked_record!(task_id, principal_id: principal_id)
@@ -62,10 +88,13 @@ module A2A
             unless terminal_record?(record)
               attributes = {
                 state: state.to_s,
-                status_timestamp: normalize_time(timestamp),
+                status_timestamp: timestamp,
                 status_message: message.equal?(UNSET) ? nil : deep_stringify(message)
               }
               attributes[:artifacts] = deep_stringify(artifacts) unless artifacts.equal?(UNSET)
+              if terminal_state?(state) && record.expires_at.nil?
+                attributes[:expires_at] = expiration_at(timestamp)
+              end
               record.update!(attributes)
             end
 
@@ -74,6 +103,8 @@ module A2A
         end
 
         def cancel(task_id, timestamp: Time.now.utc, principal_id: nil)
+          timestamp = normalize_time(timestamp, field: "task status timestamp")
+
           Record.transaction do
             record = locked_record!(task_id, principal_id: principal_id)
             state = record.state.to_sym
@@ -81,8 +112,9 @@ module A2A
 
             record.update!(
               state: "canceled",
-              status_timestamp: normalize_time(timestamp),
-              status_message: nil
+              status_timestamp: timestamp,
+              status_message: nil,
+              expires_at: record.expires_at || expiration_at(timestamp)
             )
 
             deserialize(record)
@@ -97,7 +129,7 @@ module A2A
           end
 
           status = normalized_state(status) if status
-          after = normalize_time(status_timestamp_after) if status_timestamp_after
+          after = normalize_time(status_timestamp_after, field: "status_timestamp_after") if status_timestamp_after
           fingerprint = query_fingerprint(
             principal_id: principal_id,
             context_id: context_id,
@@ -113,8 +145,9 @@ module A2A
             end
 
             snapshot_id = Integer(payload.fetch("snapshot_id"))
-            last_timestamp = normalize_time(payload.fetch("last_timestamp"))
+            last_timestamp = normalize_time(payload.fetch("last_timestamp"), field: "page_token timestamp")
             last_task_id = payload.fetch("last_task_id")
+            raise TypeError unless last_task_id.is_a?(String)
             total_size = Integer(payload.fetch("total_size"))
           else
             snapshot_id = Record.maximum(:id).to_i
@@ -174,6 +207,39 @@ module A2A
           raise InvalidTaskQueryError, "Invalid page_token"
         end
 
+        # Deletes at most one bounded batch. Callers decide whether and how
+        # often to loop; request handling never performs maintenance deletes.
+        def prune_expired(batch_size: @prune_batch_size, at: now)
+          batch_size = normalize_prune_batch_size(batch_size)
+          at = normalize_time(at, field: "prune timestamp")
+
+          ids = Record
+            .where.not(expires_at: nil)
+            .where("expires_at <= ?", at)
+            .order(:id)
+            .limit(batch_size)
+            .pluck(:id)
+
+          return 0 if ids.empty?
+
+          Record.where(id: ids).delete_all
+        end
+
+        def maintenance_stats(at: now)
+          at = normalize_time(at, field: "maintenance timestamp")
+          terminal_states = TERMINAL_STATES.map(&:to_s)
+          total = Record.count
+          terminal = Record.where(state: terminal_states).count
+          expired = Record.where.not(expires_at: nil).where("expires_at <= ?", at).count
+
+          {
+            total: total,
+            terminal: terminal,
+            active: total - terminal,
+            expired: expired
+          }
+        end
+
         private
 
         def find_record!(task_id, principal_id:)
@@ -200,8 +266,42 @@ module A2A
           scope
         end
 
+        def enforce_owner_quota!(owner_id, at:)
+          return unless @max_tasks_per_owner
+
+          retained = Record
+            .where(owner_id: owner_id)
+            .where("expires_at IS NULL OR expires_at > ?", at)
+            .count
+
+          return if retained < @max_tasks_per_owner
+
+          raise TaskStoreCapacityError, "Task owner capacity reached"
+        end
+
+        def validate_payload_collection!(name, value, limit)
+          return if value.nil?
+
+          unless value.is_a?(Array)
+            raise TaskStorePayloadLimitError, "Task #{name} must be an Array"
+          end
+          return if value.length <= limit
+
+          raise TaskStorePayloadLimitError, "Task #{name} exceeds configured limit"
+        end
+
         def terminal_record?(record)
-          TERMINAL_STATES.include?(record.state.to_sym)
+          terminal_state?(record.state.to_sym)
+        end
+
+        def terminal_state?(state)
+          TERMINAL_STATES.include?(state)
+        end
+
+        def expiration_at(timestamp)
+          return nil unless @retention_seconds
+
+          timestamp + @retention_seconds
         end
 
         def normalized_state(state)
@@ -217,12 +317,46 @@ module A2A
           raise InvalidTaskQueryError, "page_size must be an integer from 1 to #{MAX_PAGE_SIZE}"
         end
 
-        def normalize_time(value)
+        def normalize_retention(value)
+          return nil if value.nil?
+          if value.is_a?(String) || !value.respond_to?(:to_i)
+            raise ArgumentError, "retention must be a nonnegative duration in seconds"
+          end
+
+          seconds = value.to_i
+          raise ArgumentError, "retention must be nonnegative" if seconds.negative?
+
+          seconds
+        end
+
+        def normalize_prune_batch_size(value)
+          unless value.is_a?(Integer) && (1..MAX_PRUNE_BATCH_SIZE).cover?(value)
+            raise ArgumentError, "prune_batch_size must be an integer from 1 to #{MAX_PRUNE_BATCH_SIZE}"
+          end
+
+          value
+        end
+
+        def normalize_optional_positive_integer(value, name)
+          return nil if value.nil?
+
+          normalize_positive_integer(value, name)
+        end
+
+        def normalize_positive_integer(value, name)
+          unless value.is_a?(Integer) && value.positive?
+            raise ArgumentError, "#{name} must be a positive integer"
+          end
+
+          value
+        end
+
+        def normalize_time(value, field:)
           return value.utc if value.respond_to?(:utc) && !value.is_a?(String)
 
           Time.iso8601(value.to_s).utc
         rescue ArgumentError
-          raise InvalidTaskQueryError, "status_timestamp_after must be an ISO 8601 timestamp"
+          raise InvalidTaskQueryError, "#{field} must be an ISO 8601 timestamp"
         end
 
         def query_fingerprint(principal_id:, context_id:, status:, status_timestamp_after:, page_size:)

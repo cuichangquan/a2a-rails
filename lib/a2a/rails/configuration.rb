@@ -7,10 +7,17 @@ module A2A
   module Rails
     class Configuration
       TASK_STORE_METHODS = %i[save find transition cancel list].freeze
+      DEFAULT_TASK_RETENTION_SECONDS = 30 * 24 * 60 * 60
+      DEFAULT_TASK_PRUNE_BATCH_SIZE = 1_000
+      DEFAULT_MAX_TASKS_PER_OWNER = 10_000
+      DEFAULT_MAX_TASK_HISTORY_ENTRIES = 100
+      DEFAULT_MAX_TASK_ARTIFACTS = 50
 
       attr_accessor :agent, :public_base_url, :authenticate_request, :authentication_challenge,
         :max_request_bytes, :security_schemes, :security_requirements,
-        :task_store, :task_page_token_secret
+        :task_store, :task_page_token_secret, :task_retention,
+        :task_prune_batch_size, :max_tasks_per_owner,
+        :max_task_history_entries, :max_task_artifacts
 
       def initialize
         @agent = nil
@@ -22,6 +29,11 @@ module A2A
         @max_request_bytes = RequestGuard::DEFAULT_MAX_BYTES
         @task_store = :memory
         @task_page_token_secret = nil
+        @task_retention = DEFAULT_TASK_RETENTION_SECONDS
+        @task_prune_batch_size = DEFAULT_TASK_PRUNE_BATCH_SIZE
+        @max_tasks_per_owner = DEFAULT_MAX_TASKS_PER_OWNER
+        @max_task_history_entries = DEFAULT_MAX_TASK_HISTORY_ENTRIES
+        @max_task_artifacts = DEFAULT_MAX_TASK_ARTIFACTS
         @logger_set = false
       end
 
@@ -80,7 +92,14 @@ module A2A
       def resolve_active_record_store
         require_relative "task/active_record_store"
 
-        Task::ActiveRecordStore.new(cursor_secret: task_cursor_secret)
+        Task::ActiveRecordStore.new(
+          cursor_secret: task_cursor_secret,
+          retention: @task_retention,
+          prune_batch_size: @task_prune_batch_size,
+          max_tasks_per_owner: @max_tasks_per_owner,
+          max_history_entries: @max_task_history_entries,
+          max_artifacts: @max_task_artifacts
+        )
       rescue LoadError => error
         raise ConfigurationError,
           "config.task_store = :active_record requires ActiveRecord in the host application (#{error.path})"

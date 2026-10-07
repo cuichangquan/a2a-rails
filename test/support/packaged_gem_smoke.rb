@@ -123,6 +123,7 @@ module Step1512PackagedGemSmoke
     lib/a2a-rails.rb
     lib/a2a/rails/engine.rb
     lib/a2a/rails/task/active_record_store.rb
+    lib/tasks/a2a_rails_tasks.rake
     lib/generators/a2a/rails/install_generator.rb
     lib/generators/a2a/rails/task_store_generator.rb
     lib/generators/a2a/rails/agent_generator.rb
