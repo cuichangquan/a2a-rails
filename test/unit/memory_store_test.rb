@@ -116,4 +116,25 @@ class MemoryStoreTest < Minitest::Test
       @store.list(page_size: 1, context_id: "changed", page_token: token)
     end
   end
+  def test_page_token_requires_string
+    assert_raises(A2A::Rails::InvalidTaskQueryError) do
+      @store.list(page_token: 123)
+    end
+  end
+
+  def test_page_snapshots_are_capped_to_avoid_unbounded_memory_growth
+    @store.save(task("old", timestamp: "2026-10-06T00:00:00.000000Z"))
+    @store.save(task("new", timestamp: "2026-10-06T01:00:00.000000Z"))
+
+    first_token = @store.list(page_size: 1).fetch(:next_page_token)
+    (A2A::Rails::Task::MemoryStore::MAX_CACHED_PAGES).times do
+      @store.list(page_size: 1)
+    end
+
+    assert_operator @store.instance_variable_get(:@pages).size,
+      :<=, A2A::Rails::Task::MemoryStore::MAX_CACHED_PAGES
+    assert_raises(A2A::Rails::InvalidTaskQueryError) do
+      @store.list(page_size: 1, page_token: first_token)
+    end
+  end
 end
