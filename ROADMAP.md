@@ -33,6 +33,13 @@
 
 ## Step 16 — Security hardening (#11)
 
+Current work-in-progress PRs (not merged; not production-ready):
+
+- [Step 16-1 / Draft PR #12: security threat model and authorization design](https://github.com/cuichangquan/a2a-rails/pull/12).
+- [Step 16-2 / Draft PR #13: Rails authentication callback and HTTP gate](https://github.com/cuichangquan/a2a-rails/pull/13).
+- **Still pending:** Step 16-3 owner-scoped Task reads/list/cancellation/pagination.
+
+
 **Reason for priority:** v0.1.0 is a functional minimal server, **not** a production-ready authorization solution. In its current implementation, `POST /a2a` has no built-in authentication, while `GetTask`, `ListTasks` and `CancelTask` access a shared per-process Task Store.
 
 **Immediate work:**
