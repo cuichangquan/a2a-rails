@@ -1,6 +1,6 @@
 # ActiveJob Task Execution Design
 
-Status: proposed for Step 22 / Issue #41.
+Status: accepted design; Step 22 implementation in progress / Issue #41.
 
 ## Goal
 
@@ -53,7 +53,7 @@ class ReportsAgent < A2A::Rails::Agent
 end
 ```
 
-Only `:sync` and `:async` are proposed initially.
+Only `:sync` and `:async` are supported initially. Step 22-2 implements this configuration surface and precedence; actual ActiveJob execution follows in later Step 22 work.
 
 Async applies to Task responses. Direct Message responses remain synchronous because they do not create a persisted Task that can be polled later.
 
