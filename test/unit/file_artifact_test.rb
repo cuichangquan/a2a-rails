@@ -45,10 +45,10 @@ class FileArtifactTest < Minitest::Test
   end
 
   def test_input_mutations_cannot_change_file_output
-    data = "original"
-    filename = "report.txt"
-    media_type = "text/plain"
-    url = "https://files.example.test/file"
+    data = +"original"
+    filename = +"report.txt"
+    media_type = +"text/plain"
+    url = +"https://files.example.test/file"
     raw = FileArtifact.bytes(data: data, filename: filename, media_type: media_type)
     linked = FileArtifact.url(url: url, filename: filename, media_type: media_type)
 
