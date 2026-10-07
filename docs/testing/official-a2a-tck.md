@@ -181,3 +181,15 @@ No assertion of full interoperability, production deployment safety, or publishe
 2. **`CORE-SEND-003` — upstream TCK expected-error binding**: the Gem rejects unsupported inbound file media with A2A `ContentTypeNotSupportedError (-32005)`, which is correct; the pinned upstream requirement specifies that behavior in prose but does not populate `expected_error`. This is an upstream test issue to track, not grounds to misreport or weaken validation.
 
 **This does not mean 100% protocol conformance.** The TCK report aggregates other transport/capability requirements, and its runner step is deliberately informational; a green workflow is not a TCK pass. The change exists on unreleased source, not published RubyGems v0.1.0.
+
+
+## Step 17-4: opt-in direct Message responses (verification pending)
+
+A2A Protocol v1.0 §3.1.1 permits either a Task or direct Message result from `SendMessage`. The current published Gem v0.1.0 implements Task results only. The Step 17-4 branch adds explicit host-controlled `response_mode` handling, defaults to Task responses, and does not create Task records for direct Message replies. The SDK still validates the standard `Send Message Response` union; the Gem does not write a custom JSON-RPC envelope.
+
+- [Direct Message guide](../guides/direct-message-responses.md) documents the opt-in API, per-request selector, and constraints.
+- The TCK local-only fixture uses `tck-message-response` to choose Message and replies with `Direct message response`. This uses the public Agent response-mode policy, **not** a change to the protocol adapter and not a production fixture exception.
+- Ruby/Rails regression CI and pinned official TCK have **not yet been verified for this PR revision**. Do not claim an improved TCK count or mark DM-MSG-001 PASS until the reports show it.
+- `CORE-SEND-003` remains an independent upstream registry issue: its description requires `ContentTypeNotSupportedError` but its pinned requirement lacks `expected_error`; the Gem correctly returns JSON-RPC -32005. Do not change server behavior to force this one test green.
+
+After verification, update this section with exact commit, Actions run links, and observed passed/failed/skipped counts. The informational workflow's green status is not evidence of passing conformance.
