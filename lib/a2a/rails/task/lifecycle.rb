@@ -7,17 +7,20 @@ module A2A
     module Task
       class Lifecycle
         def initialize(store:, result_mapper: ResultMapper.new, logger: nil,
-          clock: -> { Time.now.utc }, id_generator: -> { SecureRandom.uuid })
+          clock: -> { Time.now.utc }, id_generator: -> { SecureRandom.uuid },
+          principal_id: nil)
           @store = store
           @result_mapper = result_mapper
           @logger = logger
           @clock = clock
           @id_generator = id_generator
+          @principal_id = principal_id
         end
 
         def create(message:, context_id: nil)
           task = {
             id: next_id,
+            owner_id: @principal_id,
             context_id: present_context_id(context_id),
             status: status(:submitted),
             history: [copy(message)]
@@ -27,7 +30,7 @@ module A2A
         end
 
         def start(task_id)
-          @store.transition(task_id, state: :working, timestamp: now)
+          @store.transition(task_id, state: :working, timestamp: now, principal_id: @principal_id)
         end
 
         def complete(task_id, result)
@@ -44,15 +47,15 @@ module A2A
         end
 
         def cancel(task_id)
-          @store.cancel(task_id, timestamp: now)
+          @store.cancel(task_id, timestamp: now, principal_id: @principal_id)
         end
 
         def find(task_id)
-          @store.find(task_id)
+          @store.find(task_id, principal_id: @principal_id)
         end
 
         def list(**filters)
-          @store.list(**filters)
+          @store.list(**filters, principal_id: @principal_id)
         end
 
         private
@@ -61,7 +64,7 @@ module A2A
           attributes = { state: outcome.fetch(:state), timestamp: now }
           attributes[:artifacts] = outcome[:artifacts] if outcome.key?(:artifacts)
           attributes[:message] = outcome[:message] if outcome.key?(:message)
-          @store.transition(task_id, **attributes)
+          @store.transition(task_id, **attributes, principal_id: @principal_id)
         end
 
         def status(state)

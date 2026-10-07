@@ -1,8 +1,8 @@
-# Authenticating A2A HTTP requests — Step 16-2
+# Authenticating and scoping A2A HTTP requests — Steps 16-2 / 16-3
 
 > **Security status: In development.** This page describes changes proposed in Step 16-2. It does not apply to the already-published `a2a-rails 0.1.0`.
 >
-> **Not production-safe yet:** Step 16-2 authenticates requests, but it does **not** implement per-principal authorization for `GetTask`, `ListTasks`, `CancelTask`, or pagination. That is [Step 16-3](https://github.com/cuichangquan/a2a-rails/issues/11). Do not expose your A2A Task endpoint to untrusted clients.
+> **Not production-safe yet:** Step 16-3 adds per-principal Task scoping in a draft PR on top of Step 16-2, but the changes are **not published or merged into main**. Security scheme advertising, payload/abuse controls, application-specific authorization, and complete security review are still outstanding in [Issue #11](https://github.com/cuichangquan/a2a-rails/issues/11). Do not expose your A2A Task endpoint to untrusted clients.
 
 ## Goal
 
@@ -43,7 +43,7 @@ end
 
 Callback receives an `ActionDispatch::Request` and must use a **trusted verifier**, not a header-presence check. Do not return credentials, bearer tokens, arbitrary names supplied by clients, or objects containing secrets. Returned IDs are stored in a request-local Rack environment entry for future Task scoping, not exposed as a public Handler API.
 
-**Authentication is not authorization.** Even a successful identity check does not currently restrict Task access by owner. The host application must enforce its own business permissions separately.
+**Authentication is not authorization.** Step 16-3 proposes owner checks for Task operations, but the host application must still authorize application-specific business actions. For multi-tenant apps, the host verifier must return a globally unique, tenant-qualified principal ID. Two different tenants must never share the same principal identifier.
 
 ### Missing callback behavior
 
@@ -58,10 +58,19 @@ Unauthorized calls receive 401 and a configurable `WWW-Authenticate` challenge (
 
 The error is an HTTP boundary response, not an A2A task or a promise of a JSON-RPC result. Authorization is performed before the SDK has parsed the JSON-RPC request ID.
 
-## What is NOT implemented in Step 16-2
+## Step 16-3 Task ownership (draft)
 
-- Task ownership checks and tenant isolation.
-- Binding Task List pagination cursors to an authenticated principal.
+- The trusted, verified principal ID flows from the Rails authentication gate through Runtime to a per-request Task Lifecycle.
+- Newly created Tasks persist a private `owner_id`, which is never included in the A2A Task wire schema.
+- `GetTask`, `CancelTask`, and attempted Task continuation return Task-not-found for another principal's Tasks.
+- `ListTasks`, total counts, and filtered results are always scoped by owner; page tokens are bound to the principal and query fingerprint.
+- Existing local-only, unauthenticated Quick Start Tasks remain scoped to the anonymous `nil` principal. Such Tasks are not readable by authenticated principals.
+- Task state transitions check ownership under the Memory Store mutex, avoiding cancellation authorization races.
+
+## What is NOT implemented in Steps 16-2 / 16-3
+
+- A built-in identity provider, tenant resolver, or business-action authorization policy.
+- General-purpose per-tenant Task sharing or delegated Task permissions.
 - Agent Card `securitySchemes` / `security` advertising or selective Agent Card visibility.
 - Rate limiting, body-size limits and end-to-end production deployment hardening.
 - OAuth authorization server, token introspection, mTLS termination or a token issuer.
@@ -71,7 +80,8 @@ These remain tracked in [Issue #11](https://github.com/cuichangquan/a2a-rails/is
 ## Verification
 
 - Unit tests for fail-closed behavior, missing/invalid credentials, principal integrity, challenge safety and explicit forbidden results.
-- Rails HTTP smoke tests for 401/403/200 and a sanitized 500 verifier failure.
+- Ownership tests for find/list/count/cursor/cancel/transition across authenticated and anonymous callers.
+- Real Rails HTTP smoke tests for 401/403/200, a sanitized 500 verifier failure, and cross-principal access denial.
 - Existing published Echo Quick Start and Gem package smoke tests should continue to pass.
 
 See also: [Roadmap](../../ROADMAP.md), [Security Threat Model draft (PR #12)](https://github.com/cuichangquan/a2a-rails/pull/12).

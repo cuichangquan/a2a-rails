@@ -18,7 +18,7 @@ module A2A
         ).call
       end
 
-      def call(env:, request_base_url:)
+      def call(env:, request_base_url:, principal_id: nil)
         configuration = A2A::Rails.configuration
         agent = configuration.resolve_agent
         card = AgentCard::Builder.new(
@@ -26,7 +26,10 @@ module A2A
           public_base_url: configuration.normalized_public_base_url,
           request_base_url: request_base_url
         ).call
-        lifecycle = Task::Lifecycle.new(store: @store, logger: configuration.logger)
+        # The controller has already verified this Rack-scoped principal.
+        # Never read identity from A2A JSON-RPC parameters or metadata.
+        principal_id ||= env[Authentication::PRINCIPAL_ENV_KEY]
+        lifecycle = Task::Lifecycle.new(store: @store, logger: configuration.logger, principal_id: principal_id)
         request_handler = Protocol::RequestHandler.new(
           dispatcher: Dispatcher.new(agent: agent),
           lifecycle: lifecycle

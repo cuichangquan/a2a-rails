@@ -27,15 +27,16 @@ module A2A
           end
         end
 
-        def find(task_id)
-          @mutex.synchronize { copy(find!(task_id)) }
+        def find(task_id, principal_id: nil)
+          @mutex.synchronize { copy(find!(task_id, principal_id: principal_id)) }
         end
 
-        def transition(task_id, state:, timestamp: Time.now.utc, artifacts: UNSET, message: UNSET)
+        def transition(task_id, state:, timestamp: Time.now.utc, artifacts: UNSET, message: UNSET,
+          principal_id: nil)
           validate_state!(state)
 
           @mutex.synchronize do
-            task = find!(task_id)
+            task = find!(task_id, principal_id: principal_id)
             return copy(task) if terminal?(task)
 
             task[:status] = status_hash(state, timestamp, message)
@@ -44,9 +45,9 @@ module A2A
           end
         end
 
-        def cancel(task_id, timestamp: Time.now.utc)
+        def cancel(task_id, timestamp: Time.now.utc, principal_id: nil)
           @mutex.synchronize do
-            task = find!(task_id)
+            task = find!(task_id, principal_id: principal_id)
             state = task.dig(:status, :state)
             raise TaskNotCancelableError.new(task_id, state: state) if TERMINAL_STATES.include?(state)
 
@@ -56,15 +57,16 @@ module A2A
         end
 
         def list(context_id: nil, status: nil, status_timestamp_after: nil,
-          page_size: DEFAULT_PAGE_SIZE, page_token: nil)
+          page_size: DEFAULT_PAGE_SIZE, page_token: nil, principal_id: nil)
           validate_page_size!(page_size)
           validate_state!(status) if status
           after = normalize_time(status_timestamp_after) if status_timestamp_after
-          fingerprint = query_fingerprint(context_id:, status:, status_timestamp_after: after, page_size:)
+          fingerprint = query_fingerprint(context_id:, status:, status_timestamp_after: after, page_size:,
+            principal_id:)
 
           @mutex.synchronize do
             rows, offset = page_rows(page_token, fingerprint) do
-              filtered_rows(context_id:, status:, status_timestamp_after: after)
+              filtered_rows(context_id:, status:, status_timestamp_after: after, principal_id:)
             end
 
             next_offset = offset + page_size
@@ -85,8 +87,12 @@ module A2A
 
         private
 
-        def find!(task_id)
-          @tasks[task_id] || raise(TaskNotFoundError, task_id)
+        def find!(task_id, principal_id:)
+          task = @tasks[task_id]
+          # A foreign Task must appear indistinguishable from a missing one.
+          raise TaskNotFoundError, task_id unless task && task[:owner_id] == principal_id
+
+          task
         end
 
         def terminal?(task)
@@ -132,10 +138,11 @@ module A2A
           end
         end
 
-        def filtered_rows(context_id:, status:, status_timestamp_after:)
+        def filtered_rows(context_id:, status:, status_timestamp_after:, principal_id:)
           @tasks.values
             .select do |task|
-              (!context_id || task[:context_id] == context_id) &&
+              task[:owner_id] == principal_id &&
+                (!context_id || task[:context_id] == context_id) &&
                 (!status || task.dig(:status, :state) == status) &&
                 (!status_timestamp_after || task_time(task) >= status_timestamp_after)
             end
@@ -147,8 +154,8 @@ module A2A
           Time.iso8601(task.dig(:status, :timestamp))
         end
 
-        def query_fingerprint(context_id:, status:, status_timestamp_after:, page_size:)
-          normalized = [context_id, status, status_timestamp_after&.iso8601(6), page_size]
+        def query_fingerprint(context_id:, status:, status_timestamp_after:, page_size:, principal_id:)
+          normalized = [principal_id, context_id, status, status_timestamp_after&.iso8601(6), page_size]
           Digest::SHA256.hexdigest(Marshal.dump(normalized))
         end
 
