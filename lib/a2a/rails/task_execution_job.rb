@@ -43,11 +43,11 @@ module A2A
         )
         lifecycle.complete(task_id, result)
       rescue RejectedTask => error
-        lifecycle&.reject(task_id, error) if claimed
+        lifecycle&.reject(task_id, error)
       rescue TaskNotFoundError
         nil
       rescue StandardError => error
-        lifecycle&.fail(task_id, error) if claimed
+        lifecycle&.fail(task_id, error) if lifecycle
       end
 
       private
