@@ -1,6 +1,6 @@
 # Direct Message responses (unreleased main, Step 17-4)
 
-> **Not available in published RubyGems v0.1.0.** This feature is verified on the unreleased source branch via [PR #24](https://github.com/cuichangquan/a2a-rails/pull/24). It does not make the Gem production ready; see [production security](production-security.md).
+> **Not available in published RubyGems v0.1.0.** This feature was merged to main via [PR #24](https://github.com/cuichangquan/a2a-rails/pull/24) and verified against real Ruby SDK/official TCK tests; it has **not** been published to RubyGems. It does not make the Gem production ready; see [production security](production-security.md).
 
 A2A Protocol v1.0 [Send Message](https://a2a-protocol.org/v1.0.0/specification/#311-send-message) allows either a `Task` or a direct `Message` for simple interactions. The Gem retains the existing synchronous Task response by default. A Rails Agent can explicitly choose to return direct Messages without starting or persisting a Task.
 
