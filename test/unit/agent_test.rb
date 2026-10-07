@@ -66,6 +66,51 @@ class AgentTest < Minitest::Test
     assert_match(/response_mode/, error.message)
   end
 
+  def test_execution_mode_is_optional_and_isolated_between_agents
+    assert_nil NamedAgent.execution_mode
+
+    async_agent = build_agent do
+      name "Async"
+      description "Runs Tasks asynchronously"
+      version "1.0"
+      execution_mode :async
+      skill :reply, description: "Reply", tags: ["reply"], handler: Handler
+    end
+
+    assert_equal :async, async_agent.execution_mode
+    assert_same async_agent, async_agent.validate!
+    assert_nil NamedAgent.execution_mode
+  end
+
+  def test_invalid_execution_mode_is_rejected
+    invalid = build_agent do
+      name "Invalid"
+      description "Bad execution mode"
+      version "1.0"
+      execution_mode :later
+      skill :reply, description: "Reply", tags: ["reply"], handler: Handler
+    end
+
+    error = assert_raises(A2A::Rails::ConfigurationError) { invalid.validate! }
+    assert_match(/execution_mode/, error.message)
+  end
+
+  def test_skill_execution_mode_is_preserved_by_agent_dsl
+    agent = build_agent do
+      name "Mixed"
+      description "Mixed execution modes"
+      version "1.0"
+      skill :reply,
+        description: "Reply",
+        tags: ["reply"],
+        handler: Handler,
+        execution_mode: :async
+    end
+
+    assert_equal :async, agent.skills.first.execution_mode
+    assert_same agent, agent.validate!
+  end
+
   def test_name_dsl_does_not_replace_ruby_class_name
     assert_equal "AgentTest::NamedAgent", NamedAgent.name
     assert_equal "Display Name", NamedAgent.agent_name
