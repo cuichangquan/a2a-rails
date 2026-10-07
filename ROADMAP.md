@@ -15,7 +15,7 @@
 
 | Priority | # | Work item | Outcome | Proposed phase | Status |
 | --- | ---: | --- | --- | --- | --- |
-| P0 | 1 | [Security hardening](https://github.com/cuichangquan/a2a-rails/issues/11) | Authenticate requests; protect Task reads/lists/cancellation per principal; safe production guidance | v0.1.x | **In progress — Step 16** |
+| P0 | 1 | [Security hardening](https://github.com/cuichangquan/a2a-rails/issues/11) | Authenticate requests; protect Task reads/lists/cancellation per principal; safe production guidance | v0.1.x | **In progress — Step 16-4** |
 | P0 | 2 | Official A2A TCK tests | Verify interoperability/conformance against the current A2A test suite | v0.1.x | Planned |
 | P0 | 3 | Cross-language interoperability | Validate calls from official Python / Go clients and version negotiation | v0.1.x | Planned |
 | P0 | 4 | Runnable Rails example | Provide a reproducible Rails Agent demo outside the Gem repo | v0.1.x | Planned |
@@ -33,15 +33,16 @@
 
 ## Step 16 — Security hardening (#11)
 
-Current work-in-progress PRs (not merged; not production-ready):
+Completed on `main` (unreleased; **not** part of RubyGems v0.1.0):
 
-- [Step 16-1 / Draft PR #12: security threat model and authorization design](https://github.com/cuichangquan/a2a-rails/pull/12).
-- [Step 16-2 / Draft PR #13: Rails authentication callback and HTTP gate](https://github.com/cuichangquan/a2a-rails/pull/13).
-- [Step 16-3 / Draft PR #14: owner-scoped Task operations and pagination](https://github.com/cuichangquan/a2a-rails/pull/14) — implementation under test; depends on PR #13.
-- **Still pending:** Security reviews for both PRs, Agent Card security advertising, payload/abuse controls, and production guidance.
+- [x] [Step 16-1 / PR #12: security threat model and authorization design](https://github.com/cuichangquan/a2a-rails/pull/12).
+- [x] [Step 16-2 / PR #13: Rails authentication callback and HTTP gate](https://github.com/cuichangquan/a2a-rails/pull/13).
+- [x] [Step 16-3 / PR #15: owner-scoped Task access and pagination](https://github.com/cuichangquan/a2a-rails/pull/15) — restacked replacement for closed #14.
+- [ ] **Step 16-4 (next):** payload/input validation, bounded HTTP bodies, sensitive logging and abuse controls.
+- [ ] **Step 16-5/16-6:** complete threat-model tests, accurate Agent Card security advertisement and production deployment guidance.
 
 
-**Reason for priority:** v0.1.0 is a functional minimal server, **not** a production-ready authorization solution. In its current implementation, `POST /a2a` has no built-in authentication, while `GetTask`, `ListTasks` and `CancelTask` access a shared per-process Task Store.
+**Reason for priority:** published v0.1.0 is a minimal server, **not** a production-ready authorization solution. The unreleased main branch now has authentication and owner-scoped Task access, but further security review and deployment controls are required.
 
 **Immediate work:**
 
