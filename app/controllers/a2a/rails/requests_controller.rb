@@ -30,7 +30,11 @@ module A2A
         render json: { error: "Payload too large" }, status: 413
         false
       rescue RequestGuard::UnsupportedMediaType
-        render json: { error: "Unsupported media type" }, status: 415
+        # This is an HTTP boundary rejection before JSON-RPC parsing (and
+        # before authentication). Respond with no JSON body: a JSON string
+        # under "error" is not a valid JSON-RPC Error object and confuses
+        # protocol clients that parse an HTTP 415 response as JSON-RPC.
+        head :unsupported_media_type
         false
       rescue RequestGuard::InvalidBody
         render json: { error: "Invalid request body" }, status: 400
