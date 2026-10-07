@@ -67,6 +67,21 @@ jobs:
           echo "Timed out waiting for the Rails TCK SUT" >&2
           exit 1
 
+      - name: Diagnose direct HTTP JSON-RPC request paths (local only)
+        shell: bash
+        run: |
+          set -euo pipefail
+          printf '%s' '{"jsonrpc":"2.0","id":"diagnostic","method":"SendMessage","params":{"message":{"messageId":"diagnostic","role":"ROLE_USER","parts":[{"text":"hello"}]}}}' > "$RUNNER_TEMP/tck-direct-request.json"
+          for path in /a2a /a2a/; do
+            code=$(curl --silent --show-error -o "$RUNNER_TEMP/direct-response.json" -w '%{http_code}' \
+              -X POST "http://127.0.0.1:9999$path" \
+              -H 'A2A-Version: 1.0' -H 'Content-Type: application/json' \
+              --data-binary "@$RUNNER_TEMP/tck-direct-request.json")
+            echo "Direct A2A POST path=$path HTTP=$code"
+            head -c 500 "$RUNNER_TEMP/direct-response.json"
+            echo
+          done
+
       # Intentionally non-gating until the baseline conformance results have
       # been triaged. A green workflow is NOT a TCK conformance certificate.
       - name: Run JSON-RPC MUST conformance baseline (informational)
