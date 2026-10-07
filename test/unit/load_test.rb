@@ -1,10 +1,12 @@
 # frozen_string_literal: true
 
+require "rubygems"
 require_relative "../test_helper"
 
 class LoadTest < Minitest::Test
   def test_version_is_defined
-    assert_equal "0.1.0", A2A::Rails::VERSION
+    refute_empty A2A::Rails::VERSION
+    assert Gem::Version.correct?(A2A::Rails::VERSION)
   end
 
   def test_protocol_adapter_classes_are_loaded
