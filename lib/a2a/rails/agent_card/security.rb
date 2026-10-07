@@ -9,8 +9,9 @@ module A2A
       # Step 16-5 supports a verified HTTP Bearer profile only. Do not
       # advertise unimplemented API key, OAuth2, OIDC or mTLS profiles.
       class Security
-        def initialize(configuration:)
+        def initialize(configuration:, rails_environment: (defined?(::Rails) ? ::Rails.env : "development"))
           @configuration = configuration
+          @rails_environment = rails_environment.to_s
         end
 
         def fields
@@ -21,7 +22,11 @@ module A2A
           # Preserve the unauthenticated local Quick Start, but never
           # advertise an authentication method that has no verifier.
           if authenticator.nil? && schemes.nil? && requirements.nil?
-            return {}
+            # A public Agent Card with no security requirements would falsely
+            # imply that production's protected endpoint is open.
+            return {} if %w[development test].include?(@rails_environment)
+
+            raise ConfigurationError, "Agent Card cannot advertise unauthenticated production endpoint"
           end
 
           unless authenticator.respond_to?(:call)
