@@ -82,7 +82,12 @@ module A2A
           )
           job = @task_job.perform_later(**arguments.to_h)
           enqueue_error = job.respond_to?(:enqueue_error) ? job.enqueue_error : nil
-          return task if job && enqueue_error.nil?
+          successfully_enqueued = if job && job.respond_to?(:successfully_enqueued?)
+            job.successfully_enqueued?
+          else
+            !!job
+          end
+          return task if successfully_enqueued && enqueue_error.nil?
 
           @lifecycle.fail(
             task.fetch(:id),
