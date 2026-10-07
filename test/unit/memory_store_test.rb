@@ -1,8 +1,15 @@
 # frozen_string_literal: true
 
 require_relative "../test_helper"
+require_relative "../support/task_store_contract"
 
 class MemoryStoreTest < Minitest::Test
+  include TaskStoreContract
+
+  def build_contract_store
+    A2A::Rails::Task::MemoryStore.new
+  end
+
   def setup
     @store = A2A::Rails::Task::MemoryStore.new
   end

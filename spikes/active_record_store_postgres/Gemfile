@@ -1,0 +1,5 @@
+source "https://rubygems.org"
+
+gem "a2a-rails", path: "../.."
+gem "activerecord", ">= 8.0", "< 8.2"
+gem "pg", ">= 1.5", "< 2"
