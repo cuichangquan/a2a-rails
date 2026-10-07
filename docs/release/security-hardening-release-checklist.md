@@ -43,7 +43,7 @@ A durable Task Store removes one framework-level blocker. It does not provide cr
 - [x] ActiveRecordStore is optional; MemoryStore remains default; ActiveRecord is not a runtime dependency for users who do not select it.
 - [x] Durable Store migration, retention, pruning and operational limits are documented in [ActiveRecord Task Store](../guides/active-record-task-store.md).
 - [x] SQLite unit/integration coverage and PostgreSQL 16 persistence/locking smoke are present.
-- [ ] Update the v0.1.0 → next-v0.2 upgrade guide with Step 21 ActiveRecordStore configuration and migration guidance.
+- [x] Update the v0.1.0 → next-v0.2 upgrade guide with Step 21 ActiveRecordStore configuration, migration and maintenance guidance.
 - [ ] Decide the **new candidate version** for current main. Do not reuse the historical rc1 artifact identity.
 - [ ] Update CHANGELOG/README/release notes from “historical rc1” to the newly approved candidate only when that version is actually chosen.
 
