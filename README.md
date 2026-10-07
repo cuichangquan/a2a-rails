@@ -5,7 +5,7 @@
 
 Rails-native integration for exposing Rails applications as A2A v1.0 agents.
 
-> **Status:** v0.1.0 is the published RubyGems release. Current `main` contains unreleased Steps 16–20 work. Step 20 is preparing a **proposed `v0.2.0-rc.1`** review candidate, but VERSION is still 0.1.0 and no new tag/Gem has been published.
+> **Status:** v0.1.0 is the published RubyGems release. The current release-candidate branch is versioned internally as **`0.2.0.rc1`** for verification. No `v0.2.0-rc.1` tag, GitHub Release, or RubyGems publication exists yet.
 
 - RubyGems: https://rubygems.org/gems/a2a-rails
 - GitHub Release: https://github.com/cuichangquan/a2a-rails/releases/tag/v0.1.0
