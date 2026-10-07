@@ -59,6 +59,16 @@ class ConfigurationTest < Minitest::Test
     assert_raises(A2A::Rails::ConfigurationError) { config.normalized_public_base_url }
   end
 
+  def test_active_record_maintenance_defaults_are_explicit
+    config = A2A::Rails::Configuration.new
+
+    assert_equal 30 * 24 * 60 * 60, config.task_retention
+    assert_equal 1_000, config.task_prune_batch_size
+    assert_equal 10_000, config.max_tasks_per_owner
+    assert_equal 100, config.max_task_history_entries
+    assert_equal 50, config.max_task_artifacts
+  end
+
   def test_memory_store_is_the_default_task_store
     config = A2A::Rails::Configuration.new
 
