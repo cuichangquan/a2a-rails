@@ -2,7 +2,7 @@
 
 > Status: planning / proposals as of 2026-10-07. These are priorities, not promised release dates or API commitments.
 >
-> **Next proposed engineering step:** [#25 — Step 18: Python/Go cross-language interoperability](https://github.com/cuichangquan/a2a-rails/issues/25). Step 17-4 was merged; the single remaining pinned official TCK failure is an [upstream issue](https://github.com/a2aproject/a2a-tck/issues/202), tracked locally in [#19](https://github.com/cuichangquan/a2a-rails/issues/19). Production deployment blockers remain in [#11](https://github.com/cuichangquan/a2a-rails/issues/11).
+> **Step 18 / [#25](https://github.com/cuichangquan/a2a-rails/issues/25)**: Official Python/Go clients verified on [PR #27](https://github.com/cuichangquan/a2a-rails/pull/27) (pending final merge). Next proposed priority: a runnable Rails demo; public-production security blockers remain in [#11](https://github.com/cuichangquan/a2a-rails/issues/11), pinned TCK known failure in [upstream #202](https://github.com/a2aproject/a2a-tck/issues/202).
 
 ## Current baseline — v0.1.0 (released)
 
@@ -17,7 +17,7 @@
 | --- | ---: | --- | --- | --- | --- |
 | P0 | 1 | [Security hardening](https://github.com/cuichangquan/a2a-rails/issues/11) | Authenticate requests; protect Task reads/lists/cancellation per principal; safe production guidance | Version to decide | **Steps 16-1–16-6 merged; public production NO-GO** |
 | P0 | 2 | [Official A2A TCK tests](https://github.com/cuichangquan/a2a-rails/issues/19) | Pin and run official JSON-RPC MUST suite, report results, fix genuine mismatches | Version to decide | **PRs #20–#24 merged; official JSON-RPC MUST: 63 passed / 1 failed / 171 skipped; upstream TCK #202 open** |
-| P0 | 3 | [Cross-language interoperability](https://github.com/cuichangquan/a2a-rails/issues/25) | Validate calls from official Python / Go clients and version negotiation | v0.1.x proposal | **Next — Issue #25** |
+| P0 | 3 | [Cross-language interoperability](https://github.com/cuichangquan/a2a-rails/issues/25) | Validate calls from official Python / Go clients and version negotiation | v0.1.x proposal | **PR #27 verified; merge pending** |
 | P0 | 4 | Runnable Rails example | Provide a reproducible Rails Agent demo outside the Gem repo | v0.1.x | Planned |
 | P0 | 5 | GitHub roadmap visibility | Publish and maintain priorities, milestones and next steps | Now | **In progress** |
 | P1 | 6 | GitHub Issues organization | Create focused issues for approved upcoming changes, with acceptance criteria | Now | Planned |
@@ -65,7 +65,7 @@ Completed on `main` (unreleased; **not** part of RubyGems v0.1.0):
 - **After [Step 17-2 / PR #22](https://github.com/cuichangquan/a2a-rails/pull/22):** 60 passed / **4 failed** using legitimate Text/Data Artifact fixtures.
 - **After [Step 17-3 / PR #23](https://github.com/cuichangquan/a2a-rails/pull/23):** 62 passed / **2 failed** / 171 skipped / 30 deselected; [official TCK #37573841703](https://github.com/cuichangquan/a2a-rails/actions/runs/37573841703), [13/13 Ruby/Rails CI #37573841693](https://github.com/cuichangquan/a2a-rails/actions/runs/37573841693). The new [File Artifact API](docs/guides/file-artifacts.md) maps binary `raw` or HTTPS `url` outputs to genuine A2A v1 Parts.
 - **Step 17-4 / [PR #24](https://github.com/cuichangquan/a2a-rails/pull/24) — merged (`cfdaf0a`):** Added opt-in direct-Message `SendMessage` without changing Task defaults or storing a Task. Final pinned TCK [#37575415912](https://github.com/cuichangquan/a2a-rails/actions/runs/37575415912) improved to **63 passed / 1 failed / 171 skipped / 30 deselected**; final [Ruby/Rails CI #37575415939](https://github.com/cuichangquan/a2a-rails/actions/runs/37575415939) completed **13/13**. Only `CORE-SEND-003` remains, already reported upstream [a2a-tck #202](https://github.com/a2aproject/a2a-tck/issues/202). The TCK workflow is informational; not a full conformance certificate.
-- **Next — [Step 18 / Issue #25](https://github.com/cuichangquan/a2a-rails/issues/25):** Pin and exercise official Python/Go clients against an isolated Rails A2A JSON-RPC SUT. Do not start publishing an updated Gem without user approval. Do **not** mistake informational TCK CI green for a conformance pass. Track [Issue #19](https://github.com/cuichangquan/a2a-rails/issues/19).
+- **Step 18 / [PR #27](https://github.com/cuichangquan/a2a-rails/pull/27):** Real Python a2a-sdk 1.2.2 and Go a2a-go/v2 2.6.0 SDK clients succeeded with Agent Card, Task and direct Message, Get/List, terminal CancelTask error and version negotiation; [interop CI #37576586235](https://github.com/cuichangquan/a2a-rails/actions/runs/37576586235) PASS, [Ruby/Rails CI #37576586239](https://github.com/cuichangquan/a2a-rails/actions/runs/37576586239) **13/13**. [Coverage/exclusions](docs/testing/cross-language-interop.md). Not a protocol-wide certification. Published v0.1.0 unchanged.
 
 ## Suggested release sequence (subject to change)
 

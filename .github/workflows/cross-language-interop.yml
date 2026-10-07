@@ -1,0 +1,89 @@
+name: Official Python and Go A2A client interoperability
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/cross-language-interop.yml"
+      - "test/interop/**"
+      - "test/support/interop_sut_server.rb"
+      - "lib/**"
+      - "app/**"
+      - "config/**"
+      - "a2a-rails.gemspec"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  python-and-go:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      RAILS_ENV: test
+      RACK_ENV: test
+      INTEROP_SUT_URL: http://127.0.0.1:9998
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.4"
+          bundler-cache: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.26.0"
+          cache: false
+
+      - name: Start isolated Rails SUT on loopback
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .interop_logs
+          bundle exec ruby test/support/interop_sut_server.rb > .interop_logs/server.log 2>&1 &
+          echo "$!" > .interop_logs/server.pid
+          for attempt in $(seq 1 60); do
+            if curl --fail --silent --show-error "$INTEROP_SUT_URL/.well-known/agent-card.json" > .interop_logs/agent-card.json 2>/dev/null; then
+              exit 0
+            fi
+            if ! kill -0 "$(cat .interop_logs/server.pid)" 2>/dev/null; then
+              cat .interop_logs/server.log
+              exit 1
+            fi
+            sleep 1
+          done
+          cat .interop_logs/server.log
+          exit 1
+
+      - name: Run official Python SDK 1.2.2 client
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install "a2a-sdk==1.2.2"
+          python test/interop/python_client.py 2>&1 | tee .interop_logs/python.log
+
+      - name: Run official Go SDK v2.6.0 client
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd test/interop/go
+          go mod tidy
+          go run . 2>&1 | tee ../../../.interop_logs/go.log
+
+      - name: Save both client logs and Rails SUT logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: official-python-go-interop
+          path: .interop_logs/
+          retention-days: 14
+
+      - name: Stop loopback SUT
+        if: always()
+        shell: bash
+        run: |
+          if [ -f .interop_logs/server.pid ]; then
+            kill "$(cat .interop_logs/server.pid)" 2>/dev/null || true
+          fi
