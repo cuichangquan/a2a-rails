@@ -181,3 +181,18 @@ No assertion of full interoperability, production deployment safety, or publishe
 2. **`CORE-SEND-003` — upstream TCK expected-error binding**: the Gem rejects unsupported inbound file media with A2A `ContentTypeNotSupportedError (-32005)`, which is correct; the pinned upstream requirement specifies that behavior in prose but does not populate `expected_error`. This is an upstream test issue to track, not grounds to misreport or weaken validation.
 
 **This does not mean 100% protocol conformance.** The TCK report aggregates other transport/capability requirements, and its runner step is deliberately informational; a green workflow is not a TCK pass. The change exists on unreleased source, not published RubyGems v0.1.0.
+
+
+## Step 17-4: verified opt-in direct Message responses
+
+A2A Protocol v1.0 §3.1.1 permits either a Task or direct Message result from `SendMessage`. The current published Gem v0.1.0 implements Task results only. The Step 17-4 branch adds explicit host-controlled `response_mode` handling, defaults to Task responses, and does not create Task records for direct Message replies. The SDK still validates the standard `Send Message Response` union; the Gem does not write a custom JSON-RPC envelope.
+
+- [Direct Message guide](../guides/direct-message-responses.md) documents the opt-in API, per-request selector, and constraints.
+- The TCK local-only fixture uses `tck-message-response` to choose Message and replies with `Direct message response`. This uses the public Agent response-mode policy, **not** a change to the protocol adapter and not a production fixture exception.
+- **Verified PR head:** `2f27e1d3d91999a3ad5a30bb3ed49747a68b8ea6` (implementation + docs before this evidence note).
+- **Ruby/Rails CI:** [run #37575200704](https://github.com/cuichangquan/a2a-rails/actions/runs/37575200704) — **13/13 jobs succeeded**, including real SDK integration and packaged Gem smoke tests.
+- **Official pinned TCK:** [run #37575200739](https://github.com/cuichangquan/a2a-rails/actions/runs/37575200739) / [report artifact](https://github.com/cuichangquan/a2a-rails/actions/runs/37575200739/artifacts/11462670721) — **63 passed, 1 failed, 171 skipped, 30 deselected**. JSON-RPC: **61 passed / 1 failed / 27 skipped**, compared with **60 / 2 / 27** after Step 17-3. Agent Card: 6 passed. TCK-reported overall MUST compatibility: **69.3%** (aggregate across untested transports and capabilities; *not* a JSON-RPC-only pass rate).
+- **`DM-MSG-001` now PASS** with a real SDK-validated `Send Message Response.message` and no Task persistence. Task response cases continue to pass.
+- **Remaining `CORE-SEND-003`**: The Gem continues to return correct `ContentTypeNotSupportedError (-32005)` for unsupported media, but the pinned requirement lacks `expected_error`. The root cause was independently reported in official [a2a-tck issue #202](https://github.com/a2aproject/a2a-tck/issues/202) (open); track upstream rather than alter correct server behavior.
+
+The TCK workflow is **informational**; a green workflow is not a passing TCK or a protocol-wide conformance certificate. RubyGems v0.1.0 remains unchanged.

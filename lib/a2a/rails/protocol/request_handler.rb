@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require "securerandom"
+
 module A2A
   module Rails
     module Protocol
@@ -34,6 +36,12 @@ module A2A
           history_length = history_length(params)
           message, context_id = normalize_message(params)
 
+          # Direct Message is an explicit host-side choice, never inferred
+          # from an untrusted client flag or forced by the protocol adapter.
+          if safe_response_mode(message) == :message
+            return send_direct_message(message, context_id)
+          end
+
           task = @lifecycle.create(message: message, context_id: context_id)
           @lifecycle.start(task.fetch(:id))
           context = { task_id: task.fetch(:id), context_id: task.fetch(:context_id) }
@@ -48,6 +56,27 @@ module A2A
           end
 
           { "task" => @task_mapper.dump(task, history_length: history_length, include_artifacts: true) }
+        end
+
+        def safe_response_mode(message)
+          @dispatcher.response_mode(message: message)
+        rescue StandardError
+          # The selector is host application code and may raise with secrets.
+          # No Task exists yet to record the failure as a Task status.
+          raise A2A::InvalidAgentResponseError.new
+        end
+
+        def send_direct_message(message, context_id)
+          context_id = SecureRandom.uuid if context_id.nil? || context_id.empty?
+          result = @dispatcher.call(
+            message: message,
+            context: { task_id: nil, context_id: context_id }
+          )
+          { "message" => @task_mapper.dump_direct_message(result, context_id: context_id) }
+        rescue StandardError
+          # No Task exists to record a FAILED status. Never send application
+          # exception details or unsupported result values to A2A callers.
+          raise A2A::InvalidAgentResponseError.new
         end
 
         def get_task(params)

@@ -332,6 +332,8 @@ A2A::Rails::FileArtifact.url(...)   → File Part with an HTTPS URL
 
 **File Artifact output is unreleased.** Rails Handlers can explicitly return a `FileArtifact.bytes(data:, filename:, media_type:)` or `FileArtifact.url(url:, filename:, media_type:)`. See the [File Artifact output guide](docs/guides/file-artifacts.md). Input file Parts, downloading remote URLs and production file authorization are not supplied by the Gem.
 
+**Unreleased Step 17-4:** A2A v1.0 also permits a direct `Message` from `SendMessage`. The host Agent can opt into `response_mode :message` or select the mode using a callable; the default remains `:task`. Direct replies do **not** create Task records. See the [Direct Message response guide](docs/guides/direct-message-responses.md) for the contract and safety implications.
+
 Supported Task operations:
 
 - `SendMessage`

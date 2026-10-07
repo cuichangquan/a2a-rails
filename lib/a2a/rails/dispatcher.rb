@@ -12,6 +12,17 @@ module A2A
         self
       end
 
+      # Evaluated before creating a Task, so a direct Message leaves no
+      # temporary or orphaned Task in the backing store.
+      def response_mode(message:)
+        validate!
+        setting = @agent.response_mode
+        mode = setting.respond_to?(:call) ? setting.call(message: message) : setting
+        return mode if %i[task message].include?(mode)
+
+        raise ConfigurationError, "response_mode must resolve to :task or :message"
+      end
+
       def call(message:, context:)
         validate!
         skill = select_skill(message: message, context: context)
