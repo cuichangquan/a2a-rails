@@ -88,8 +88,9 @@ module A2A
         def log_failure(task_id, error)
           return unless @logger
 
-          @logger.error("[a2a-rails] task_id=#{task_id} execution failed: #{error.class}: #{error.message}")
-          @logger.error(error.backtrace.join("\n")) if error.backtrace && !error.backtrace.empty?
+          # Handler exception messages/backtraces can contain API keys,
+          # credentials, or request data. Only emit the exception class.
+          @logger.error("[a2a-rails] task_id=#{task_id} execution failed: #{error.class}")
         end
 
         def copy(value)
