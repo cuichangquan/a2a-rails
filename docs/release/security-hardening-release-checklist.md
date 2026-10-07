@@ -1,8 +1,8 @@
 # Security hardening — release and deployment readiness checklist
 
-Last reviewed: **2026-10-07 (Step 21)**  
+Last reviewed: **2026-10-07 (Step 22)**  
 Baseline published release: **a2a-rails 0.1.0** (2026-10-06)  
-Current main: includes Steps 16–21, including optional durable ActiveRecord Task Store.  
+Current main: includes Steps 16–22, including optional durable ActiveRecord Task Store and opt-in ActiveJob Task execution.  
 Release-candidate status: **no current candidate is approved for publication**.
 
 > The historical `0.2.0.rc1` artifact verified in Step 20 predates Step 21 runtime changes. Its commit/SHA evidence remains valid for that exact historical tree only and **must not be reused to publish current main**. The source VERSION has not yet been moved to a new candidate identifier; a fresh version decision and exact-artifact verification are required.
@@ -36,6 +36,9 @@ A durable Task Store removes one framework-level blocker. It does not provide cr
 - [x] Step 21 ActiveRecordStore core: [PR #37](https://github.com/cuichangquan/a2a-rails/pull/37).
 - [x] Step 21 retention/pruning/quota/payload maintenance: [PR #38](https://github.com/cuichangquan/a2a-rails/pull/38).
 - [x] Shared MemoryStore/ActiveRecordStore contract + PostgreSQL 16 durability/locking smoke: [PR #39](https://github.com/cuichangquan/a2a-rails/pull/39), [PostgreSQL run #37595993690](https://github.com/cuichangquan/a2a-rails/actions/runs/37595993690) **PASS**.
+- [x] Step 22 ActiveJob execution design/configuration/core/hardening: PRs #42–#48.
+- [x] Step 22 real Solid Queue / Sidekiq separate-worker compatibility on Rails 8.0 / 8.1: [PR #50](https://github.com/cuichangquan/a2a-rails/pull/50), [queue adapter evidence](../testing/queue-adapters.md).
+- [x] Step 22 real Rails HTTP async E2E: [PR #51](https://github.com/cuichangquan/a2a-rails/pull/51), including SUBMITTED/WORKING/terminal visibility, owner isolation, route-once, cancellation and graceful restart persistence.
 
 ## A. Current-main compatibility and release preparation
 
@@ -43,8 +46,12 @@ A durable Task Store removes one framework-level blocker. It does not provide cr
 - [x] ActiveRecordStore is optional; MemoryStore remains default; ActiveRecord is not a runtime dependency for users who do not select it.
 - [x] Durable Store migration, retention, pruning and operational limits are documented in [ActiveRecord Task Store](../guides/active-record-task-store.md).
 - [x] SQLite unit/integration coverage and PostgreSQL 16 persistence/locking smoke are present.
+- [x] ActiveJob execution is opt-in; synchronous Task execution remains the default; direct Message responses remain synchronous.
+- [x] Async production requirements and limits are documented: durable Store + durable queue, enqueue crash window, no generic Handler retry, Task-level duplicate suppression, host business idempotency, best-effort cancellation and explicit reconciliation of ambiguous WORKING Tasks.
 - [x] Update the v0.1.0 → next-v0.2 upgrade guide with Step 21 ActiveRecordStore configuration, migration and maintenance guidance.
 - [ ] Decide the **new candidate version** for current main. Do not reuse the historical rc1 artifact identity.
+- [ ] On the exact new candidate tree, rerun Ruby/Rails CI, PostgreSQL Store CI, queue adapter + HTTP async E2E, production security smoke, Python/Go interoperability and the pinned official TCK (distinguishing the known upstream CORE-SEND-003 fixture issue).
+- [ ] Build one exact `.gem`, inspect it, clean-install it into Rails 8.0 and 8.1, rerun installed-artifact security/runtime smoke, and record SHA256.
 - [ ] Update CHANGELOG/README/release notes from “historical rc1” to the newly approved candidate only when that version is actually chosen.
 
 ## B. Public-production deployment gates
@@ -55,6 +62,9 @@ These are deployment-specific gates. Passing Gem CI does not satisfy them automa
 - [x] Gem provides an optional owner-aware durable ActiveRecordStore with retention, bounded pruning, admission guard and persisted collection limits.
 - [x] PostgreSQL 16 smoke proves cross-Store/fork-reconnect persistence and concurrent terminal-transition row locking.
 - [ ] The actual deployment explicitly selects `config.task_store = :active_record` (or another reviewed durable Store), runs the migration, schedules pruning and verifies retention/quota settings.
+- [ ] If async Task execution is enabled, configure and operate a durable ActiveJob backend; verify queue retention/restart behavior and deployment-specific queue topology.
+- [ ] Define an operator procedure for the Task-commit/enqueue crash window and ambiguous `WORKING` Tasks. Do not blindly replay uncertain side effects.
+- [ ] For side-effecting Handlers, enforce business-level idempotency keyed by `task_id` / `idempotency_key` (or an equivalent stronger domain key).
 - [ ] Validate the **real host verifier** against expired, forged, revoked, wrong-issuer, wrong-audience and cross-tenant credentials.
 - [ ] Verify application business-action authorization inside Handlers/services.
 - [ ] Verify HTTPS ingress, trusted proxy / forwarded-header policy, host allowlisting, certificate trust and public Agent Card URL.
