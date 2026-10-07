@@ -54,6 +54,23 @@ end
 
 Step17TckSut::Application.initialize!
 
+# Test-only diagnostics: log metadata, never raw request bodies/credentials.
+# Helps establish whether a TCK client and the Rails Rack adapter disagree
+# about the Content-Length / rack.input contract.
+module Step17InputDiagnostics
+  def enforce!(env:, max_bytes:)
+    super
+  rescue A2A::Rails::RequestGuard::InvalidBody => error
+    input = env["rack.input"]
+    position = input.pos if input.respond_to?(:pos)
+    warn "[tck-local] invalid Rack body: path=#{env['PATH_INFO'].inspect} " \
+      "declared_bytes=#{env['CONTENT_LENGTH'].inspect} " \
+      "stream_pos=#{position.inspect} input_class=#{input.class}"
+    raise
+  end
+end
+A2A::Rails::RequestGuard.singleton_class.prepend(Step17InputDiagnostics)
+
 server = Rackup::Handler.get("webrick")
 abort "WEBrick Rack handler unavailable" unless server
 $stderr.puts "Step 17 TCK SUT listening on http://127.0.0.1:9999"
