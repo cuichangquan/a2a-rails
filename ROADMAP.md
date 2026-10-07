@@ -2,7 +2,7 @@
 
 > Status: planning / proposals as of 2026-10-07. These are priorities, not promised release dates or API commitments.
 >
-> **Step 20 candidate verification complete:** `0.2.0.rc1` was built and verified as an exact Gem artifact on Rails 8.0/8.1; [record](docs/release/v0.2.0-rc.1-record.md). RubyGems remains v0.1.0 and no tag/Release has been created. Public/multi-worker production remains NO-GO with the default MemoryStore; security/deployment gates stay in [#11](https://github.com/cuichangquan/a2a-rails/issues/11).
+> **Step 21 in progress:** [Issue #35](https://github.com/cuichangquan/a2a-rails/issues/35) adds an optional durable ActiveRecord Task Store plus retention/pruning/quota/payload-maintenance semantics. [Design](docs/design/active-record-task-store.md). Step 20's verified `0.2.0.rc1` remains historical release-candidate evidence only; Step 21 runtime changes require a new future candidate before publication.
 
 ## Current baseline — v0.1.0 (released)
 
@@ -21,7 +21,7 @@
 | P0 | 4 | [Runnable Rails example](https://github.com/cuichangquan/a2a-rails/issues/28) | [Separate demo](https://github.com/cuichangquan/a2a-rails-demo), Rails 8 Echo | unreleased Git-pinned Gem source | **Complete — Demo PR #1 merged; CI green** |
 | P0 | 5 | GitHub roadmap visibility | Publish and maintain priorities, milestones and next steps | Now | **In progress** |
 | P1 | 6 | GitHub Issues organization | Create focused issues for approved upcoming changes, with acceptance criteria | Now | Planned |
-| P1 | 7 | ActiveRecord Task Store | Persist Tasks across Rails processes and restarts | v0.2 proposal | Planned |
+| P1 | 7 | [ActiveRecord Task Store](https://github.com/cuichangquan/a2a-rails/issues/35) | Durable owner-scoped Tasks across workers/restarts + lifecycle maintenance | next v0.2 candidate | **Step 21 in progress — design complete** |
 | P1 | 8 | ActiveJob Task execution | Run long-running Tasks asynchronously with explicit lifecycle semantics | v0.2 proposal | Planned |
 | P1 | 9 | A2A Client | Call remote A2A Agents from Rails | v0.3 proposal | Planned |
 | P2 | 10 | SSE Streaming | Stream Task status/results over A2A-compatible transport | v0.4 proposal | Planned |
@@ -105,3 +105,15 @@ Completed on `main` (unreleased; **not** part of RubyGems v0.1.0):
 - Keep `main` status and features honest: only mark complete when implementation, tests and docs are merged.
 - Prefer small PRs and CI verification over one long-running PR.
 - Reprioritize based on real adopter feedback and A2A specification changes.
+
+
+## Step 21 — ActiveRecord Task Store + lifecycle maintenance (in progress)
+
+- [Issue #35](https://github.com/cuichangquan/a2a-rails/issues/35) tracks implementation.
+- [Design](docs/design/active-record-task-store.md) preserves the existing `Task::Store` boundary: MemoryStore remains default, ActiveRecordStore is optional, and host custom Stores remain supported.
+- Proposed table `a2a_rails_tasks` uses an internal Rails PK plus unique protocol `task_id`; owner/context/state/time remain first-class indexed columns and A2A history/artifacts remain portable JSON.
+- Owner isolation happens in SQL. Transition/cancel use DB row locking.
+- Maintenance scope includes terminal-task `expires_at`, bounded batch pruning, per-owner admission quota, stored history/artifact limits and maintenance stats.
+- Pagination uses opaque keyset cursors; inserts after page 1 are excluded, while full point-in-time semantics for later state updates are explicitly out of scope.
+- ActiveJob/background execution is not part of Step 21.
+- Once Step 21 runtime code merges, the old `0.2.0.rc1` candidate must not be published as verification for new main; a fresh candidate is required.
