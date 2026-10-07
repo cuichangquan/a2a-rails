@@ -2,7 +2,7 @@
 
 > **Security status: implemented on the unreleased `main` branch.** These changes do **not** apply to the already-published `a2a-rails 0.1.0`.
 >
-> **Not production-safe yet:** Steps 16-2 and 16-3 were merged into `main` via [PR #13](https://github.com/cuichangquan/a2a-rails/pull/13) and [PR #15](https://github.com/cuichangquan/a2a-rails/pull/15), but are not released. Agent Card security advertisement, payload/abuse controls, application-specific authorization and a complete security review remain outstanding in [Issue #11](https://github.com/cuichangquan/a2a-rails/issues/11). Do not expose your A2A Task endpoint to untrusted clients.
+> **Not production-safe yet:** Steps 16-2 through 16-5 are merged into `main` but are not released. Bearer Agent Card security advertisement and request hardening are now present, while application-specific authorization, distributed traffic controls and the final production deployment review remain outstanding in [Issue #11](https://github.com/cuichangquan/a2a-rails/issues/11). Do not expose your A2A Task endpoint to untrusted clients.
 
 ## Goal
 
@@ -64,7 +64,7 @@ Callback receives an `ActionDispatch::Request` and must use a **trusted verifier
 - Rails `production` and any environment other than `development` / `test`: `POST /a2a` returns **401** (fail closed) if no callback is configured.
 - Rails `development` and `test`: missing callback permits local Quick Start requests, preserving the published documentation. A callback, once configured, is enforced even in these environments.
 - Never expose the development/test fallback to untrusted networks; Rails environment names alone do not prove a request is local.
-- `GET /.well-known/agent-card.json` remains public in Step 16-2; only the A2A Task endpoint is gated.
+- `GET /.well-known/agent-card.json` remains public when a valid security declaration exists. In non-development/test environments without a valid verifier/security declaration, the Agent Card fails closed instead of advertising an unauthenticated endpoint.
 
 ### HTTP response behavior
 
