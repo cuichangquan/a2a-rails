@@ -58,6 +58,7 @@ module A2A
 
         def list_tasks(params)
           history_length = history_length(params)
+          validate_list_filters!(params)
           filters = {}
           filters[:context_id] = params["contextId"] if params.key?("contextId")
           filters[:status] = @task_mapper.internal_state(params["status"]) if params.key?("status")
@@ -103,8 +104,21 @@ module A2A
             raise InvalidRequestError, "nonempty parts are required"
           end
 
-          if raw["taskId"].is_a?(String) && !raw["taskId"].empty?
-            @lifecycle.find(raw["taskId"])
+          task_id = raw["taskId"]
+          if !task_id.nil? && !task_id.is_a?(String)
+            raise InvalidRequestError, "taskId must be a String"
+          end
+          context_id = raw["contextId"]
+          if !context_id.nil? && !context_id.is_a?(String)
+            raise InvalidRequestError, "contextId must be a String"
+          end
+          metadata = raw["metadata"]
+          unless metadata.nil? || metadata.is_a?(Hash)
+            raise InvalidRequestError, "message metadata must be an object"
+          end
+
+          if task_id.is_a?(String) && !task_id.empty?
+            @lifecycle.find(task_id)
             raise TaskContinuationNotSupportedError, "Task continuation is not supported in v0.1"
           end
 
@@ -113,23 +127,43 @@ module A2A
             message_id: message_id,
             role: :user,
             parts: normalized_parts,
-            metadata: copy(raw["metadata"] || {})
+            metadata: copy(metadata || {})
           }
 
-          [message, raw["contextId"]]
+          [message, context_id]
         end
 
         def normalize_text_part(part)
           unless part.is_a?(Hash) && part["text"].is_a?(String) && (part.keys & %w[data raw url]).empty?
             raise ContentTypeNotSupportedError, "Only text Parts are supported in v0.1"
           end
+          media_type = part["mediaType"]
+          unless media_type.nil? || media_type.is_a?(String)
+            raise InvalidRequestError, "mediaType must be a String"
+          end
+          metadata = part["metadata"]
+          unless metadata.nil? || metadata.is_a?(Hash)
+            raise InvalidRequestError, "part metadata must be an object"
+          end
 
           normalized = {
             text: part["text"],
             media_type: part["mediaType"].to_s.empty? ? "text/plain" : part["mediaType"]
           }
-          normalized[:metadata] = copy(part["metadata"]) if part.key?("metadata")
+          normalized[:metadata] = copy(metadata) if metadata
           normalized
+        end
+
+        def validate_list_filters!(params)
+          if params.key?("contextId") && !params["contextId"].nil? && !params["contextId"].is_a?(String)
+            raise InvalidRequestError, "contextId must be a String"
+          end
+          if params.key?("pageToken") && !params["pageToken"].is_a?(String)
+            raise InvalidRequestError, "pageToken must be a String"
+          end
+          if params.key?("includeArtifacts") && ![true, false].include?(params["includeArtifacts"])
+            raise InvalidRequestError, "includeArtifacts must be boolean"
+          end
         end
 
         def required_id(params)
