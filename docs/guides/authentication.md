@@ -1,8 +1,8 @@
 # Authenticating and scoping A2A HTTP requests — Steps 16-2 / 16-3
 
-> **Security status: In development.** This page describes changes proposed in Step 16-2. It does not apply to the already-published `a2a-rails 0.1.0`.
+> **Security status: implemented on the unreleased `main` branch.** These changes do **not** apply to the already-published `a2a-rails 0.1.0`.
 >
-> **Not production-safe yet:** Step 16-3 adds per-principal Task scoping in a draft PR on top of Step 16-2, but the changes are **not published or merged into main**. Security scheme advertising, payload/abuse controls, application-specific authorization, and complete security review are still outstanding in [Issue #11](https://github.com/cuichangquan/a2a-rails/issues/11). Do not expose your A2A Task endpoint to untrusted clients.
+> **Not production-safe yet:** Steps 16-2 and 16-3 were merged into `main` via [PR #13](https://github.com/cuichangquan/a2a-rails/pull/13) and [PR #15](https://github.com/cuichangquan/a2a-rails/pull/15), but are not released. Agent Card security advertisement, payload/abuse controls, application-specific authorization and a complete security review remain outstanding in [Issue #11](https://github.com/cuichangquan/a2a-rails/issues/11). Do not expose your A2A Task endpoint to untrusted clients.
 
 ## Goal
 
@@ -43,7 +43,7 @@ end
 
 Callback receives an `ActionDispatch::Request` and must use a **trusted verifier**, not a header-presence check. Do not return credentials, bearer tokens, arbitrary names supplied by clients, or objects containing secrets. Returned IDs are stored in a request-local Rack environment entry for future Task scoping, not exposed as a public Handler API.
 
-**Authentication is not authorization.** Step 16-3 proposes owner checks for Task operations, but the host application must still authorize application-specific business actions. For multi-tenant apps, the host verifier must return a globally unique, tenant-qualified principal ID. Two different tenants must never share the same principal identifier.
+**Authentication is not authorization.** Step 16-3 enforces owner checks for Task operations on `main`, but the host application must still authorize application-specific business actions. For multi-tenant apps, the host verifier must return a globally unique, tenant-qualified principal ID. Two different tenants must never share the same principal identifier.
 
 ### Missing callback behavior
 
@@ -58,7 +58,7 @@ Unauthorized calls receive 401 and a configurable `WWW-Authenticate` challenge (
 
 The error is an HTTP boundary response, not an A2A task or a promise of a JSON-RPC result. Authorization is performed before the SDK has parsed the JSON-RPC request ID.
 
-## Step 16-3 Task ownership (draft)
+## Step 16-3 Task ownership (implemented on main; unreleased)
 
 - The trusted, verified principal ID flows from the Rails authentication gate through Runtime to a per-request Task Lifecycle.
 - Newly created Tasks persist a private `owner_id`, which is never included in the A2A Task wire schema.
@@ -82,6 +82,6 @@ These remain tracked in [Issue #11](https://github.com/cuichangquan/a2a-rails/is
 - Unit tests for fail-closed behavior, missing/invalid credentials, principal integrity, challenge safety and explicit forbidden results.
 - Ownership tests for find/list/count/cursor/cancel/transition across authenticated and anonymous callers.
 - Real Rails HTTP smoke tests for 401/403/200, a sanitized 500 verifier failure, and cross-principal access denial.
-- Existing published Echo Quick Start and Gem package smoke tests should continue to pass.
+- Existing Echo Quick Start and Gem package smoke tests passed the CI matrix for PR #15.
 
-See also: [Roadmap](../../ROADMAP.md), [Security Threat Model draft (PR #12)](https://github.com/cuichangquan/a2a-rails/pull/12).
+See also: [Roadmap](../../ROADMAP.md), [Security Threat Model](../design/security-threat-model.md).
