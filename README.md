@@ -448,6 +448,16 @@ Artifact: Echo: Hello
 
 See [docs/release/v0.1.0-record.md](docs/release/v0.1.0-record.md) for the complete release evidence.
 
+## Cross-language A2A interoperability — unreleased main source
+
+[Step 18 / PR #27](https://github.com/cuichangquan/a2a-rails/pull/27) verified the **official** Python `a2a-sdk==1.2.2` and Go `a2a-go/v2 v2.6.0` clients against a loopback-only Rails JSON-RPC A2A v1.0 Agent. Both discovered Agent Cards, decoded Task and direct Message responses, queried Tasks and checked terminal cancellation and version errors.
+
+- [Official Python/Go interoperability CI](https://github.com/cuichangquan/a2a-rails/actions/runs/37576586235) — **both PASS**.
+- [Ruby/Rails regression CI](https://github.com/cuichangquan/a2a-rails/actions/runs/37576586239) — **13/13 PASS**.
+- [Interop test code, reproduction and limitations](docs/testing/cross-language-interop.md).
+
+This is **unreleased source**, not RubyGems v0.1.0; these tests do not certify full A2A interoperability or public-production safety.
+
 ## Test Strategy
 
 v0.1 uses Minitest with four layers:

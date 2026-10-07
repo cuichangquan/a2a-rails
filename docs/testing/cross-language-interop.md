@@ -50,6 +50,8 @@ The test SUT binds **only** 127.0.0.1, refuses non-test Rails environments, and 
 
 ## Evidence
 
-Verification **pending** until the official-client GitHub Actions CI has completed. Do not claim that either client interoperates successfully until the real run confirms it.
+**Verified 2026-10-07** on [PR #27](https://github.com/cuichangquan/a2a-rails/pull/27): [official-client CI #37576586235](https://github.com/cuichangquan/a2a-rails/actions/runs/37576586235) completed successfully. **All 15 Python and all 16 Go checks passed**, including real SDK decoding of Task and direct Message. The Go test confirmed its outgoing A2A-Version: 1.0 header. Independent [Ruby/Rails regression CI #37576586239](https://github.com/cuichangquan/a2a-rails/actions/runs/37576586239) completed **13/13 jobs**.
+
+Scope is limited to the declared JSON-RPC v1.0 functionality and this test-only Rails SUT. It does not establish protocol-wide conformance or approval for public production.
 
 The pinned TCK still separately has one upstream false failure CORE-SEND-003, recorded in [a2a-tck #202](https://github.com/a2aproject/a2a-tck/issues/202). This smoke does not replace that test suite.
