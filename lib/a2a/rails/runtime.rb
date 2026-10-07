@@ -3,7 +3,7 @@
 module A2A
   module Rails
     class Runtime
-      def initialize(store: Task::MemoryStore.new)
+      def initialize(store: nil)
         @store = store
       end
 
@@ -31,7 +31,7 @@ module A2A
         # The controller has already verified this Rack-scoped principal.
         # Never read identity from A2A JSON-RPC parameters or metadata.
         principal_id ||= env[Authentication::PRINCIPAL_ENV_KEY]
-        lifecycle = Task::Lifecycle.new(store: @store, logger: configuration.logger, principal_id: principal_id)
+        lifecycle = Task::Lifecycle.new(store: task_store, logger: configuration.logger, principal_id: principal_id)
         request_handler = Protocol::RequestHandler.new(
           dispatcher: Dispatcher.new(agent: agent),
           lifecycle: lifecycle
@@ -42,6 +42,12 @@ module A2A
         )
 
         adapter.call(env)
+      end
+
+      private
+
+      def task_store
+        @store ||= A2A::Rails.configuration.resolve_task_store
       end
     end
   end

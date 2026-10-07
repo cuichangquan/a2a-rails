@@ -1,0 +1,31 @@
+class CreateA2aRailsTasks < ActiveRecord::Migration[8.0]
+  def change
+    create_table :a2a_rails_tasks do |t|
+      t.string :task_id, null: false
+      t.string :owner_id
+      t.string :context_id, null: false
+      t.string :state, null: false
+      t.datetime :status_timestamp, precision: 6, null: false
+      t.json :status_message
+      t.json :history
+      t.json :artifacts
+      t.datetime :expires_at, precision: 6
+
+      t.timestamps
+    end
+
+    add_index :a2a_rails_tasks, :task_id,
+      unique: true,
+      name: "idx_a2a_tasks_task_id"
+    add_index :a2a_rails_tasks, [:owner_id, :task_id],
+      name: "idx_a2a_tasks_owner_task"
+    add_index :a2a_rails_tasks, [:owner_id, :context_id, :status_timestamp],
+      name: "idx_a2a_tasks_owner_context_time"
+    add_index :a2a_rails_tasks, [:owner_id, :state, :status_timestamp],
+      name: "idx_a2a_tasks_owner_state_time"
+    add_index :a2a_rails_tasks, [:owner_id, :status_timestamp],
+      name: "idx_a2a_tasks_owner_time"
+    add_index :a2a_rails_tasks, :expires_at,
+      name: "idx_a2a_tasks_expires_at"
+  end
+end

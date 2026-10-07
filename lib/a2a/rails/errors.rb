@@ -38,5 +38,8 @@ module A2A
 
     class InvalidTaskQueryError < TaskError; end
     class InvalidTaskStateError < TaskError; end
+    class TaskStoreUnavailableError < TaskError; end
+    class TaskStoreCapacityError < TaskError; end
+    class TaskStorePayloadLimitError < TaskError; end
   end
 end
