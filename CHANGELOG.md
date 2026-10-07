@@ -10,6 +10,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- **Unreleased Step 19 (docs / separate repository):** [a2a-rails-demo](https://github.com/cuichangquan/a2a-rails-demo), a standalone Rails 8.1 Echo Agent app with pinned unreleased Gem source, Task/direct Message Quick Start and real localhost HTTP smoke (16 checks passed). No changes to Gem runtime or published RubyGems v0.1.0.
+
 - **Unreleased Step 18:** Standalone CI smoke tests using independent official Python SDK 1.2.2 and Go SDK v2.6.0 against a loopback Rails JSON-RPC A2A v1.0 Agent. Verified both Task and direct Message responses and Task operations; no Gem runtime behavior changed. See [cross-language interoperability evidence](docs/testing/cross-language-interop.md).
 
 - **Unreleased Step 17-4:** Explicit Agent-level `response_mode :message` or a host-controlled callable to return a direct A2A v1.0 Message from `SendMessage` without Task persistence; default remains `:task`. Reuses outbound String/Hash/Array/FileArtifact part mapping, adds SDK integration tests, and exercises the pinned TCK direct-Message fixture. No published gem has these features yet.

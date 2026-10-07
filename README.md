@@ -11,11 +11,21 @@ Rails-native integration for exposing Rails applications as A2A v1.0 agents.
 - GitHub Release: https://github.com/cuichangquan/a2a-rails/releases/tag/v0.1.0
 - Changelog: [CHANGELOG.md](CHANGELOG.md)
 - Release record: [docs/release/v0.1.0-record.md](docs/release/v0.1.0-record.md)
-- **Roadmap / 次にやること:** [ROADMAP.md](ROADMAP.md) — active Step 17 A2A TCK interoperability work.
-- **Official A2A TCK results:** [JSON-RPC MUST report and reproduction guide](docs/testing/official-a2a-tck.md) — initial run: 56 passed / 9 failed; after Step 17-1 error fixes: **58 passed / 6 failed / 171 skipped** (pytest). **Not yet conformant.** The green workflow is informational, not proof of certification.
+- **Roadmap / 次にやること:** [ROADMAP.md](ROADMAP.md) — Step 19 runnable Rails Demo complete; deployment security [#11](https://github.com/cuichangquan/a2a-rails/issues/11) remains a blocker.
+- **Official A2A TCK results:** [Pinned JSON-RPC MUST report and reproduction](docs/testing/official-a2a-tck.md) — after Step 17-4: **63 passed / 1 failed / 171 skipped / 30 deselected** (pytest). The remaining `CORE-SEND-003` mismatch is tracked [upstream in #202](https://github.com/a2aproject/a2a-tck/issues/202). The TCK workflow is informational, **not** an A2A conformance certificate.
 
 - [A2Aの全体像（日本語・A4 1枚PDF）](docs/guides/a2a-protocol-overview-ja.pdf) — 登場人物・依頼の流れ・主要用語・MCPとの違いをまとめた学習資料。
 - [A2A at a glance (English, A4 one-page PDF)](docs/guides/a2a-protocol-overview-en.pdf) — Roles, workflow, key terms, and how MCP fits.
+
+## Runnable Rails Demo / 実際に動くサンプル ⭐
+
+**[a2a-rails-demo — independent Rails 8 Echo Agent](https://github.com/cuichangquan/a2a-rails-demo)**
+
+Run a complete standalone Rails Agent with the current unreleased `a2a-rails` source pinned by Git commit (the published RubyGems v0.1.0 does not contain direct-Message support). The separate Demo covers Agent Card discovery, JSON-RPC v1.0 SendMessage **Task and direct Message**, GetTask, ListTasks and error handling.
+
+- [Demo Quick Start, code and example curl requests](https://github.com/cuichangquan/a2a-rails-demo#quick-start).
+- [Demo GitHub Actions smoke](https://github.com/cuichangquan/a2a-rails-demo/actions/workflows/smoke.yml) — independent real HTTP tests **16/16 checks passed** ([PR #1](https://github.com/cuichangquan/a2a-rails-demo/pull/1)).
+- **Local-only development/test** demo: no trusted verifier or durable Task store, **not** an internet-facing production template. See [production security](docs/guides/production-security.md).
 
 ## What is a2a-rails?
 
