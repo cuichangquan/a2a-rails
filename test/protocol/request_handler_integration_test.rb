@@ -78,10 +78,36 @@ class RequestHandlerIntegrationTest < Minitest::Test
     assert_equal "TASK_STATE_SUBMITTED", sent.dig("status", "state")
     refute handler_called
     assert_equal 1, enqueued.length
+    assert_equal(
+      %i[task_id principal_id agent_class_name skill_id],
+      enqueued.first.keys
+    )
     assert_equal sent.fetch("id"), enqueued.first.fetch(:task_id)
     assert_equal "owner-1", enqueued.first.fetch(:principal_id)
+    assert_nil enqueued.first.fetch(:agent_class_name)
     assert_equal "reply", enqueued.first.fetch(:skill_id)
+    refute enqueued.first.key?(:message)
+    refute enqueued.first.key?(:context)
+    refute enqueued.first.key?(:authorization)
     assert_equal :submitted, lifecycle.find(sent.fetch("id")).dig(:status, :state)
+  end
+
+  def test_sync_and_async_handler_context_share_principal_and_idempotency_fields
+    sync_context = nil
+    sync_rack, = build_stack(
+      handler: ->(message:, context:) {
+        sync_context = context
+        "sync"
+      },
+      principal_id: "owner-1"
+    )
+    sync_task = rpc(sync_rack, "SendMessage", send_params).dig("result", "task")
+
+    assert_equal "owner-1", sync_context.fetch(:principal_id)
+    assert_equal sync_task.fetch("id"), sync_context.fetch(:idempotency_key)
+    assert_equal sync_task.fetch("id"), sync_context.fetch(:task_id)
+    assert_equal "context-1", sync_context.fetch(:context_id)
+    assert_equal :reply, sync_context.fetch(:skill_id)
   end
 
   def test_async_enqueue_failure_marks_task_failed_without_leaking_adapter_error

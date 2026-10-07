@@ -91,6 +91,35 @@ class TaskExecutionJobTest < Minitest::Test
     assert_equal :canceled, @lifecycle.find(@task.fetch(:id)).dig(:status, :state)
   end
 
+  def test_foreign_principal_cannot_claim_or_execute_task
+    A2A::Rails::TaskExecutionJob.perform_now(
+      task_id: @task.fetch(:id),
+      principal_id: "owner-2",
+      agent_class_name: AsyncAgent.name,
+      skill_id: "reply"
+    )
+
+    assert_empty Handler.calls
+    assert_equal :submitted, @lifecycle.find(@task.fetch(:id)).dig(:status, :state)
+
+    perform_task
+
+    assert_equal 1, Handler.calls.length
+    assert_equal :completed, @lifecycle.find(@task.fetch(:id)).dig(:status, :state)
+  end
+
+  def test_invalid_serialized_principal_does_not_mutate_task
+    A2A::Rails::TaskExecutionJob.perform_now(
+      task_id: @task.fetch(:id),
+      principal_id: "owner-1\nAuthorization: Bearer secret",
+      agent_class_name: AsyncAgent.name,
+      skill_id: "reply"
+    )
+
+    assert_empty Handler.calls
+    assert_equal :submitted, @lifecycle.find(@task.fetch(:id)).dig(:status, :state)
+  end
+
   def test_agent_mismatch_fails_claimed_task_without_running_handler
     A2A::Rails::TaskExecutionJob.perform_now(
       task_id: @task.fetch(:id),
