@@ -30,6 +30,7 @@ Gem::Specification.new do |spec|
 
   spec.add_dependency "agent2agent", "~> 2.0.0"
   spec.add_dependency "actionpack", ">= 8.0", "< 8.2"
+  spec.add_dependency "activejob", ">= 8.0", "< 8.2"
   spec.add_dependency "json", "< 3"
   spec.add_dependency "rack", ">= 3.0", "< 4"
   spec.add_dependency "railties", ">= 8.0", "< 8.2"
