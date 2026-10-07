@@ -198,4 +198,118 @@ class ActiveRecordStoreTest < Minitest::Test
 
     assert_equal ["boundary"], result[:tasks].map { |row| row[:id] }
   end
+  def test_terminal_tasks_receive_expiry_and_prune_is_bounded
+    store = A2A::Rails::Task::ActiveRecordStore.new(
+      cursor_secret: SECRET,
+      retention: 3_600,
+      prune_batch_size: 1
+    )
+    completed_at = Time.utc(2026, 10, 7, 1)
+
+    store.save(task("one"))
+    store.save(task("two"))
+    store.transition("one", state: :completed, timestamp: completed_at,
+      principal_id: "tenant-A:user-1")
+    store.transition("two", state: :failed, timestamp: completed_at,
+      principal_id: "tenant-A:user-1")
+
+    records = A2A::Rails::Task::ActiveRecordStore::Record.order(:task_id).to_a
+    assert records.all? { |record| record.expires_at == completed_at + 3_600 }
+
+    assert_equal 0, store.prune_expired(at: completed_at + 3_599)
+    assert_equal 1, store.prune_expired(at: completed_at + 3_600)
+    assert_equal 1, A2A::Rails::Task::ActiveRecordStore::Record.count
+    assert_equal 1, store.prune_expired(at: completed_at + 3_600)
+    assert_equal 0, A2A::Rails::Task::ActiveRecordStore::Record.count
+  end
+
+  def test_cancel_sets_terminal_expiry
+    store = A2A::Rails::Task::ActiveRecordStore.new(
+      cursor_secret: SECRET,
+      retention: 120
+    )
+    canceled_at = Time.utc(2026, 10, 7, 2)
+
+    store.save(task("cancel-me"))
+    store.cancel("cancel-me", timestamp: canceled_at, principal_id: "tenant-A:user-1")
+
+    record = A2A::Rails::Task::ActiveRecordStore::Record.find_by!(task_id: "cancel-me")
+    assert_equal canceled_at + 120, record.expires_at
+  end
+
+  def test_owner_quota_ignores_expired_rows_even_before_prune
+    clock = Time.utc(2026, 10, 7, 3)
+    store = A2A::Rails::Task::ActiveRecordStore.new(
+      cursor_secret: SECRET,
+      clock: -> { clock },
+      retention: 10,
+      max_tasks_per_owner: 1
+    )
+
+    store.save(task("first", timestamp: clock.iso8601(6)))
+
+    assert_raises(A2A::Rails::TaskStoreCapacityError) do
+      store.save(task("blocked", timestamp: clock.iso8601(6)))
+    end
+
+    store.transition("first", state: :completed, timestamp: clock,
+      principal_id: "tenant-A:user-1")
+    clock += 11
+
+    saved = store.save(task("second", timestamp: clock.iso8601(6)))
+    assert_equal "second", saved[:id]
+    assert_equal 2, A2A::Rails::Task::ActiveRecordStore::Record.count
+  end
+
+  def test_payload_collection_limits_are_enforced_without_truncation
+    store = A2A::Rails::Task::ActiveRecordStore.new(
+      cursor_secret: SECRET,
+      max_history_entries: 1,
+      max_artifacts: 1
+    )
+
+    too_much_history = task("history")
+    too_much_history[:history] << { message_id: "extra", role: :user, parts: [{ text: "extra" }] }
+
+    assert_raises(A2A::Rails::TaskStorePayloadLimitError) do
+      store.save(too_much_history)
+    end
+
+    store.save(task("artifacts"))
+    assert_raises(A2A::Rails::TaskStorePayloadLimitError) do
+      store.transition(
+        "artifacts",
+        state: :completed,
+        artifacts: [
+          { artifact_id: "one", parts: [{ text: "one" }] },
+          { artifact_id: "two", parts: [{ text: "two" }] }
+        ],
+        principal_id: "tenant-A:user-1"
+      )
+    end
+
+    found = store.find("artifacts", principal_id: "tenant-A:user-1")
+    assert_equal :working, found.dig(:status, :state)
+    refute found.key?(:artifacts)
+  end
+
+  def test_maintenance_stats_expose_counts_without_task_content
+    now = Time.utc(2026, 10, 7, 4)
+    store = A2A::Rails::Task::ActiveRecordStore.new(
+      cursor_secret: SECRET,
+      retention: 60
+    )
+
+    store.save(task("active", timestamp: now.iso8601(6)))
+    store.save(task("expired", timestamp: now.iso8601(6)))
+    store.transition("expired", state: :completed, timestamp: now,
+      principal_id: "tenant-A:user-1")
+
+    stats = store.maintenance_stats(at: now + 61)
+
+    assert_equal({ total: 2, terminal: 1, active: 1, expired: 1 }, stats)
+    refute_includes stats.to_s, "tenant-A:user-1"
+    refute_includes stats.to_s, "expired"
+  end
+
 end
