@@ -13,6 +13,9 @@ raise "Unsupported smoke adapter" unless %w[solid_queue sidekiq].include?(ADAPTE
 
 require ADAPTER
 if ADAPTER == "sidekiq"
+  # The Sidekiq CLI loads Sidekiq before this minimal Rails app. Load its
+  # Rails integration explicitly in both producer and worker boot paths.
+  require "sidekiq/rails"
   Sidekiq.configure_client { |config| config.redis = { url: ENV.fetch("REDIS_URL") } }
   Sidekiq.configure_server { |config| config.redis = { url: ENV.fetch("REDIS_URL") } }
 end
@@ -62,3 +65,4 @@ A2A::Rails.configure do |config|
 end
 store = A2A::Rails::Task::ActiveRecordStore.new(cursor_secret: "adapter-smoke-cursor-secret".ljust(64, "x"))
 A2A::Rails.instance_variable_set(:@runtime, A2A::Rails::Runtime.new(store: store))
+
