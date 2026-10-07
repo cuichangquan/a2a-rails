@@ -23,6 +23,7 @@
 | P1 | 6 | GitHub Issues organization | Create focused issues for approved upcoming changes, with acceptance criteria | Now | Planned |
 | P1 | 7 | [ActiveRecord Task Store](https://github.com/cuichangquan/a2a-rails/issues/35) | Durable owner-scoped Tasks across workers/restarts + lifecycle maintenance | next v0.2 candidate | **Complete — PRs #36–#39** |
 | P1 | 8 | [ActiveJob Task execution](https://github.com/cuichangquan/a2a-rails/issues/41) | Run long-running Tasks asynchronously with explicit lifecycle semantics | next v0.2 candidate | **Complete — Steps 22-1–22-10** |
+| P0 | 8.5 | [v0.2.0.rc2 candidate verification](https://github.com/cuichangquan/a2a-rails/issues/54) | Fresh exact-candidate verification after Steps 21–22 | v0.2.0.rc2 | **Step 23 in progress — no publication** |
 | P1 | 9 | A2A Client | Call remote A2A Agents from Rails | v0.3 proposal | Planned |
 | P2 | 10 | SSE Streaming | Stream Task status/results over A2A-compatible transport | v0.4 proposal | Planned |
 | P2 | 11 | Human-in-the-loop | Model INPUT_REQUIRED / AUTH_REQUIRED flows and resume safely | v0.5 proposal | Planned |
@@ -141,3 +142,13 @@ Completed on `main` (unreleased; **not** part of RubyGems v0.1.0):
 - Production async operation requires both a shared/durable Task Store and a durable ActiveJob backend. Issue #11 deployment gates remain open.
 - No release version bump or publication is authorized by Step 22.
 
+
+
+## Step 23 — v0.2.0.rc2 release-candidate verification (in progress)
+
+- [Issue #54](https://github.com/cuichangquan/a2a-rails/issues/54) tracks candidate preparation and verification.
+- Candidate source version: `0.2.0.rc2`; user-facing candidate name: `v0.2.0-rc.2`.
+- The old Step 20 `0.2.0.rc1` artifact/SHA remains historical evidence only because Steps 21 and 22 changed runtime behavior afterward.
+- Required fresh evidence: Ruby/Rails matrix, PostgreSQL Task Store, Solid Queue/Sidekiq + HTTP async E2E, installed-artifact production security smoke, Python/Go interoperability, pinned official TCK, exact Gem inspection / Rails 8.0 + 8.1 clean installs, and SHA256.
+- Passing Step 23 makes the candidate reviewable; it does not close deployment-specific Issue #11.
+- Tag creation, GitHub Release creation, and RubyGems publication still require separate explicit approval.

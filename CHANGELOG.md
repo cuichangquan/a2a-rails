@@ -4,7 +4,9 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased after 0.2.0.rc1 candidate]
+## [0.2.0.rc2] - 2026-10-07 (release candidate source; not published)
+
+> Fresh candidate after Steps 21–22 runtime changes. Verification is tracked in [Issue #54](https://github.com/cuichangquan/a2a-rails/issues/54). No tag, GitHub Release, or RubyGems publication is authorized by this version change.
 
 ### Added
 

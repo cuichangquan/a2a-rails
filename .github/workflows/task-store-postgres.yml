@@ -10,6 +10,8 @@ on:
       - "spikes/active_record_store_postgres/**"
       - ".github/workflows/task-store-postgres.yml"
       - "a2a-rails.gemspec"
+      - "lib/a2a/rails/version.rb"
+      - "lib/a2a/rails/version.rb"
   pull_request:
     paths:
       - "lib/a2a/rails/task/**"
