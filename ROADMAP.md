@@ -124,10 +124,11 @@ Completed on `main` (unreleased; **not** part of RubyGems v0.1.0):
 
 - [Issue #41](https://github.com/cuichangquan/a2a-rails/issues/41) tracks the design and implementation.
 - [Design](docs/design/active-job-task-execution.md) keeps synchronous execution as the default and makes async execution opt-in at global / Agent / Skill scope.
-- Step 22-2 implements the configuration surface and `Skill > Agent > global` resolution only; ActiveJob enqueue/worker execution is not implemented yet.
+- Step 22-2 implements the configuration surface and `Skill > Agent > global` resolution.
+- Step 22-3 ([PR #44](https://github.com/cuichangquan/a2a-rails/pull/44)) adds the `ExecutionPlan`, Gem-owned ActiveJob class, async `SUBMITTED` response path, route-once Skill execution, minimal Job payload, and atomic execution claim for MemoryStore/ActiveRecordStore.
 - The proposed worker payload is minimal: Task ID, verified non-secret principal ID, Agent class name and selected Skill ID. The original Message remains in the Task Store.
 - Routing is resolved once before enqueue; the background Job executes the selected Skill directly.
-- Async execution adds an atomic `SUBMITTED -> WORKING` execution claim so duplicate queue deliveries cannot both start the same Task.
+- Async execution now uses an atomic `SUBMITTED -> WORKING` execution claim so duplicate queue deliveries cannot both start the same Task.
 - Generic automatic Handler retry is intentionally disabled in the initial design because the Gem cannot guarantee exactly-once external business side effects.
 - CancelTask remains best effort. A queued canceled Task will not start; arbitrary running Handler code is not force-killed through backend-specific APIs.
 - Production async operation requires both a shared/durable Task Store and a durable ActiveJob backend. Issue #11 deployment gates remain open.

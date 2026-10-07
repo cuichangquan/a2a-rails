@@ -53,7 +53,7 @@ class ReportsAgent < A2A::Rails::Agent
 end
 ```
 
-Only `:sync` and `:async` are supported initially. Step 22-2 implements this configuration surface and precedence; actual ActiveJob execution follows in later Step 22 work.
+Only `:sync` and `:async` are supported initially. Step 22-2 implements this configuration surface and precedence. Step 22-3 implements the first ActiveJob execution core while later Step 22 work continues to harden principal serialization, retry semantics, cancellation, backend compatibility, and real Rails async E2E coverage.
 
 Async applies to Task responses. Direct Message responses remain synchronous because they do not create a persisted Task that can be polled later.
 
@@ -109,6 +109,8 @@ TaskExecutionJob
 ```
 
 The Task Store is the source of truth. ActiveJob is the delivery mechanism.
+
+**Implemented in Step 22-3:** async Task responses are enqueued through `A2A::Rails::TaskExecutionJob`, routing is resolved once into an immutable `ExecutionPlan`, and both MemoryStore and ActiveRecordStore provide an atomic execution claim.
 
 ## Job arguments
 
