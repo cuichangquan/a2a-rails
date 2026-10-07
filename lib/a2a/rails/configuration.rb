@@ -1,11 +1,16 @@
 # frozen_string_literal: true
 
+require "digest"
 require "uri"
 
 module A2A
   module Rails
     class Configuration
-      attr_accessor :agent, :public_base_url, :authenticate_request, :authentication_challenge, :max_request_bytes, :security_schemes, :security_requirements
+      TASK_STORE_METHODS = %i[save find transition cancel list].freeze
+
+      attr_accessor :agent, :public_base_url, :authenticate_request, :authentication_challenge,
+        :max_request_bytes, :security_schemes, :security_requirements,
+        :task_store, :task_page_token_secret
 
       def initialize
         @agent = nil
@@ -15,6 +20,8 @@ module A2A
         @security_schemes = nil
         @security_requirements = nil
         @max_request_bytes = RequestGuard::DEFAULT_MAX_BYTES
+        @task_store = :memory
+        @task_page_token_secret = nil
         @logger_set = false
       end
 
@@ -57,7 +64,54 @@ module A2A
         normalize_base_url(value.to_s)
       end
 
+      def resolve_task_store
+        case @task_store
+        when nil, :memory
+          Task::MemoryStore.new
+        when :active_record
+          resolve_active_record_store
+        else
+          validate_task_store!(@task_store)
+        end
+      end
+
       private
+
+      def resolve_active_record_store
+        require_relative "task/active_record_store"
+
+        Task::ActiveRecordStore.new(cursor_secret: task_cursor_secret)
+      rescue LoadError => error
+        raise ConfigurationError,
+          "config.task_store = :active_record requires ActiveRecord in the host application (#{error.path})"
+      end
+
+      def task_cursor_secret
+        configured = @task_page_token_secret
+        if configured
+          unless configured.is_a?(String) && configured.bytesize >= 32
+            raise ConfigurationError, "config.task_page_token_secret must be at least 32 bytes"
+          end
+          return configured
+        end
+
+        if defined?(::Rails) && ::Rails.respond_to?(:application) && ::Rails.application
+          secret = ::Rails.application.secret_key_base.to_s
+          return Digest::SHA256.digest("a2a-rails/task-page-token/#{secret}") unless secret.empty?
+        end
+
+        raise ConfigurationError,
+          "ActiveRecord Task Store needs Rails.application.secret_key_base or config.task_page_token_secret"
+      end
+
+      def validate_task_store!(store)
+        missing = TASK_STORE_METHODS.reject { |method_name| store.respond_to?(method_name) }
+        unless missing.empty?
+          raise ConfigurationError, "config.task_store is missing methods: #{missing.join(", ")}"
+        end
+
+        store
+      end
 
       def validate_agent_name!
         unless @agent.is_a?(String) && !@agent.strip.empty?
