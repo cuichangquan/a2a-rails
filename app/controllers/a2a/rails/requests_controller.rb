@@ -5,6 +5,7 @@ module A2A
     class RequestsController < ApplicationController
       def create
         response.set_header("Cache-Control", "no-store")
+        return unless validate_a2a_request_body
         return unless authenticate_a2a_request
 
         status, headers, body = A2A::Rails.runtime.call(
@@ -18,6 +19,27 @@ module A2A
       end
 
       private
+
+      def validate_a2a_request_body
+        RequestGuard.enforce!(
+          env: request.env,
+          max_bytes: A2A::Rails.configuration.max_request_bytes
+        )
+        true
+      rescue RequestGuard::PayloadTooLarge
+        render json: { error: "Payload too large" }, status: 413
+        false
+      rescue RequestGuard::UnsupportedMediaType
+        render json: { error: "Unsupported media type" }, status: 415
+        false
+      rescue RequestGuard::InvalidBody
+        render json: { error: "Invalid request body" }, status: 400
+        false
+      rescue RequestGuard::InvalidConfiguration
+        A2A::Rails.configuration.logger&.error("[a2a-rails] invalid request size configuration")
+        render json: { error: "Request validation unavailable" }, status: 500
+        false
+      end
 
       def authenticate_a2a_request
         Authentication.authenticate!(
