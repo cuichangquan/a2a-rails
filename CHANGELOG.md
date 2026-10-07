@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- **Step 22-9 HTTP async verification:** real Rails HTTP plus separate Solid Queue/Sidekiq workers cover SUBMITTED/WORKING/terminal state visibility, owner propagation/isolation, route-once, cancellation and Web/worker restart persistence. Shared smoke setup keeps adapter coverage consistent.
+
 - **Step 22-8 queue-adapter verification:** isolated Solid Queue and Sidekiq smoke tests use real queues and separate workers on Rails 8.0 / 8.1, covering minimal payloads, terminal outcomes, duplicate/canceled delivery and queued work after worker restart. Backend Gems remain smoke-only dependencies.
 
 - **Step 22-7 duplicate/idempotency verification:** serialized duplicate delivery during WORKING cannot start another Handler or finalize its Task. Added terminal-claim contracts and PostgreSQL cross-process claim contention coverage; documented Task-key scope and host business idempotency.
