@@ -11,6 +11,7 @@ Rails-native integration for exposing Rails applications as A2A v1.0 agents.
 - GitHub Release: https://github.com/cuichangquan/a2a-rails/releases/tag/v0.1.0
 - Changelog: [CHANGELOG.md](CHANGELOG.md)
 - Release record: [docs/release/v0.1.0-record.md](docs/release/v0.1.0-record.md)
+- **Roadmap / 次にやること:** [ROADMAP.md](ROADMAP.md) — 15 prioritized items, current Step 16 security hardening.
 
 - [A2Aの全体像（日本語・A4 1枚PDF）](docs/guides/a2a-protocol-overview-ja.pdf) — 登場人物・依頼の流れ・主要用語・MCPとの違いをまとめた学習資料。
 - [A2A at a glance (English, A4 one-page PDF)](docs/guides/a2a-protocol-overview-en.pdf) — Roles, workflow, key terms, and how MCP fits.
@@ -43,6 +44,9 @@ The Gem provides:
 - an internal Protocol Adapter boundary around the upstream SDK.
 
 v0.1 is intentionally **server-first** and **non-streaming**.
+
+> [!WARNING]
+> **Security / production use:** v0.1.0 does not provide built-in authentication or per-caller Task authorization. Do not expose `POST /a2a` to untrusted clients. Before public deployment, protect the endpoint at your application's or network's security boundary. Security hardening is tracked in [Issue #11](https://github.com/cuichangquan/a2a-rails/issues/11).
 
 ## Requirements
 
