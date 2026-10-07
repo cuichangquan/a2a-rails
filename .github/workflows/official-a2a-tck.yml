@@ -1,6 +1,10 @@
 name: Official A2A TCK (baseline, informational)
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - "lib/a2a/rails/version.rb"
   pull_request:
     paths:
       - ".github/workflows/official-a2a-tck.yml"
