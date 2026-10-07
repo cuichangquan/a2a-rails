@@ -257,11 +257,11 @@ POST /a2a
 
 The Rails Engine is mounted automatically.
 
-### Authentication work in progress (Step 16-2; not in published v0.1.0)
+### Security work on main (unreleased; not in published v0.1.0)
 
-The Step 16-2 branch adds a host-provided `config.authenticate_request` callback to protect `POST /a2a` before the A2A SDK handles a request. Without a callback, production and other non-development/test environments fail closed; the existing development/test Quick Start is preserved. See [Authentication guide](docs/guides/authentication.md).
+The unreleased `main` branch includes a host-provided `config.authenticate_request` callback for `POST /a2a`, plus per-principal Task ownership checks. Without an authenticator, production and other non-development/test environments fail closed; the local development/test Quick Start remains available. See [Authentication guide](docs/guides/authentication.md).
 
-> **Important:** Step 16-3 (Draft PR #14) adds owner-scoped Task operations and pagination on top of Step 16-2 authentication. Both PRs remain **unmerged**. Further work (Agent Card security advertising, input/abuse controls, production deployment review) is tracked in [Issue #11](https://github.com/cuichangquan/a2a-rails/issues/11). Do not treat these draft changes as production-secure.
+> **Important:** These protections are **not yet shipped in RubyGems 0.1.0** and do not make an endpoint production-secure by themselves. Agent Card security advertising, payload/abuse controls, business authorization and the deployment review remain tracked in [Issue #11](https://github.com/cuichangquan/a2a-rails/issues/11).
 
 
 ## Agent Card
