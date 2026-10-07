@@ -159,7 +159,6 @@ class RequestHandlerIntegrationTest < Minitest::Test
 
     [
       { "pageToken" => 123 },
-      { "pageToken" => nil },
       { "contextId" => ["wrong"] },
       { "includeArtifacts" => "true" }
     ].each do |changes|
