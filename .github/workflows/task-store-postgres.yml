@@ -1,0 +1,62 @@
+name: ActiveRecord Task Store PostgreSQL
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "lib/a2a/rails/task/**"
+      - "lib/a2a/rails/configuration.rb"
+      - "lib/tasks/**"
+      - "spikes/active_record_store_postgres/**"
+      - ".github/workflows/task-store-postgres.yml"
+      - "a2a-rails.gemspec"
+  pull_request:
+    paths:
+      - "lib/a2a/rails/task/**"
+      - "lib/a2a/rails/configuration.rb"
+      - "lib/tasks/**"
+      - "spikes/active_record_store_postgres/**"
+      - ".github/workflows/task-store-postgres.yml"
+      - "a2a-rails.gemspec"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  postgres-task-store:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: a2a_rails_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d a2a_rails_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/a2a_rails_test
+
+    defaults:
+      run:
+        working-directory: spikes/active_record_store_postgres
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.4.10"
+          working-directory: spikes/active_record_store_postgres
+          bundler-cache: true
+
+      - name: Run PostgreSQL persistence and locking smoke
+        run: bundle exec ruby smoke.rb
