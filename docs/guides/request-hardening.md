@@ -81,7 +81,7 @@ Do not rely on IP-only throttling for principal-aware authorization, or on per-p
 - Protocol integration tests cover malformed text parts, metadata, Task and pagination query fields.
 - Memory Store tests cover capped pagination snapshots.
 - Rails HTTP smoke tests cover `413`, `415`, sanitized `500` and the existing protected Task flow.
-- The packaged Gem smoke continues to verify the published Quick Start contract (once CI completes).
+- The packaged Gem smoke continues to verify the local Echo Quick Start contract; Steps 16-4/16-5 passed the corresponding 13-job CI matrices. The **published v0.1.0** artifact itself remains unchanged.
 
 ## References
 

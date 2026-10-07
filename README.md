@@ -269,6 +269,15 @@ The unreleased main branch adds a bounded JSON-RPC body (`config.max_request_byt
 
 Rate limiting, application-specific authorization and production deployment safeguards remain the host's responsibility or future work. Step 16-5 adds explicit A2A Agent Card Bearer authentication advertisement on unreleased `main`; it must match the host verifier. **These improvements are not included in the published v0.1.0 Gem.**
 
+### Production deployment review (Step 16-6)
+
+**Current verdict: NO-GO for open public production using the default process-local MemoryStore.** A real host verifier, business-specific authorization, TLS/proxy restrictions, distributed rate limits, execution budgets, durable Task storage with quotas/retention, and deployment-specific verification are needed.
+
+- [Production security & deployment guide](docs/guides/production-security.md) — responsibilities, sample configuration, security checks and current blockers.
+- [Security release checklist](docs/release/security-hardening-release-checklist.md) — release/upgrade decision, acceptance criteria and artifact verification.
+
+Do **not** interpret successful source-tree CI or a merge to `main` as publication of a new RubyGems release.
+
 
 ## Agent Card
 

@@ -40,7 +40,7 @@ Completed on `main` (unreleased; **not** part of RubyGems v0.1.0):
 - [x] [Step 16-3 / PR #15: owner-scoped Task access and pagination](https://github.com/cuichangquan/a2a-rails/pull/15) — restacked replacement for closed #14.
 - [x] [Step 16-4 / PR #16: bounded HTTP bodies, defensive input checks, pagination cache cap and safer logs](https://github.com/cuichangquan/a2a-rails/pull/16). Distributed rate limiting remains the host's responsibility.
 - [x] [Step 16-5 / PR #17: remaining security tests and explicit Bearer Agent Card security advertisement](https://github.com/cuichangquan/a2a-rails/pull/17).
-- [ ] **Step 16-6 (next):** production deployment review, operational safeguards and release documentation.
+- [ ] [Step 16-6 / Draft PR #18: production deployment security review, release gates and production HTTP smoke](https://github.com/cuichangquan/a2a-rails/pull/18) — **in progress**; public production remains NO-GO pending durable Task storage and deployment-specific controls.
 
 
 **Reason for priority:** published v0.1.0 is a minimal server, **not** a production-ready authorization solution. The unreleased main branch now has authentication and owner-scoped Task access, but further security review and deployment controls are required.

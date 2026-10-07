@@ -1,6 +1,6 @@
-# Step 16-1 — Security Threat Model & Integration Design (Draft)
+# Step 16-1 — Security Threat Model & Integration Design (Historical Baseline)
 
-Status: **draft for review; no authentication implementation is shipped**  
+Status: **initial 2026-10-07 design snapshot for published v0.1.0**. Steps 16-1–16-5 were subsequently implemented on the **unreleased main branch**. The proposed APIs and "open decisions" below are preserved as their original threat-model record; use the [current authentication guide](../guides/authentication.md) and [production review](../guides/production-security.md) for actual behavior.  
 Tracking: [Security hardening issue #11](https://github.com/cuichangquan/a2a-rails/issues/11)  
 Baseline: published `a2a-rails` v0.1.0 (2026-10-06)  
 Target protocol: A2A v1.0 JSON-RPC over HTTP.
@@ -135,4 +135,4 @@ Minimum tests for a follow-up PR:
 - [Task semantics](../design/v0.1-decisions.md)
 - [Tracking issue #11](https://github.com/cuichangquan/a2a-rails/issues/11)
 
-**Status:** planning only. Implementation/test checkboxes in issue #11 remain open until merged and verified.
+**Historical note:** Step 16-1 originally recorded proposed behavior. The merged implementation is tracked in [Issue #11](https://github.com/cuichangquan/a2a-rails/issues/11) and [ROADMAP.md](../../ROADMAP.md); published RubyGems v0.1.0 remains unchanged.
