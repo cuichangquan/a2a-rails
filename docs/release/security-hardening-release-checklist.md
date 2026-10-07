@@ -3,9 +3,9 @@
 Last reviewed: **2026-10-07 (Step 22)**  
 Baseline published release: **a2a-rails 0.1.0** (2026-10-06)  
 Current main: includes Steps 16–22, including optional durable ActiveRecord Task Store and opt-in ActiveJob Task execution.  
-Release-candidate status: **no current candidate is approved for publication**.
+Release-candidate status: **`0.2.0.rc2` is selected for fresh verification; no candidate is approved for publication**.
 
-> The historical `0.2.0.rc1` artifact verified in Step 20 predates Step 21 runtime changes. Its commit/SHA evidence remains valid for that exact historical tree only and **must not be reused to publish current main**. The source VERSION has not yet been moved to a new candidate identifier; a fresh version decision and exact-artifact verification are required.
+> The historical `0.2.0.rc1` artifact verified in Step 20 predates Step 21 and Step 22 runtime changes. Its commit/SHA evidence remains valid for that exact historical tree only and **must not be reused**. Step 23 selects `0.2.0.rc2` for a fresh exact-candidate verification.
 
 ## Decision
 
@@ -13,7 +13,7 @@ Release and deployment decisions remain separate.
 
 | Decision | Status |
 | --- | --- |
-| Prepare a **new** candidate from current main | **PENDING explicit version decision and fresh artifact verification** |
+| Prepare a **new** candidate from current main | **GO for `0.2.0.rc2` verification only** |
 | Tag / GitHub Release / RubyGems publication | **NO-GO until new candidate gates pass + explicit approval** |
 | Open public production using default MemoryStore | **NO-GO** |
 | Multi-worker/restart-safe Task persistence using ActiveRecordStore | **Gem capability verified; deployment-specific GO/NO-GO still required** |
@@ -49,10 +49,10 @@ A durable Task Store removes one framework-level blocker. It does not provide cr
 - [x] ActiveJob execution is opt-in; synchronous Task execution remains the default; direct Message responses remain synchronous.
 - [x] Async production requirements and limits are documented: durable Store + durable queue, enqueue crash window, no generic Handler retry, Task-level duplicate suppression, host business idempotency, best-effort cancellation and explicit reconciliation of ambiguous WORKING Tasks.
 - [x] Update the v0.1.0 → next-v0.2 upgrade guide with Step 21 ActiveRecordStore configuration, migration and maintenance guidance.
-- [ ] Decide the **new candidate version** for current main. Do not reuse the historical rc1 artifact identity.
+- [x] Decide the **new candidate version** for current main: `0.2.0.rc2`. Do not reuse the historical rc1 artifact identity.
 - [ ] On the exact new candidate tree, rerun Ruby/Rails CI, PostgreSQL Store CI, queue adapter + HTTP async E2E, production security smoke, Python/Go interoperability and the pinned official TCK (distinguishing the known upstream CORE-SEND-003 fixture issue).
 - [ ] Build one exact `.gem`, inspect it, clean-install it into Rails 8.0 and 8.1, rerun installed-artifact security/runtime smoke, and record SHA256.
-- [ ] Update CHANGELOG/README/release notes from “historical rc1” to the newly approved candidate only when that version is actually chosen.
+- [x] Update CHANGELOG/README/release preparation notes for the selected `0.2.0.rc2` candidate while preserving rc1 as historical-only evidence.
 
 ## B. Public-production deployment gates
 
@@ -89,9 +89,9 @@ Historical candidate:
 
 ## D. Exact gates for the next candidate
 
-All items below are required again because Step 21 changed runtime code.
+All items below are required again because Steps 21 and 22 changed runtime code.
 
-- [ ] Explicitly approve the new candidate version and identify the exact candidate commit.
+- [x] Candidate version selected for verification: `0.2.0.rc2`. The exact candidate commit is recorded only after the preparation PR is merged.
 - [ ] Run the Ruby 3.3/3.4/4.0 + Rails 8.0/8.1 regression matrix on that exact candidate.
 - [ ] Run the ActiveRecordStore PostgreSQL workflow on the exact candidate.
 - [ ] Run production-shaped HTTP security smoke against the exact candidate: fail-closed Agent Card, 401/403, valid Bearer, foreign Task isolation, malformed/oversized requests.
@@ -116,11 +116,10 @@ Current unreleased main still does not provide:
 - an OAuth2/OIDC server or universal credential verifier;
 - universal business/delegated authorization;
 - distributed rate limiting;
-- asynchronous/ActiveJob execution;
 - streaming;
 - an A2A client;
 - billing-grade strict per-owner quota enforcement.
 
 MemoryStore remains process-local. ActiveRecordStore must be explicitly selected and operated by the host.
 
-References: [ActiveRecord Task Store](../guides/active-record-task-store.md) · [Production deployment guide](../guides/production-security.md) · [Authentication](../guides/authentication.md) · [Request hardening](../guides/request-hardening.md) · [Roadmap](../../ROADMAP.md) · [Security #11](https://github.com/cuichangquan/a2a-rails/issues/11) · [Step 21 #35](https://github.com/cuichangquan/a2a-rails/issues/35).
+References: [ActiveRecord Task Store](../guides/active-record-task-store.md) · [ActiveJob Task execution](../design/active-job-task-execution.md) · [Production deployment guide](../guides/production-security.md) · [Authentication](../guides/authentication.md) · [Request hardening](../guides/request-hardening.md) · [Roadmap](../../ROADMAP.md) · [Security #11](https://github.com/cuichangquan/a2a-rails/issues/11) · [Step 23 #54](https://github.com/cuichangquan/a2a-rails/issues/54).
