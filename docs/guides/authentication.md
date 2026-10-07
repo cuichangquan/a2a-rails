@@ -72,7 +72,7 @@ The error is an HTTP boundary response, not an A2A task or a promise of a JSON-R
 - A built-in identity provider, tenant resolver, or business-action authorization policy.
 - General-purpose per-tenant Task sharing or delegated Task permissions.
 - Agent Card `securitySchemes` / `security` advertising or selective Agent Card visibility.
-- Distributed rate limiting and end-to-end production deployment hardening. [Step 16-4 request hardening](request-hardening.md) proposes bounded HTTP bodies and additional input checks, but does not provide a distributed rate limiter.
+- Distributed rate limiting and end-to-end production deployment hardening. [Step 16-4 request hardening](request-hardening.md) provides bounded HTTP bodies and additional input checks on the unreleased main branch, but does not provide a distributed rate limiter.
 - OAuth authorization server, token introspection, mTLS termination or a token issuer.
 
 These remain tracked in [Issue #11](https://github.com/cuichangquan/a2a-rails/issues/11). Security review and integration tests must be completed before a public-production deployment can be considered safe.
