@@ -1,6 +1,6 @@
 # Step 16-4 — A2A HTTP request hardening
 
-> **Status:** changes under review in Step 16-4. Not included in published RubyGems `a2a-rails 0.1.0`.
+> **Status:** Step 16-4 is merged into the unreleased `main` branch via [PR #16](https://github.com/cuichangquan/a2a-rails/pull/16). These safeguards are **not** included in published RubyGems `a2a-rails 0.1.0`.
 >
 > **Security scope:** request input limits and data handling, **not** a guarantee that the server is production-ready. Production still requires verified authentication, business authorization, TLS, traffic controls, the Agent Card security scheme and additional reviews tracked in [Issue #11](https://github.com/cuichangquan/a2a-rails/issues/11).
 
