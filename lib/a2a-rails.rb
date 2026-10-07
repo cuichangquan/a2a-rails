@@ -2,6 +2,7 @@
 
 require_relative "a2a/rails/version"
 require_relative "a2a/rails/errors"
+require_relative "a2a/rails/authentication"
 require_relative "a2a/rails/configuration"
 require_relative "a2a/rails/skill"
 require_relative "a2a/rails/agent"
