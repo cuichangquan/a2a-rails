@@ -16,6 +16,10 @@ module A2A
           raise NotImplementedError, "Task stores must implement #transition"
         end
 
+        def claim_execution(_task_id, principal_id: nil, **_attributes)
+          raise NotImplementedError, "Task store does not implement async execution claim"
+        end
+
         def cancel(_task_id, principal_id: nil, **_attributes)
           raise NotImplementedError, "Task stores must implement #cancel"
         end
