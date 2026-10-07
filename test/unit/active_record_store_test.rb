@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require_relative "../test_helper"
+require_relative "../support/task_store_contract"
 require "active_record"
 require "sqlite3"
 require_relative "../../lib/a2a/rails/task/active_record_store"
@@ -31,7 +32,13 @@ ActiveRecord::Schema.define do
 end
 
 class ActiveRecordStoreTest < Minitest::Test
+  include TaskStoreContract
+
   SECRET = "step-21-active-record-store-test-secret".ljust(64, "x")
+
+  def build_contract_store
+    A2A::Rails::Task::ActiveRecordStore.new(cursor_secret: SECRET)
+  end
 
   def setup
     A2A::Rails::Task::ActiveRecordStore::Record.delete_all
