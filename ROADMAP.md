@@ -15,7 +15,7 @@
 
 | Priority | # | Work item | Outcome | Proposed phase | Status |
 | --- | ---: | --- | --- | --- | --- |
-| P0 | 1 | [Security hardening](https://github.com/cuichangquan/a2a-rails/issues/11) | Authenticate requests; protect Task reads/lists/cancellation per principal; safe production guidance | v0.1.x | **In progress — Step 16-4** |
+| P0 | 1 | [Security hardening](https://github.com/cuichangquan/a2a-rails/issues/11) | Authenticate requests; protect Task reads/lists/cancellation per principal; safe production guidance | v0.1.x | **In progress — Step 16-5** |
 | P0 | 2 | Official A2A TCK tests | Verify interoperability/conformance against the current A2A test suite | v0.1.x | Planned |
 | P0 | 3 | Cross-language interoperability | Validate calls from official Python / Go clients and version negotiation | v0.1.x | Planned |
 | P0 | 4 | Runnable Rails example | Provide a reproducible Rails Agent demo outside the Gem repo | v0.1.x | Planned |
@@ -38,8 +38,9 @@ Completed on `main` (unreleased; **not** part of RubyGems v0.1.0):
 - [x] [Step 16-1 / PR #12: security threat model and authorization design](https://github.com/cuichangquan/a2a-rails/pull/12).
 - [x] [Step 16-2 / PR #13: Rails authentication callback and HTTP gate](https://github.com/cuichangquan/a2a-rails/pull/13).
 - [x] [Step 16-3 / PR #15: owner-scoped Task access and pagination](https://github.com/cuichangquan/a2a-rails/pull/15) — restacked replacement for closed #14.
-- [ ] **Step 16-4 (next):** payload/input validation, bounded HTTP bodies, sensitive logging and abuse controls.
-- [ ] **Step 16-5/16-6:** complete threat-model tests, accurate Agent Card security advertisement and production deployment guidance.
+- [x] [Step 16-4 / PR #16: bounded HTTP bodies, defensive input checks, pagination cache cap and safer logs](https://github.com/cuichangquan/a2a-rails/pull/16). Distributed rate limiting remains the host's responsibility.
+- [ ] **Step 16-5 (next):** complete remaining security tests and accurate Agent Card security advertisement.
+- [ ] **Step 16-6:** production deployment review, operational safeguards and release documentation.
 
 
 **Reason for priority:** published v0.1.0 is a minimal server, **not** a production-ready authorization solution. The unreleased main branch now has authentication and owner-scoped Task access, but further security review and deployment controls are required.
