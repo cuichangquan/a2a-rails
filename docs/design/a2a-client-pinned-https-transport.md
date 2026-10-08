@@ -9,7 +9,7 @@ Internal class: `A2A::Rails::Client::PinnedHttpsTransport`. This class is delibe
 
 `get_json(url:)` and `post_json(url:, json:)` are internal methods. The transport:
 
-1. Revalidates the configured/requested URL with `OutboundPolicy#resolve!` **on each request**, covering exact origin and resolved public IPv4 only.
+1. Revalidates the configured/requested URL with `OutboundPolicy#resolve!` **on each request**, covering exact origin and every DNS answer, allowing safe dual-stack DNS but returning only approved public IPv4 socket targets.
 2. Calls `Net::HTTP.new(target.host, target.port, nil)` to disable the environment-proxy default.
 3. Calls `http.ipaddr = target.addresses.first` **before connection**: the actual socket dials only the previously checked IP. No hostname DNS lookup is necessary in the HTTP stack; `http.ipaddr` is checked against the selected address after connect.
 4. Sets `use_ssl = true`, `verify_mode = VERIFY_PEER`, `verify_hostname = true`. The HTTP hostname, TLS SNI and certificate verification use **target.host**, never the pinned numeric address.
@@ -18,7 +18,7 @@ Internal class: `A2A::Rails::Client::PinnedHttpsTransport`. This class is delibe
 7. No generic outgoing custom headers, cookies, URLs with userinfo/query, verbose request/response logs, or proxy tunneling. `Authorization` is accepted via an application callback **only when the caller also provides the exact target `credential_origin`**. No credentials are evaluated for a rejected URL.
 8. Parses successful `application/json` (or `application/a2a+json`) into a plain Ruby value. Does not interpret Task or direct Message, which belongs in the future Client protocol adapter.
 
-The implementation intentionally supports **public IPv4 destinations only**. IPv6 is rejected until a dedicated reviewed path can preserve the same connect-time security guarantees.
+The implementation intentionally supports **public IPv4 socket destinations only**. Since Step 29-5d, a host with both public IPv4 and validated global-unicast IPv6 DNS answers is accepted, but IPv6 is **never** passed to `http.ipaddr`. Any unsafe IPv4/IPv6 answer rejects the entire resolution; an IPv6-only host is rejected. Native IPv6 dialing requires a separate security review.
 
 ## Tests and limitations
 
