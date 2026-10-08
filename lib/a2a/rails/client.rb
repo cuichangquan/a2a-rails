@@ -205,10 +205,12 @@ module A2A
         raise
       rescue AgentCardResolver::UnsupportedInterface => error
         raise UnsupportedInterfaceError.new(error.reason, operation: operation), cause: nil
-      rescue AgentCardResolver::InvalidCard, AgentCardResolver::Error => error
-        raise DiscoveryError.new(error.reason, operation: operation), cause: nil
       rescue AgentCardResolver::RemoteError => error
         raise RemoteError.new(error.code, operation: operation), cause: nil
+      rescue AgentCardResolver::InvalidRPC => error
+        raise InvalidResponseError.new(error.reason, operation: operation), cause: nil
+      rescue AgentCardResolver::InvalidCard, AgentCardResolver::Error => error
+        raise DiscoveryError.new(error.reason, operation: operation), cause: nil
       rescue PinnedHttpsTransport::DeadlineExceeded
         raise TimeoutError.new(operation: operation,
                                may_have_executed: %i[send_message cancel_task].include?(operation)), cause: nil
