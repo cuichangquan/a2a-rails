@@ -5,15 +5,15 @@
 
 Rails-native integration for exposing Rails applications as A2A v1.0 agents.
 
-> **Release status (2026-10-08):** RubyGems has published **`0.1.0`** and the **`0.2.0.rc2` pre-release**. The current source is being verified as an **unpublished `0.2.0` stable candidate** (Step 26-4). In particular, the Rails/Zeitwerk and migration-generator fixes after rc2 are only in the newer source-built candidate. **No stable `0.2.0` tag, GitHub Release, or RubyGems publication has been authorized.**
+> **Release status (2026-10-08):** **`0.2.0` is published as a stable release** on [RubyGems](https://rubygems.org/gems/a2a-rails/versions/0.2.0) and [GitHub](https://github.com/cuichangquan/a2a-rails/releases/tag/v0.2.0). It includes the Rails/Zeitwerk and migration-generator fixes after rc2. The public Gem matches the verified artifact byte-for-byte; see the [publication record](docs/release/v0.2.0-publication-record.md).
 
 - RubyGems: https://rubygems.org/gems/a2a-rails
-- Published pre-release: https://github.com/cuichangquan/a2a-rails/releases/tag/v0.2.0-rc.2 (stable `0.2.0` not yet released)
+- Published stable release: https://github.com/cuichangquan/a2a-rails/releases/tag/v0.2.0
 - Previous stable release: https://github.com/cuichangquan/a2a-rails/releases/tag/v0.1.0
 - Changelog: [CHANGELOG.md](CHANGELOG.md)
-- Release record: [docs/release/v0.1.0-record.md](docs/release/v0.1.0-record.md)
-- **Release readiness:** [current release/deployment checklist](docs/release/security-hardening-release-checklist.md) · [v0.1.0 → proposed v0.2 upgrade guide](docs/release/upgrading-v0.1.0-to-v0.2.md). The old rc1 record is historical evidence only.
-- **Roadmap / 次にやること:** [ROADMAP.md](ROADMAP.md) — [Step 26 / Issue #62](https://github.com/cuichangquan/a2a-rails/issues/62) tracks the `0.2.0` stable candidate and release gates; [production Issue #11](https://github.com/cuichangquan/a2a-rails/issues/11) remains open. See [stable-readiness record](docs/release/v0.2.0-stable-readiness.md).
+- Release record: [v0.2.0 publication record](docs/release/v0.2.0-publication-record.md)
+- **Release readiness:** [current release/deployment checklist](docs/release/security-hardening-release-checklist.md) · [v0.1.0 → v0.2.0 upgrade guide](docs/release/upgrading-v0.1.0-to-v0.2.md). The old rc1 record is historical evidence only.
+- **Roadmap / 次にやること:** [ROADMAP.md](ROADMAP.md) — [Step 26 / Issue #62](https://github.com/cuichangquan/a2a-rails/issues/62) records the `0.2.0` stable release gates; [production Issue #11](https://github.com/cuichangquan/a2a-rails/issues/11) remains open. See [stable-readiness record](docs/release/v0.2.0-stable-readiness.md).
 - **Official A2A TCK results:** [Pinned JSON-RPC MUST report and reproduction](docs/testing/official-a2a-tck.md) — after Step 17-4: **63 passed / 1 failed / 171 skipped / 30 deselected** (pytest). The remaining `CORE-SEND-003` mismatch is tracked [upstream in #202](https://github.com/a2aproject/a2a-tck/issues/202). The TCK workflow is informational, **not** an A2A conformance certificate.
 
 - [A2Aの全体像（日本語・A4 1枚PDF）](docs/guides/a2a-protocol-overview-ja.pdf) — 登場人物・依頼の流れ・主要用語・MCPとの違いをまとめた学習資料。
@@ -23,7 +23,7 @@ Rails-native integration for exposing Rails applications as A2A v1.0 agents.
 
 **[a2a-rails-demo — independent Rails 8 Echo Agent](https://github.com/cuichangquan/a2a-rails-demo)**
 
-Run a complete standalone Rails Agent with the current unreleased `a2a-rails` source pinned by Git commit (the published RubyGems v0.1.0 does not contain direct-Message support). The separate Demo covers Agent Card discovery, JSON-RPC v1.0 SendMessage **Task and direct Message**, GetTask, ListTasks and error handling.
+Run a complete standalone Rails Agent with the historical `a2a-rails` demo source pinned by Git commit (the published RubyGems v0.1.0 does not contain direct-Message support). The separate Demo covers Agent Card discovery, JSON-RPC v1.0 SendMessage **Task and direct Message**, GetTask, ListTasks and error handling.
 
 - [Demo Quick Start, code and example curl requests](https://github.com/cuichangquan/a2a-rails-demo#quick-start).
 - [Demo GitHub Actions smoke](https://github.com/cuichangquan/a2a-rails-demo/actions/workflows/smoke.yml) — independent real HTTP tests **16/16 checks passed** ([PR #1](https://github.com/cuichangquan/a2a-rails-demo/pull/1)).
@@ -50,9 +50,9 @@ The Gem provides:
 - a Rails-native Agent / Skill DSL;
 - A2A Agent Card generation;
 - automatically mounted A2A HTTP endpoints;
-- synchronous Task execution by default, plus opt-in ActiveJob-backed async Task execution on unreleased `main`;
+- synchronous Task execution by default, plus opt-in ActiveJob-backed async Task execution in published `0.2.0`;
 - SDK-independent Handler inputs;
-- a process-local MemoryStore by default, plus an optional durable ActiveRecordStore on unreleased main;
+- a process-local MemoryStore by default, plus an optional durable ActiveRecordStore in `0.2.0`;
 - Rails generators for initial setup;
 - an internal Protocol Adapter boundary around the upstream SDK.
 
@@ -270,17 +270,17 @@ POST /a2a
 
 The Rails Engine is mounted automatically.
 
-### Security work on main (unreleased; not in published v0.1.0)
+### Security in v0.2.0 (not in v0.1.0)
 
-The unreleased `main` branch includes a host-provided `config.authenticate_request` callback for `POST /a2a`, plus per-principal Task ownership checks. Without an authenticator, production and other non-development/test environments fail closed; the local development/test Quick Start remains available. See [Authentication guide](docs/guides/authentication.md).
+Published `0.2.0` includes a host-provided `config.authenticate_request` callback for `POST /a2a`, plus per-principal Task ownership checks. Without an authenticator, production and other non-development/test environments fail closed; the local development/test Quick Start remains available. See [Authentication guide](docs/guides/authentication.md).
 
-> **Important:** These protections are **absent from RubyGems 0.1.0** but included in the published `0.2.0.rc2` pre-release; the stable candidate has additional fixes. Neither pre-release nor stable source automatically makes a deployed endpoint production-secure. Distributed rate limits, business authorization and the deployment review remain tracked in [Issue #11](https://github.com/cuichangquan/a2a-rails/issues/11).
+> **Important:** These protections are **absent from RubyGems 0.1.0** but included in the published `0.2.0.rc2` pre-release; stable `0.2.0` includes additional fixes. Neither pre-release nor stable source automatically makes a deployed endpoint production-secure. Distributed rate limits, business authorization and the deployment review remain tracked in [Issue #11](https://github.com/cuichangquan/a2a-rails/issues/11).
 
-### Step 16-4 request hardening (merged on main; unreleased)
+### Step 16-4 request hardening (included in v0.2.0)
 
-The unreleased main branch adds a bounded JSON-RPC body (`config.max_request_bytes`, default 1 MiB), Content-Type validation, stricter parameter checks, a pagination snapshot cap, and reduced exception logging. See [Request Hardening Guide](docs/guides/request-hardening.md).
+Published `0.2.0` includes a bounded JSON-RPC body (`config.max_request_bytes`, default 1 MiB), Content-Type validation, stricter parameter checks, a pagination snapshot cap, and reduced exception logging. See [Request Hardening Guide](docs/guides/request-hardening.md).
 
-Rate limiting, application-specific authorization and production deployment safeguards remain the host's responsibility or future work. Step 16-5 adds explicit A2A Agent Card Bearer authentication advertisement on unreleased `main`; it must match the host verifier. **These improvements are not included in the published v0.1.0 Gem; see the later rc2 pre-release and current stable candidate.**
+Rate limiting, application-specific authorization and production deployment safeguards remain the host's responsibility or future work. Step 16-5 adds explicit A2A Agent Card Bearer authentication advertisement in published `0.2.0`; it must match the host verifier. **These improvements are not included in the published v0.1.0 Gem; see the published stable `0.2.0` release.**
 
 ### Production deployment review (Step 16-6)
 
@@ -337,14 +337,14 @@ Hash / Array → Data Part
 nil          → no Artifact
 other object → ArtifactMappingError
 
-Unreleased Step 17-3 (not in RubyGems v0.1.0):
+Included since v0.2.0 (not in v0.1.0):
 A2A::Rails::FileArtifact.bytes(...) → File Part with base64 raw bytes
 A2A::Rails::FileArtifact.url(...)   → File Part with an HTTPS URL
 ```
 
-**File Artifact output is unreleased.** Rails Handlers can explicitly return a `FileArtifact.bytes(data:, filename:, media_type:)` or `FileArtifact.url(url:, filename:, media_type:)`. See the [File Artifact output guide](docs/guides/file-artifacts.md). Input file Parts, downloading remote URLs and production file authorization are not supplied by the Gem.
+**File Artifact output is included in v0.2.0.** Rails Handlers can explicitly return a `FileArtifact.bytes(data:, filename:, media_type:)` or `FileArtifact.url(url:, filename:, media_type:)`. See the [File Artifact output guide](docs/guides/file-artifacts.md). Input file Parts, downloading remote URLs and production file authorization are not supplied by the Gem.
 
-**Unreleased Step 17-4:** A2A v1.0 also permits a direct `Message` from `SendMessage`. The host Agent can opt into `response_mode :message` or select the mode using a callable; the default remains `:task`. Direct replies do **not** create Task records. See the [Direct Message response guide](docs/guides/direct-message-responses.md) for the contract and safety implications.
+**Included in v0.2.0 (Step 17-4):** A2A v1.0 also permits a direct `Message` from `SendMessage`. The host Agent can opt into `response_mode :message` or select the mode using a callable; the default remains `:task`. Direct replies do **not** create Task records. See the [Direct Message response guide](docs/guides/direct-message-responses.md) for the contract and safety implications.
 
 Supported Task operations:
 
@@ -357,9 +357,9 @@ Supported Task operations:
 
 The default `Task::MemoryStore` is thread-safe but process-local. Tasks and pagination cursors are not durable across process restarts and are not shared between processes.
 
-**Unreleased Step 21:** applications that need durable, multi-worker Task state can opt into `config.task_store = :active_record`. The ActiveRecordStore uses owner-scoped SQL access, row-locked transitions, signed keyset cursors, terminal retention, bounded pruning and maintenance limits. See [ActiveRecord Task Store](docs/guides/active-record-task-store.md). PostgreSQL 16 persistence/locking smoke is verified in CI.
+**Included in v0.2.0 (Step 21):** applications that need durable, multi-worker Task state can opt into `config.task_store = :active_record`. The ActiveRecordStore uses owner-scoped SQL access, row-locked transitions, signed keyset cursors, terminal retention, bounded pruning and maintenance limits. See [ActiveRecord Task Store](docs/guides/active-record-task-store.md). PostgreSQL 16 persistence/locking smoke is verified in CI.
 
-**Unreleased Step 22:** Task execution remains synchronous by default. Hosts can opt into ActiveJob-backed async execution globally, per Agent, or per Skill; precedence is **Skill > Agent > global**.
+**Included in v0.2.0 (Step 22):** Task execution remains synchronous by default. Hosts can opt into ActiveJob-backed async execution globally, per Agent, or per Skill; precedence is **Skill > Agent > global**.
 
 ```ruby
 A2A::Rails.configure do |config|
@@ -485,7 +485,7 @@ Artifact: Echo: Hello
 
 See [docs/release/v0.1.0-record.md](docs/release/v0.1.0-record.md) for the complete release evidence.
 
-## Cross-language A2A interoperability — unreleased main source
+## Cross-language A2A interoperability — source verification
 
 [Step 18 / PR #27](https://github.com/cuichangquan/a2a-rails/pull/27) verified the **official** Python `a2a-sdk==1.2.2` and Go `a2a-go/v2 v2.6.0` clients against a loopback-only Rails JSON-RPC A2A v1.0 Agent. Both discovered Agent Cards, decoded Task and direct Message responses, queried Tasks and checked terminal cancellation and version errors.
 
