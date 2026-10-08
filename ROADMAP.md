@@ -12,13 +12,13 @@
 - [x] README Quick Start, JP / EN A2A overview PDFs, Zenn / Qiita articles and community submissions.
 - [ ] Open public-production approval: deployment-specific controls are still required under [Issue #11](https://github.com/cuichangquan/a2a-rails/issues/11).
 
-## Current next work — Step 29: outbound A2A Client (design proposal)
+## Current next work — Step 29: outbound A2A Client (implementation in progress)
 
-- [Tracking Issue #75](https://github.com/cuichangquan/a2a-rails/issues/75) — design in review; no outbound Client code has shipped.
+- [Tracking Issue #75](https://github.com/cuichangquan/a2a-rails/issues/75) — design merged; first internal outbound policy slice under review. Public Client API is **not implemented or released**.
 - [Proposed API / architecture / security-gates document](docs/design/a2a-client.md) — Rails can call remote Agent Card / SendMessage / GetTask / ListTasks / CancelTask, including direct Message and Task response forms.
-- **Step 29-1: PASS** — [Client SDK/Demo real HTTP smoke](https://github.com/cuichangquan/a2a-rails/actions/runs/37746771841) (test-only [PR #77](https://github.com/cuichangquan/a2a-rails/pull/77), still in review).
-- **Step 29-2: public API contract in review** — [Draft PR #78](https://github.com/cuichangquan/a2a-rails/pull/78), [detailed contract](docs/design/a2a-client-public-api.md) and documented fixture-only sanity checks.
-- **Next proposed implementation: Step 29-3** — safe outbound discovery/transport (SSRF, DNS rebinding, redirects, TLS, credentials and logging). Do not ship production Client until the safety gates pass.
+- **Step 29-1: PASS** — [Client SDK/Demo real HTTP smoke](https://github.com/cuichangquan/a2a-rails/actions/runs/37746771841) (test-only [PR #77](https://github.com/cuichangquan/a2a-rails/pull/77), merged).
+- **Step 29-2: public API contract merged** — [PR #78](https://github.com/cuichangquan/a2a-rails/pull/78), [detailed contract](docs/design/a2a-client-public-api.md) and documented fixture-only sanity checks.
+- **Step 29-3a: internal target policy** — [PR #79](https://github.com/cuichangquan/a2a-rails/pull/79) adds strict HTTPS/exact-origin and DNS public-IPv4 preflight with unit tests; this is **not a complete SSRF defense**. [Scope and remaining gates](docs/design/a2a-client-outbound-security.md). **Next: Step 29-3b pinned-IP safe HTTP transport**, followed by TLS, redirects, credentials and SDK logging validation. Do not ship production Client until all gates pass.
 - **v0.3.0 is only a candidate**; no release, backward-compatibility or production-security claims until tests and release approval.
 
 ## Prioritized backlog
@@ -34,7 +34,7 @@
 | P1 | 7 | [ActiveRecord Task Store](https://github.com/cuichangquan/a2a-rails/issues/35) | Durable owner-scoped Tasks across workers/restarts + lifecycle maintenance | next v0.2 candidate | **Complete — PRs #36–#39** |
 | P1 | 8 | [ActiveJob Task execution](https://github.com/cuichangquan/a2a-rails/issues/41) | Run long-running Tasks asynchronously with explicit lifecycle semantics | next v0.2 candidate | **Complete — Steps 22-1–22-10** |
 | P0 | 8.5 | [v0.2.0.rc2 candidate verification](https://github.com/cuichangquan/a2a-rails/issues/54) | Fresh exact-candidate verification after Steps 21–22 | v0.2.0.rc2 | **Steps 23–25 complete — rc2 published and verified** |
-| P1 | 9 | [A2A Client / Step 29](https://github.com/cuichangquan/a2a-rails/issues/75) | Call remote A2A Agents from Rails | v0.3 proposal | **Design in review** |
+| P1 | 9 | [A2A Client / Step 29](https://github.com/cuichangquan/a2a-rails/issues/75) | Call remote A2A Agents from Rails | v0.3 proposal | **Design merged; security implementation in progress** |
 | P2 | 10 | SSE Streaming | Stream Task status/results over A2A-compatible transport | v0.4 proposal | Planned |
 | P2 | 11 | Human-in-the-loop | Model INPUT_REQUIRED / AUTH_REQUIRED flows and resume safely | v0.5 proposal | Planned |
 | P2 | 12 | ActingFor integration | Optional delegated-authorization integration, never a hard dependency | Future | Planned |
