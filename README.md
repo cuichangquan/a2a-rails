@@ -337,14 +337,14 @@ Hash / Array → Data Part
 nil          → no Artifact
 other object → ArtifactMappingError
 
-Unreleased Step 17-3 (not in RubyGems v0.1.0):
+Included since v0.2.0 (not in v0.1.0):
 A2A::Rails::FileArtifact.bytes(...) → File Part with base64 raw bytes
 A2A::Rails::FileArtifact.url(...)   → File Part with an HTTPS URL
 ```
 
 **File Artifact output is included in v0.2.0.** Rails Handlers can explicitly return a `FileArtifact.bytes(data:, filename:, media_type:)` or `FileArtifact.url(url:, filename:, media_type:)`. See the [File Artifact output guide](docs/guides/file-artifacts.md). Input file Parts, downloading remote URLs and production file authorization are not supplied by the Gem.
 
-**Unreleased Step 17-4:** A2A v1.0 also permits a direct `Message` from `SendMessage`. The host Agent can opt into `response_mode :message` or select the mode using a callable; the default remains `:task`. Direct replies do **not** create Task records. See the [Direct Message response guide](docs/guides/direct-message-responses.md) for the contract and safety implications.
+**Included in v0.2.0 (Step 17-4):** A2A v1.0 also permits a direct `Message` from `SendMessage`. The host Agent can opt into `response_mode :message` or select the mode using a callable; the default remains `:task`. Direct replies do **not** create Task records. See the [Direct Message response guide](docs/guides/direct-message-responses.md) for the contract and safety implications.
 
 Supported Task operations:
 
@@ -357,9 +357,9 @@ Supported Task operations:
 
 The default `Task::MemoryStore` is thread-safe but process-local. Tasks and pagination cursors are not durable across process restarts and are not shared between processes.
 
-**Unreleased Step 21:** applications that need durable, multi-worker Task state can opt into `config.task_store = :active_record`. The ActiveRecordStore uses owner-scoped SQL access, row-locked transitions, signed keyset cursors, terminal retention, bounded pruning and maintenance limits. See [ActiveRecord Task Store](docs/guides/active-record-task-store.md). PostgreSQL 16 persistence/locking smoke is verified in CI.
+**Included in v0.2.0 (Step 21):** applications that need durable, multi-worker Task state can opt into `config.task_store = :active_record`. The ActiveRecordStore uses owner-scoped SQL access, row-locked transitions, signed keyset cursors, terminal retention, bounded pruning and maintenance limits. See [ActiveRecord Task Store](docs/guides/active-record-task-store.md). PostgreSQL 16 persistence/locking smoke is verified in CI.
 
-**Unreleased Step 22:** Task execution remains synchronous by default. Hosts can opt into ActiveJob-backed async execution globally, per Agent, or per Skill; precedence is **Skill > Agent > global**.
+**Included in v0.2.0 (Step 22):** Task execution remains synchronous by default. Hosts can opt into ActiveJob-backed async execution globally, per Agent, or per Skill; precedence is **Skill > Agent > global**.
 
 ```ruby
 A2A::Rails.configure do |config|
