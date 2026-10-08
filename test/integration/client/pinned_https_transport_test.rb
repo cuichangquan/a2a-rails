@@ -2,6 +2,7 @@
 
 require_relative "../../test_helper"
 require_relative "../../../lib/a2a/rails/client/pinned_https_transport"
+require_relative "../../../lib/a2a/rails/client/agent_card_resolver"
 require "openssl"
 require "socket"
 require "tempfile"
@@ -223,6 +224,103 @@ class ClientPinnedHttpsTransportTest < Minitest::Test
     assert_equal 403, error.status
     refute_includes error.message, "SECRET"
     assert_equal "/card", requests.pop.fetch(:path)
+  end
+
+
+  def test_real_https_agent_card_discovery_and_declared_json_rpc_endpoint
+    rpc_body = JSON.generate({
+      "jsonrpc" => "2.0", "id" => "call-1",
+      "result" => { "task" => { "id" => "remote-t1", "status" => { "state" => "TASK_STATE_COMPLETED" } } }
+    })
+    rpc_port, rpc_requests = tls_server(body: rpc_body)
+    interface_url = "https://trusted.example:#{rpc_port}/tenant/agent-jsonrpc"
+    card_port, card_requests = tls_server(body: JSON.generate(sample_discovery_card(interface_url, tenant: "invoices")))
+    card_origin = "https://trusted.example:#{card_port}"
+    rpc_origin = "https://trusted.example:#{rpc_port}"
+    card_calls, rpc_calls = 0, 0
+
+    resolver = A2A::Rails::Client::AgentCardResolver.new(
+      agent_card_url: "#{card_origin}/.well-known/agent-card.json",
+      policy: @policy,
+      transport: transport,
+      card_authorization: -> { card_calls += 1; "Bearer card-scope" },
+      card_credential_origin: card_origin,
+      authorization: -> { rpc_calls += 1; "Bearer rpc-scope" },
+      credential_origin: rpc_origin
+    )
+
+    result = resolver.rpc(
+      method: "SendMessage",
+      params: { "message" => { "messageId" => "m1", "role" => "ROLE_USER", "parts" => [{ "text" => "hello" }] } },
+      id: "call-1"
+    )
+    assert_equal "remote-t1", result.dig("task", "id")
+    assert_equal 1, card_calls
+    assert_equal 1, rpc_calls
+    assert_predicate result, :frozen?
+
+    card_req = card_requests.pop
+    rpc_req = rpc_requests.pop
+    assert_equal "/.well-known/agent-card.json", card_req.fetch(:path)
+    assert_equal "Bearer card-scope", card_req.fetch(:headers).fetch("authorization")
+    assert_equal "GET", card_req.fetch(:method)
+    assert_equal "/tenant/agent-jsonrpc", rpc_req.fetch(:path)
+    assert_equal "POST", rpc_req.fetch(:method)
+    assert_equal "Bearer rpc-scope", rpc_req.fetch(:headers).fetch("authorization")
+    assert_equal "1.0", rpc_req.fetch(:headers).fetch("a2a-version")
+    wire = JSON.parse(rpc_req.fetch(:body))
+    assert_equal "SendMessage", wire.fetch("method")
+    assert_equal "invoices", wire.fetch("params").fetch("tenant")
+    assert_equal ["https://trusted.example:#{card_port}/.well-known/agent-card.json",
+                  interface_url, interface_url], @policy.resolved_urls
+  end
+
+  def test_real_https_agent_card_redirect_does_not_get_followed
+    port, requests = tls_server(status: "302 Found",
+      headers: { "Location" => "https://other.example/a2a" })
+    resolver = A2A::Rails::Client::AgentCardResolver.new(
+      agent_card_url: "https://trusted.example:#{port}/.well-known/agent-card.json",
+      policy: @policy, transport: transport
+    )
+    assert_raises(Transport::RedirectBlocked) { resolver.discover }
+    assert_equal "/.well-known/agent-card.json", requests.pop.fetch(:path)
+    assert_equal 1, @policy.resolved_urls.size
+  end
+
+  def test_real_https_rpc_credential_origin_mismatch_fails_before_posting
+    rpc_port, rpc_requests = tls_server(body: "{}")
+    rpc_url = "https://trusted.example:#{rpc_port}/a2a"
+    card_port, card_requests = tls_server(body: JSON.generate(sample_discovery_card(rpc_url)))
+    called = false
+    resolver = A2A::Rails::Client::AgentCardResolver.new(
+      agent_card_url: "https://trusted.example:#{card_port}/.well-known/agent-card.json",
+      policy: @policy, transport: transport,
+      authorization: -> { called = true; "Bearer local-only" },
+      credential_origin: "https://trusted.example:9"
+    )
+    assert_raises(Transport::Error) { resolver.rpc(method: "GetTask", params: { "id" => "remote-1" }, id: 1) }
+    refute called
+    assert_equal "GET", card_requests.pop.fetch(:method)
+    assert_empty rpc_requests
+  end
+
+  def sample_discovery_card(interface_url, tenant: nil)
+    selected = {
+      "url" => interface_url,
+      "protocolBinding" => "JSONRPC",
+      "protocolVersion" => "1.0"
+    }
+    selected["tenant"] = tenant unless tenant.nil?
+    {
+      "name" => "Echo Agent",
+      "description" => "Example for HTTPS discovery",
+      "version" => "1.0",
+      "supportedInterfaces" => [selected],
+      "capabilities" => { "streaming" => false },
+      "defaultInputModes" => ["text/plain"],
+      "defaultOutputModes" => ["text/plain"],
+      "skills" => [{ "id" => "echo", "name" => "Echo", "description" => "Echo", "tags" => ["test"] }]
+    }
   end
 
   private
