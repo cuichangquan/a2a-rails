@@ -145,6 +145,23 @@ class ClientPinnedHttpsTransportTest < Minitest::Test
     refute invoked
   end
 
+  def test_unsafe_ipv6_dns_denies_before_credential_callback
+    strict = Policy.new(
+      allowed_origins: ["https://trusted.example"],
+      resolver: ->(_host) { ["2600:1900:4240:200::", "8.8.8.8", "fe80::1"] }
+    )
+    invoked = false
+    error = assert_raises(Policy::RejectedTarget) do
+      Transport.new(policy: strict).get_json(
+        url: "https://trusted.example/card",
+        authorization: -> { invoked = true; "Bearer must-not-run" },
+        credential_origin: "https://trusted.example"
+      )
+    end
+    assert_equal :blocked_ip, error.reason
+    refute invoked
+  end
+
   def test_real_https_redirect_is_blocked_not_followed
     port, requests = tls_server(status: "302 Found",
       headers: { "Location" => "http://169.254.169.254/latest/meta-data" },
