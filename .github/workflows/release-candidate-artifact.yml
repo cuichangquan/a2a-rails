@@ -192,7 +192,6 @@ jobs:
       BUNDLE_JOBS: "4"
       BUNDLE_RETRY: "3"
       A2A_RAILS_SOURCE_ROOT: ${{ github.workspace }}
-      CANDIDATE_GEM_FILE: ${{ runner.temp }}/rc/a2a-rails-0.2.0.rc2.gem
     steps:
       - uses: actions/checkout@v4
       - uses: ruby/setup-ruby@v1
@@ -209,9 +208,11 @@ jobs:
           cd "$RUNNER_TEMP/rc"
           sha256sum -c SHA256SUMS
           echo "CANDIDATE_GEM_SHA256=$(sha256sum a2a-rails-0.2.0.rc2.gem | cut -d ' ' -f 1)" >> "$GITHUB_ENV"
-          gem install --no-document "$CANDIDATE_GEM_FILE"
+          gem install --no-document "$RUNNER_TEMP/rc/a2a-rails-0.2.0.rc2.gem"
           gem install --no-document rails -v "$TARGET_RAILS"
           pg_config --version
       - name: Verify clean production Rails host (no patch), migration, HTTP and DB durability
         shell: bash
+        env:
+          CANDIDATE_GEM_FILE: ${{ runner.temp }}/rc/a2a-rails-0.2.0.rc2.gem
         run: ruby spikes/clean_host_postgres/smoke.rb
