@@ -157,6 +157,7 @@ class ClientPinnedHttpsTransportTest < Minitest::Test
       )
     end
     assert_equal :connection_failed, error.reason
+    assert_nil error.cause
     assert_empty requests
   end
 
@@ -167,7 +168,59 @@ class ClientPinnedHttpsTransportTest < Minitest::Test
       transport.get_json(url: "https://trusted.example:#{port}/card")
     end
     assert_equal :connection_failed, error.reason
+    assert_nil error.cause
     assert_empty requests
+  end
+
+  def test_total_deadline_includes_slow_dns_resolution
+    # An actual production policy is used, with only DNS stubbed. The
+    # resolver must not swallow Timeout::Error as an ordinary DNS failure.
+    strict = Policy.new(
+      allowed_origins: ["https://trusted.example"],
+      resolver: ->(_host) { sleep 0.4; ["8.8.8.8"] }
+    )
+    error = assert_raises(Transport::DeadlineExceeded) do
+      Transport.new(policy: strict, total_timeout: 0.05).get_json(
+        url: "https://trusted.example/card"
+      )
+    end
+    assert_equal :timeout, error.reason
+    assert_nil error.cause
+  end
+
+  def test_total_deadline_includes_credential_provider_and_does_not_mask_timeout
+    url = "https://trusted.example:443/card"
+    callback_count = 0
+    error = assert_raises(Transport::DeadlineExceeded) do
+      transport(total_timeout: 0.05).get_json(
+        url: url,
+        authorization: -> { callback_count += 1; sleep 0.4; "Bearer secret-token" },
+        credential_origin: "https://trusted.example:443"
+      )
+    end
+    assert_equal :timeout, error.reason
+    assert_equal 1, callback_count
+    assert_nil error.cause
+    refute_includes error.message, "secret-token"
+  end
+
+  def test_malformed_content_length_is_not_treated_as_zero
+    port, requests = tls_server(body: '{}', headers: { "Content-Length" => "invalid" })
+    error = assert_raises(Transport::InvalidResponse) do
+      transport.get_json(url: "https://trusted.example:#{port}/card")
+    end
+    assert_equal :invalid_content_length, error.reason
+    assert_equal "/card", requests.pop.fetch(:path)
+  end
+
+  def test_invalid_json_error_does_not_expose_original_parser_exception_as_cause
+    port, _requests = tls_server(body: '{"private":"secret-token", INVALID}')
+    error = assert_raises(Transport::InvalidResponse) do
+      transport.get_json(url: "https://trusted.example:#{port}/card")
+    end
+    assert_equal :invalid_json, error.reason
+    assert_nil error.cause
+    refute_includes error.message, "secret-token"
   end
 
   def test_real_https_total_timeout_on_slow_response
