@@ -197,6 +197,7 @@ jobs:
     env:
       TARGET_RAILS: ${{ matrix.rails }}
       A2A_TEST_INFLECTION: ${{ matrix.inflection }}
+      A2A_RAILS_EXPECTED_VERSION: "0.2.0"
       DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/a2a_rails_test
       RAILS_ENV: production
       RACK_ENV: production
