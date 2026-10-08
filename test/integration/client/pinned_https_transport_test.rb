@@ -129,6 +129,22 @@ class ClientPinnedHttpsTransportTest < Minitest::Test
     assert_empty requests
   end
 
+  def test_mixed_dns_is_rejected_before_credential_callback
+    strict = Policy.new(
+      allowed_origins: ["https://trusted.example"],
+      resolver: ->(_host) { ["8.8.8.8", "169.254.169.254"] }
+    )
+    invoked = false
+    assert_raises(Policy::RejectedTarget) do
+      Transport.new(policy: strict).get_json(
+        url: "https://trusted.example/card",
+        authorization: -> { invoked = true; "Bearer should-not-be-used" },
+        credential_origin: "https://trusted.example"
+      )
+    end
+    refute invoked
+  end
+
   def test_real_https_redirect_is_blocked_not_followed
     port, requests = tls_server(status: "302 Found",
       headers: { "Location" => "http://169.254.169.254/latest/meta-data" },
