@@ -5,14 +5,15 @@
 
 Rails-native integration for exposing Rails applications as A2A v1.0 agents.
 
-> **Status:** v0.1.0 is the published RubyGems release. Current `main` is being prepared as **`0.2.0.rc2`** after Steps 21–22 added the optional durable ActiveRecord Task Store and opt-in ActiveJob Task execution. The historical `0.2.0.rc1` artifact remains historical-only evidence. `rc2` is a verification candidate, **not published** and not authorization for a tag/GitHub Release/RubyGems push.
+> **Release status (2026-10-08):** RubyGems has published **`0.1.0`** and the **`0.2.0.rc2` pre-release**. The current source is being verified as an **unpublished `0.2.0` stable candidate** (Step 26-4). In particular, the Rails/Zeitwerk and migration-generator fixes after rc2 are only in the newer source-built candidate. **No stable `0.2.0` tag, GitHub Release, or RubyGems publication has been authorized.**
 
 - RubyGems: https://rubygems.org/gems/a2a-rails
-- GitHub Release: https://github.com/cuichangquan/a2a-rails/releases/tag/v0.1.0
+- Published pre-release: https://github.com/cuichangquan/a2a-rails/releases/tag/v0.2.0-rc.2 (stable `0.2.0` not yet released)
+- Previous stable release: https://github.com/cuichangquan/a2a-rails/releases/tag/v0.1.0
 - Changelog: [CHANGELOG.md](CHANGELOG.md)
 - Release record: [docs/release/v0.1.0-record.md](docs/release/v0.1.0-record.md)
 - **Release readiness:** [current release/deployment checklist](docs/release/security-hardening-release-checklist.md) · [v0.1.0 → proposed v0.2 upgrade guide](docs/release/upgrading-v0.1.0-to-v0.2.md). The old rc1 record is historical evidence only.
-- **Roadmap / 次にやること:** [ROADMAP.md](ROADMAP.md) — Step 23 / [Issue #54](https://github.com/cuichangquan/a2a-rails/issues/54) prepares and verifies `0.2.0.rc2` without publishing. Deployment security [#11](https://github.com/cuichangquan/a2a-rails/issues/11) remains open.
+- **Roadmap / 次にやること:** [ROADMAP.md](ROADMAP.md) — [Step 26 / Issue #62](https://github.com/cuichangquan/a2a-rails/issues/62) tracks the `0.2.0` stable candidate and release gates; [production Issue #11](https://github.com/cuichangquan/a2a-rails/issues/11) remains open. See [stable-readiness record](docs/release/v0.2.0-stable-readiness.md).
 - **Official A2A TCK results:** [Pinned JSON-RPC MUST report and reproduction](docs/testing/official-a2a-tck.md) — after Step 17-4: **63 passed / 1 failed / 171 skipped / 30 deselected** (pytest). The remaining `CORE-SEND-003` mismatch is tracked [upstream in #202](https://github.com/a2aproject/a2a-tck/issues/202). The TCK workflow is informational, **not** an A2A conformance certificate.
 
 - [A2Aの全体像（日本語・A4 1枚PDF）](docs/guides/a2a-protocol-overview-ja.pdf) — 登場人物・依頼の流れ・主要用語・MCPとの違いをまとめた学習資料。
@@ -67,7 +68,7 @@ v0.1 is intentionally **server-first** and **non-streaming**.
 - A2A protocol version `1.0`
 - `agent2agent ~> 2.0.0`
 
-The v0.1.0 release is verified against:
+The original v0.1.0 baseline was verified against:
 
 - Ruby 3.3 / 3.4 / 4.0
 - Rails 8.0 / 8.1
@@ -273,13 +274,13 @@ The Rails Engine is mounted automatically.
 
 The unreleased `main` branch includes a host-provided `config.authenticate_request` callback for `POST /a2a`, plus per-principal Task ownership checks. Without an authenticator, production and other non-development/test environments fail closed; the local development/test Quick Start remains available. See [Authentication guide](docs/guides/authentication.md).
 
-> **Important:** These protections are **not yet shipped in RubyGems 0.1.0** and do not make an endpoint production-secure by themselves. Distributed rate limits, business authorization and the deployment review remain tracked in [Issue #11](https://github.com/cuichangquan/a2a-rails/issues/11).
+> **Important:** These protections are **absent from RubyGems 0.1.0** but included in the published `0.2.0.rc2` pre-release; the stable candidate has additional fixes. Neither pre-release nor stable source automatically makes a deployed endpoint production-secure. Distributed rate limits, business authorization and the deployment review remain tracked in [Issue #11](https://github.com/cuichangquan/a2a-rails/issues/11).
 
 ### Step 16-4 request hardening (merged on main; unreleased)
 
 The unreleased main branch adds a bounded JSON-RPC body (`config.max_request_bytes`, default 1 MiB), Content-Type validation, stricter parameter checks, a pagination snapshot cap, and reduced exception logging. See [Request Hardening Guide](docs/guides/request-hardening.md).
 
-Rate limiting, application-specific authorization and production deployment safeguards remain the host's responsibility or future work. Step 16-5 adds explicit A2A Agent Card Bearer authentication advertisement on unreleased `main`; it must match the host verifier. **These improvements are not included in the published v0.1.0 Gem.**
+Rate limiting, application-specific authorization and production deployment safeguards remain the host's responsibility or future work. Step 16-5 adds explicit A2A Agent Card Bearer authentication advertisement on unreleased `main`; it must match the host verifier. **These improvements are not included in the published v0.1.0 Gem; see the later rc2 pre-release and current stable candidate.**
 
 ### Production deployment review (Step 16-6)
 
@@ -492,7 +493,7 @@ See [docs/release/v0.1.0-record.md](docs/release/v0.1.0-record.md) for the compl
 - [Final Ruby/Rails regression CI](https://github.com/cuichangquan/a2a-rails/actions/runs/37576849516) — **13/13 PASS**.
 - [Interop test code, reproduction and limitations](docs/testing/cross-language-interop.md).
 
-This is **unreleased source**, not RubyGems v0.1.0; these tests do not certify full A2A interoperability or public-production safety.
+This evidence applies to the later source/pre-release line, not RubyGems v0.1.0; these tests do not certify full A2A interoperability or public-production safety.
 
 ## Test Strategy
 
