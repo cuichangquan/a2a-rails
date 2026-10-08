@@ -10,6 +10,8 @@ on:
       - "config/**"
       - "test/**"
       - ".github/workflows/release-candidate-artifact.yml"
+      - "spikes/clean_host_postgres/**"
+      - "spikes/published_gem_postgres/probe.rb"
       - "docs/release/**"
       - "CHANGELOG.md"
       - "README.md"
@@ -22,6 +24,8 @@ on:
       - "config/**"
       - "test/**"
       - ".github/workflows/release-candidate-artifact.yml"
+      - "spikes/clean_host_postgres/**"
+      - "spikes/published_gem_postgres/probe.rb"
       - "docs/release/**"
       - "CHANGELOG.md"
       - "README.md"
@@ -154,3 +158,61 @@ jobs:
           set -euo pipefail
           host="$RUNNER_TEMP/clean-host"
           BUNDLE_GEMFILE="$host/Gemfile"             bundle exec ruby "$GITHUB_WORKSPACE/test/support/production_security_http_smoke.rb"
+
+  installed-artifact-clean-postgres:
+    needs: build-candidate
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        rails: ["~> 8.0.0", "~> 8.1.0"]
+        inflection: ["default", "acronym"]
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: a2a_rails_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d a2a_rails_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      TARGET_RAILS: ${{ matrix.rails }}
+      A2A_TEST_INFLECTION: ${{ matrix.inflection }}
+      DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/a2a_rails_test
+      RAILS_ENV: production
+      RACK_ENV: production
+      SECRET_KEY_BASE: issue-65-clean-production-smoke-test-only
+      BUNDLE_JOBS: "4"
+      BUNDLE_RETRY: "3"
+      A2A_RAILS_SOURCE_ROOT: ${{ github.workspace }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.4.10"
+      - uses: actions/download-artifact@v4
+        with:
+          name: a2a-rails-0.2.0.rc2-candidate
+          path: ${{ runner.temp }}/rc
+      - name: Verify the same exact candidate used by release verification
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP/rc"
+          sha256sum -c SHA256SUMS
+          echo "CANDIDATE_GEM_SHA256=$(sha256sum a2a-rails-0.2.0.rc2.gem | cut -d ' ' -f 1)" >> "$GITHUB_ENV"
+          gem install --no-document "$RUNNER_TEMP/rc/a2a-rails-0.2.0.rc2.gem"
+          gem install --no-document rails -v "$TARGET_RAILS"
+          pg_config --version
+      - name: Verify clean production Rails host (no patch), migration, HTTP and DB durability
+        shell: bash
+        env:
+          CANDIDATE_GEM_FILE: ${{ runner.temp }}/rc/a2a-rails-0.2.0.rc2.gem
+        run: ruby spikes/clean_host_postgres/smoke.rb

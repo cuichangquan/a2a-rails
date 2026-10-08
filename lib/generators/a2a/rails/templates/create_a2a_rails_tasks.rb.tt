@@ -1,4 +1,4 @@
-class CreateA2aRailsTasks < ActiveRecord::Migration[8.0]
+class <%= ::ActiveSupport::Inflector.camelize("create_a2a_rails_tasks") %> < ActiveRecord::Migration[8.0]
   def change
     create_table :a2a_rails_tasks do |t|
       t.string :task_id, null: false

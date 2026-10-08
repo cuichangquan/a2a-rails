@@ -14,6 +14,15 @@ module A2A
     class Engine < ::Rails::Engine
       isolate_namespace A2A::Rails
 
+      # The Gem's app/controllers/a2a/... files define A2A, not A2a.
+      # Override only the exact Zeitwerk basename, rather than mutating the
+      # host's global ActiveSupport inflections (used by migrations).
+      initializer "a2a-rails.zeitwerk_inflection" do
+        ::Rails.autoloaders.each do |loader|
+          loader.inflector.inflect("a2a" => "A2A")
+        end
+      end
+
       initializer "a2a-rails.mount_engine" do |app|
         app.routes.append do
           mount A2A::Rails::Engine => "/"
