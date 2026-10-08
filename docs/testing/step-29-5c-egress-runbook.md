@@ -1,5 +1,7 @@
 # Step 29-5c — controlled public egress execution runbook
 
+**Controlled Echo server deployment:** [Cloud Run private-first deploy / temporary public access / teardown](step-29-5c-cloud-run-echo-deployment.md). The deployment is a separate operator action and has not been performed.
+
 This is a **manual, protected** probe. Merging its workflow does not establish passing public HTTPS evidence. The release gate remains **NO-GO** until the documented run succeeds and the remaining security checks are reviewed.
 
 ## Operator prerequisites
