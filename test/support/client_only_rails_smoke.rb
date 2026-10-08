@@ -13,7 +13,8 @@ module ClientOnlyRailsSmoke
     config.secret_key_base = "client-only-rails-smoke-secret"
     config.hosts.clear
     config.logger = Logger.new(nil)
-    config.action_dispatch.show_exceptions = :none
+    # Return a real 404 for an unmounted route instead of raising RoutingError.
+    config.action_dispatch.show_exceptions = :all
   end
 
   module_function
