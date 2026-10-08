@@ -1,8 +1,8 @@
 # a2a-rails Roadmap
 
-> Status: planning / proposals as of 2026-10-07. These are priorities, not promised release dates or API commitments.
+> Status: updated 2026-10-08 through Step 26 planning. These are priorities, not promised release dates or API commitments.
 >
-> **Step 21 complete:** [Issue #35](https://github.com/cuichangquan/a2a-rails/issues/35) delivered an optional durable ActiveRecord Task Store, owner-scoped SQL access, row locking, keyset pagination, retention/pruning/quota/payload maintenance, shared Store contract tests and PostgreSQL 16 durability/locking smoke. [Design](docs/design/active-record-task-store.md) · [Guide](docs/guides/active-record-task-store.md). Step 20's `0.2.0.rc1` artifact is now **historical only**; current main requires a newly versioned/reverified candidate before publication.
+> **Step 21 complete:** [Issue #35](https://github.com/cuichangquan/a2a-rails/issues/35) delivered an optional durable ActiveRecord Task Store, owner-scoped SQL access, row locking, keyset pagination, retention/pruning/quota/payload maintenance, shared Store contract tests and PostgreSQL 16 durability/locking smoke. [Design](docs/design/active-record-task-store.md) · [Guide](docs/guides/active-record-task-store.md). Step 20's `0.2.0.rc1` artifact is historical only; [`0.2.0.rc2`](https://github.com/cuichangquan/a2a-rails/releases/tag/v0.2.0-rc.2) was subsequently verified and published as a **pre-release**. [Step 26](docs/release/v0.2.0-stable-readiness.md) now tracks stable-release evidence separately from the open public-production security [Issue #11](https://github.com/cuichangquan/a2a-rails/issues/11).
 
 ## Current baseline — v0.1.0 (released)
 
@@ -23,7 +23,7 @@
 | P1 | 6 | GitHub Issues organization | Create focused issues for approved upcoming changes, with acceptance criteria | Now | Planned |
 | P1 | 7 | [ActiveRecord Task Store](https://github.com/cuichangquan/a2a-rails/issues/35) | Durable owner-scoped Tasks across workers/restarts + lifecycle maintenance | next v0.2 candidate | **Complete — PRs #36–#39** |
 | P1 | 8 | [ActiveJob Task execution](https://github.com/cuichangquan/a2a-rails/issues/41) | Run long-running Tasks asynchronously with explicit lifecycle semantics | next v0.2 candidate | **Complete — Steps 22-1–22-10** |
-| P0 | 8.5 | [v0.2.0.rc2 candidate verification](https://github.com/cuichangquan/a2a-rails/issues/54) | Fresh exact-candidate verification after Steps 21–22 | v0.2.0.rc2 | **Step 23 in progress — no publication** |
+| P0 | 8.5 | [v0.2.0.rc2 candidate verification](https://github.com/cuichangquan/a2a-rails/issues/54) | Fresh exact-candidate verification after Steps 21–22 | v0.2.0.rc2 | **Steps 23–25 complete — rc2 published and verified** |
 | P1 | 9 | A2A Client | Call remote A2A Agents from Rails | v0.3 proposal | Planned |
 | P2 | 10 | SSE Streaming | Stream Task status/results over A2A-compatible transport | v0.4 proposal | Planned |
 | P2 | 11 | Human-in-the-loop | Model INPUT_REQUIRED / AUTH_REQUIRED flows and resume safely | v0.5 proposal | Planned |
@@ -169,3 +169,11 @@ Completed on `main` (unreleased; **not** part of RubyGems v0.1.0):
 - Published-Gem local clean Bundler install/load/version smoke **PASS** on Ruby 3.4.1 / Rails 8.1.4; this smoke does **not** assert new HTTP Task lifecycle coverage.
 - [Final Step 25 publication and verification record](docs/release/v0.2.0-rc.2-record.md) · [release notes](docs/release/v0.2.0-rc.2-release-notes.md) · [publication runbook](docs/release/v0.2.0-rc.2-publication-runbook.md).
 - **Next focus:** choose next stable-release criteria and separately review actual production host/deployment controls in [Issue #11](https://github.com/cuichangquan/a2a-rails/issues/11). Candidate publication does not approve public production.
+
+## Step 26 — v0.2.0 stable-release readiness and production verification (planning)
+
+- [Issue #62](https://github.com/cuichangquan/a2a-rails/issues/62) and [release gate matrix](docs/release/v0.2.0-stable-readiness.md) track the next actions after rc2 pre-release publication.
+- **First priority (26-1):** install the **published** `0.2.0.rc2` artifact in clean PostgreSQL-backed Rails 8.0/8.1 hosts; prove migration, cross-process/restart-safe owner-isolated Task operations, and bounded retention/pruning. Previous PostgreSQL source CI and installed-Gem security CI passed separately and do **not** fill this exact evidence gap.
+- **Then (26-2/26-3):** production-shaped negative token/tenant tests, safe logging, durable queue failure/recovery and idempotency contract.
+- **Finally (26-4):** complete compatibility and exact-stable-artifact verification before a separate publication approval. Stable `0.2.0` is **not yet approved or published**.
+- [Issue #11](https://github.com/cuichangquan/a2a-rails/issues/11) remains **OPEN** for real-host authentication/authorization, ingress/rate/concurrency budgets, operated DB/queue, logging and recovery. A stable Gem release **never automatically grants a public-production GO**.

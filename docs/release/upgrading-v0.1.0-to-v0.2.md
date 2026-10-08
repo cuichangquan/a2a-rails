@@ -1,6 +1,6 @@
-# Upgrading from a2a-rails v0.1.0 to the proposed v0.2 line
+# Upgrading from a2a-rails v0.1.0 to the v0.2 line
 
-> The v0.2 line is **not released yet**. Current main now includes Step 21 runtime changes after the historical `0.2.0.rc1` verification, so there is **no current approved release candidate**. Keep using the published v0.1.0 documentation unless you intentionally test source main.
+> **`0.2.0.rc2` was published as a pre-release on 2026-10-08.** The stable `0.2.0` release is not yet published or authorized. rc2 includes the Steps 16–22 changes described here; validate your host configuration before upgrading. See [Step 25 publication](v0.2.0-rc.2-record.md) and [Step 26 stable-readiness gates](v0.2.0-stable-readiness.md).
 
 ## Why this is not treated as a patch-only upgrade
 
@@ -70,7 +70,7 @@ If your v0.1.0 application assumed one shared process-wide Task namespace, updat
 
 MemoryStore remains the default and is appropriate for local development or single-process experiments. It is not restart-safe and is not shared across Rails workers.
 
-For durable Task state on current unreleased main:
+For durable Task state with the `0.2.0.rc2` pre-release or compatible source:
 
 ```bash
 bin/rails generate a2a:rails:task_store
@@ -138,12 +138,9 @@ See [Production security](../guides/production-security.md).
 
 ## 9. Release status
 
-Until a **new post-Step-21 candidate** is versioned, built and approved:
-
-- RubyGems latest remains **0.1.0**;
-- source main is **unreleased**;
-- the historical `0.2.0.rc1` verification must not be used as publication evidence for current main;
-- a new candidate must rerun artifact, PostgreSQL, security, Python/Go and TCK verification;
-- do not report source-only features as present in v0.1.0.
+- Stable RubyGems baseline: **`0.1.0`**; published pre-release: **`0.2.0.rc2`**.
+- The pre-release was verified and published in Steps 23–25; do not confuse the historical `0.2.0.rc1` checks with rc2 evidence.
+- Stable `0.2.0` has **not** been approved or published; see [Step 26](v0.2.0-stable-readiness.md) for outstanding installed-artifact DB-host and security verification.
+- The presence of these features in rc2 does **not** approve any particular public production deployment; [Issue #11](https://github.com/cuichangquan/a2a-rails/issues/11) remains open.
 
 See the [current release/deployment checklist](security-hardening-release-checklist.md).

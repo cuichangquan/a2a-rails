@@ -4,6 +4,7 @@ Last reviewed: **2026-10-08 (Step 25 publication verification)**
 Baseline stable release: **a2a-rails 0.1.0** (2026-10-06); newest published candidate: **0.2.0.rc2** (2026-10-08)  
 Current main: includes Steps 16–23, including optional durable ActiveRecord Task Store and opt-in ActiveJob Task execution; later changes after the Step 23 verified commit were docs-only.  
 Release-candidate status: **`0.2.0.rc2` has been published as GitHub pre-release and RubyGems release candidate; public fetched Gem SHA256 and fresh Rails 8.1.4 load smoke PASS**. See [Step 25 publication record](v0.2.0-rc.2-record.md).
+Stable-release planning: **[Step 26 readiness matrix](v0.2.0-stable-readiness.md) / [Issue #62](https://github.com/cuichangquan/a2a-rails/issues/62)** now track the unproven installed-artifact PostgreSQL-host smoke, integration security cases and exact stable-release gates; **production Issue #11 remains OPEN**.
 
 > The historical `0.2.0.rc1` artifact verified in Step 20 predates Step 21 and Step 22 runtime changes. Its commit/SHA evidence remains valid for that exact historical tree only and **must not be reused**. Step 23 completed fresh exact-candidate verification for `0.2.0.rc2`, recorded in [Issue #54](https://github.com/cuichangquan/a2a-rails/issues/54).
 
