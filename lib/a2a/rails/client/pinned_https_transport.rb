@@ -181,7 +181,13 @@ module A2A
             raise Error, :credential_origin_mismatch
           end
 
-          value = callback.call
+          value = begin
+            callback.call
+          rescue StandardError
+            # Host token-provider exceptions may embed credentials. Never
+            # surface them as the transport's public-facing error/cause.
+            raise Error.new(:credential_failure), cause: nil
+          end
           unless value.is_a?(String) && !value.empty? && value.bytesize <= MAX_CREDENTIAL_BYTES &&
               !value.match?(/[\r\n\x00-\x1f\x7f]/)
             raise Error, :invalid_credential
