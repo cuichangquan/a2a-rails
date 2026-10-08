@@ -5,6 +5,7 @@ on:
     paths:
       - ".github/workflows/a2a-outbound-public-egress.yml"
       - "spikes/a2a_client_v03/public_https_probe.rb"
+      - "spikes/a2a_client_v03/public_https_preflight.rb"
   workflow_dispatch:
 
 permissions:
@@ -20,8 +21,17 @@ jobs:
         with:
           ruby-version: "3.4"
           bundler-cache: false
-      - name: Verify probe Ruby syntax without making any network request
-        run: ruby -c spikes/a2a_client_v03/public_https_probe.rb
+      - name: Verify probe syntax and fail-closed setup without network
+        shell: bash
+        run: |
+          set -euo pipefail
+          ruby -c spikes/a2a_client_v03/public_https_probe.rb
+          ruby -c spikes/a2a_client_v03/public_https_preflight.rb
+          # Approval must be checked BEFORE Ruby loads libraries or opens a socket.
+          if A2A_PUBLIC_EGRESS_APPROVED= ruby -Ilib spikes/a2a_client_v03/public_https_preflight.rb >/dev/null 2>&1; then
+            echo "FAIL: preflight unexpectedly accepted an unapproved endpoint"
+            exit 1
+          fi
 
   controlled-public-egress:
     # Never run external requests in untrusted PR code, even if a PR modifies
@@ -47,4 +57,5 @@ jobs:
         run: |
           set -euo pipefail
           test "$A2A_PUBLIC_EGRESS_APPROVED" = "controlled-endpoint-no-auth"
+          bundle exec ruby -Ilib spikes/a2a_client_v03/public_https_preflight.rb
           bundle exec ruby -Ilib spikes/a2a_client_v03/public_https_probe.rb
