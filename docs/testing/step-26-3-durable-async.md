@@ -3,7 +3,7 @@
 Date: **2026-10-08**  
 Scope: **A3 release gate** in [Issue #62](https://github.com/cuichangquan/a2a-rails/issues/62).  
 Implementation: [PR #68](https://github.com/cuichangquan/a2a-rails/pull/68) — [failure injection smoke](../../spikes/queue_adapters/failure_smoke.rb).  
-CI: [ActiveJob queue adapter compatibility workflow](../../.github/workflows/queue-adapters.yml) (Rails 8.0/8.1 × Solid Queue 1.2/Sidekiq 7.3; recorded run URL to be added after PASS).
+CI: [ActiveJob queue adapter compatibility #37718397716](https://github.com/cuichangquan/a2a-rails/actions/runs/37718397716) — **4/4 PASS** (Rails 8.0/8.1 × Solid Queue 1.2/Sidekiq 7.3).
 
 ## What this test *does* exercise
 
