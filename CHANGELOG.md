@@ -4,9 +4,9 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.2.0] - 2026-10-08 (stable candidate source; NOT published)
+## [0.2.0] - 2026-10-08 (published stable release)
 
-> **Step 26-4 release preparation only.** Version `0.2.0` has been selected for an exact, source-built candidate. No `v0.2.0` Git tag, GitHub Release, or RubyGems push has been authorized. The published `0.2.0.rc2` pre-release is immutable and **does not include the subsequent fixes** below.
+> **Published in Step 27 after explicit approval.** [GitHub Release](https://github.com/cuichangquan/a2a-rails/releases/tag/v0.2.0) and [RubyGems 0.2.0](https://rubygems.org/gems/a2a-rails/versions/0.2.0) contain the exact verified artifact, with no rebuild. See the [publication record](docs/release/v0.2.0-publication-record.md) for its SHA256 and public-download verification. The immutable `0.2.0.rc2` pre-release **does not include the subsequent fixes** below.
 
 ### Added
 
