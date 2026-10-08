@@ -71,7 +71,7 @@ class StrictProbeIngress:
         headers = dict(scope.get("headers", []))
         length = headers.get(b"content-length", b"")
         if length:
-            if not length.isascii() or not length.isdigit():
+            if len(length) > 9 or not length.isascii() or not length.isdigit():
                 return await self.reject(send, 400)
             if int(length) > MAX_BODY_BYTES:
                 return await self.reject(send, 413)
