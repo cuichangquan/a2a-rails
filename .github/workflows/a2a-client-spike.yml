@@ -1,0 +1,99 @@
+name: Step 29-1 outgoing A2A SDK Client spike
+
+on:
+  pull_request:
+    paths:
+      - "spikes/a2a_client_v03/**"
+      - ".github/workflows/a2a-client-spike.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  published-demo-client:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      RAILS_ENV: test
+      RACK_ENV: test
+      RAILS_MAX_THREADS: "1"
+      WEB_CONCURRENCY: "0"
+      A2A_CLIENT_PROBE_BASE: http://127.0.0.1:3000
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.4.10"
+          bundler-cache: false
+
+      - name: Checkout fixed independent Rails Demo revision
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/a2a-rails-demo"
+          cd "$RUNNER_TEMP/a2a-rails-demo"
+          git init -q
+          git remote add origin https://github.com/cuichangquan/a2a-rails-demo.git
+          git fetch --depth 1 origin 7cb002a63d6cc976b1562ee45e8a260771d7ef1d
+          git checkout --detach -q FETCH_HEAD
+          test "$(git rev-parse HEAD)" = "7cb002a63d6cc976b1562ee45e8a260771d7ef1d"
+
+      - name: Install published Gem through Demo bundle
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP/a2a-rails-demo"
+          bundle install --jobs 4 --retry 3
+          bundle exec ruby -e '
+            require "bundler"
+            require "a2a-rails"
+            spec = Gem.loaded_specs.fetch("a2a-rails")
+            source = Bundler.load.specs.find { |candidate| candidate.name == "a2a-rails" }.source
+            abort "wrong Gem #{spec.version}" unless spec.version.to_s == "0.2.0"
+            abort "not RubyGems" unless source.is_a?(Bundler::Source::Rubygems)
+            puts "PASS: published a2a-rails 0.2.0 via RubyGems"
+          '
+
+      - name: Start isolated Rails Echo Server
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP/a2a-rails-demo"
+          bundle exec rails server -b 127.0.0.1 -p 3000 > "$RUNNER_TEMP/a2a-step29-demo.log" 2>&1 &
+          echo "$!" > "$RUNNER_TEMP/a2a-step29-demo.pid"
+          for attempt in $(seq 1 60); do
+            if curl -fsS http://127.0.0.1:3000/.well-known/agent-card.json >/dev/null 2>&1; then
+              exit 0
+            fi
+            if ! kill -0 "$(cat "$RUNNER_TEMP/a2a-step29-demo.pid")" 2>/dev/null; then
+              tail -n 100 "$RUNNER_TEMP/a2a-step29-demo.log"
+              exit 1
+            fi
+            sleep 1
+          done
+          tail -n 100 "$RUNNER_TEMP/a2a-step29-demo.log"
+          exit 1
+
+      - name: Verify real A2A SDK Client requests
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP/a2a-rails-demo"
+          bundle exec ruby "$GITHUB_WORKSPACE/spikes/a2a_client_v03/client_probe.rb"
+
+      - name: Show demo diagnostics only on failure
+        if: failure()
+        shell: bash
+        run: |
+          if test -f "$RUNNER_TEMP/a2a-step29-demo.log"; then
+            tail -n 100 "$RUNNER_TEMP/a2a-step29-demo.log"
+          fi
+
+      - name: Stop Rails Demo
+        if: always()
+        shell: bash
+        run: |
+          if test -f "$RUNNER_TEMP/a2a-step29-demo.pid"; then
+            kill "$(cat "$RUNNER_TEMP/a2a-step29-demo.pid")" 2>/dev/null || true
+          fi
