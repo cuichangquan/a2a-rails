@@ -1,8 +1,8 @@
 # Step 16-4 — A2A HTTP request hardening
 
-> **Status:** Step 16-4 is merged into the unreleased `main` branch via [PR #16](https://github.com/cuichangquan/a2a-rails/pull/16). These safeguards are **not** included in published RubyGems `a2a-rails 0.1.0`.
+> **Distribution status:** Step 16-4 was introduced via [PR #16](https://github.com/cuichangquan/a2a-rails/pull/16). It is included in the **published `0.2.0.rc2` pre-release** and newer **unpublished `0.2.0` source candidate**, not in RubyGems `0.1.0`.
 >
-> **Security scope:** request input limits and data handling, **not** a guarantee that the server is production-ready. Production still requires verified authentication, business authorization, TLS, traffic controls, and the final deployment review tracked in [Issue #11](https://github.com/cuichangquan/a2a-rails/issues/11). Step 16-5 adds explicit Bearer Agent Card security advertisement on unreleased `main`.
+> **Security scope:** request input limits and data handling, **not** a guarantee that the server is production-ready. Production still requires verified authentication, business authorization, TLS, traffic controls, and the final deployment review tracked in [Issue #11](https://github.com/cuichangquan/a2a-rails/issues/11). Step 16-5 adds explicit Bearer Agent Card security advertisement in the published `0.2.0.rc2` pre-release.
 
 ## HTTP request boundary
 

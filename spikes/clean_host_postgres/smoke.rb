@@ -40,7 +40,7 @@ module CleanHostPostgresSmoke
 
   AGENT = <<~'RUBY'
     class EchoAgent < A2A::Rails::Agent
-      name "Published rc2 PostgreSQL Echo Agent"
+      name "Installed candidate PostgreSQL Echo Agent"
       description "Step 26-1 isolated installed-Gem smoke"
       version "1.0"
 
@@ -93,7 +93,7 @@ module CleanHostPostgresSmoke
 
       gem "rails", "#{ENV.fetch('TARGET_RAILS')}"
       gem "pg", ">= 1.5", "< 3"
-      gem "a2a-rails", "= 0.2.0.rc2"
+      gem "a2a-rails", "= #{ENV.fetch('A2A_RAILS_EXPECTED_VERSION', '0.2.0.rc2')}"
     GEMFILE
 
     run!("bundle", "install", chdir: host)
@@ -214,7 +214,7 @@ module CleanHostPostgresSmoke
       assert(after.include?("expired=0"), "post-prune stats still show expired Tasks")
 
       runner!(host, "final", state)
-      puts "Issue #65 clean-host artifact / #{ENV.fetch("A2A_TEST_INFLECTION", "default")}: PASS"
+      puts "Exact installed Gem clean-host artifact / #{ENV.fetch("A2A_TEST_INFLECTION", "default")}: PASS"
     end
   end
 end

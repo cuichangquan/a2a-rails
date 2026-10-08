@@ -72,7 +72,8 @@ module PublishedGemPostgresProbe
 
   def verify_installed_gem
     spec = Gem.loaded_specs.fetch("a2a-rails")
-    assert(spec.version.to_s == "0.2.0.rc2", "not the expected released version")
+    assert(spec.version.to_s == ENV.fetch("A2A_RAILS_EXPECTED_VERSION", "0.2.0.rc2"),
+      "not the expected installed Gem version")
     if ENV["A2A_VERIFY_ENGINE_INFLECTION"] == "1"
       # A clean host must eager-load Gem controllers as A2A::Rails without
       # changing ActiveSupport's global inflections, including migration

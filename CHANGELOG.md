@@ -4,9 +4,33 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.2.0.rc2] - 2026-10-07 (release candidate source; not published)
+## [0.2.0] - 2026-10-08 (stable candidate source; NOT published)
 
-> Fresh candidate after Steps 21–22 runtime changes. Verification is tracked in [Issue #54](https://github.com/cuichangquan/a2a-rails/issues/54). No tag, GitHub Release, or RubyGems publication is authorized by this version change.
+> **Step 26-4 release preparation only.** Version `0.2.0` has been selected for an exact, source-built candidate. No `v0.2.0` Git tag, GitHub Release, or RubyGems push has been authorized. The published `0.2.0.rc2` pre-release is immutable and **does not include the subsequent fixes** below.
+
+### Added
+
+- A2A v1.0 **Task and optional direct Message** responses; explicit output File Parts through `FileArtifact.bytes` and `.url`.
+- **Opt-in ActiveRecordStore** with owner-scoped persistent Tasks, PostgreSQL locking, signed pagination cursors, generated migration, retention, bounded pruning, resource guards and maintenance statistics. **MemoryStore remains the default**.
+- **Opt-in ActiveJob async Task execution** with global / Agent / Skill configuration; durable Store + operated durable queue required for reliable multi-process use. Default processing stays synchronous; direct Message execution stays synchronous.
+- Host-owned HTTP Bearer authentication and corresponding Agent Card advertisement, fail-closed production endpoint behavior, principal-scoped Task operations, bounded request parsing and safer error handling. **The Gem does not implement the host's identity provider or business authorization.**
+- Source-built **installed-artifact** Rails 8.0/8.1 + PostgreSQL 16 production-host checks, realistic signed-token **test fixture** for negative authentication/tenant isolation, and Solid Queue/Sidekiq worker SIGKILL and duplicate delivery smoke. See [Step 26 release gates](docs/release/v0.2.0-stable-readiness.md).
+
+### Fixed
+
+- **Issue #65:** configure the Rails/Zeitwerk `a2a` basename as `A2A` in the Engine without mutating global ActiveSupport inflections, preventing production eager-load errors in clean Rails 8.0/8.1 applications.
+- Generate the ActiveRecord Task Store migration class from the host's ActiveSupport inflections, so both standard `CreateA2aRailsTasks` and host-configured acronym `CreateA2ARailsTasks` cases migrate without fixture patches.
+
+### Changed / upgrade notes
+
+- **Potential v0.1.0 breaking change:** non-development/test environments fail closed without a configured trusted `authenticate_request` hook and matching Bearer Agent Card metadata; tasks are isolated by authenticated principal. See [upgrade guide](docs/release/upgrading-v0.1.0-to-v0.2.md).
+- Reject oversized/malformed/unsupported HTTP input earlier; only verified non-secret principal IDs may drive Task ownership.
+- No general-purpose automatic Handler retries, forceful in-flight cancellation, or exactly-once external side effects. A Task committed just before enqueue can remain SUBMITTED; a crashed worker can leave an ambiguous WORKING Task. Business idempotency and reconciliation are **host responsibilities**.
+- Ruby **>= 3.3**, Rails **>= 8.0, < 8.2**, A2A protocol **v1.0**, `agent2agent ~> 2.0.0`. No universal production certification; per-deployment security [Issue #11](https://github.com/cuichangquan/a2a-rails/issues/11) remains open.
+
+## [0.2.0.rc2] - 2026-10-08 (published pre-release; historical artifact)
+
+> Published as the **rc2 pre-release** on RubyGems after separate approval in Step 25. Verified published artifact SHA256: `d65fdd65003987ece96f0a90a4cf28563929be99d26658deeb275fca30c5d694`. Later Step 26 fixes (including #65) are **not** in that immutable rc2 Gem.
 
 ### Added
 

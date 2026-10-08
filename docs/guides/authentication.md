@@ -1,8 +1,8 @@
 # Authenticating and scoping A2A HTTP requests — Steps 16-2 / 16-3
 
-> **Security status: implemented on the unreleased `main` branch.** These changes do **not** apply to the already-published `a2a-rails 0.1.0`.
+> **Distribution status:** Host authentication and principal-scoped Task access were introduced after stable `0.1.0` and are included in the **published `0.2.0.rc2` pre-release** and the newer **unpublished `0.2.0` stable candidate**. They are not available in RubyGems `0.1.0`. Public production still requires host-specific controls (Issue #11).
 >
-> **Not production-safe yet:** Steps 16-2 through 16-5 are merged into `main` but are not released. Bearer Agent Card security advertisement and request hardening are now present, while application-specific authorization, distributed traffic controls and the final production deployment review remain outstanding in [Issue #11](https://github.com/cuichangquan/a2a-rails/issues/11). Do not expose your A2A Task endpoint to untrusted clients.
+> **Not production-safe yet:** Steps 16-2 through 16-5 have been released in the `0.2.0.rc2` pre-release. Bearer Agent Card security advertisement and request hardening are now present, while application-specific authorization, distributed traffic controls and the final production deployment review remain outstanding in [Issue #11](https://github.com/cuichangquan/a2a-rails/issues/11). Do not expose your A2A Task endpoint to untrusted clients.
 
 ## Goal
 
