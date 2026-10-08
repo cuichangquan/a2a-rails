@@ -16,7 +16,9 @@
 
 - [Tracking Issue #75](https://github.com/cuichangquan/a2a-rails/issues/75) — design in review; no outbound Client code has shipped.
 - [Proposed API / architecture / security-gates document](docs/design/a2a-client.md) — Rails can call remote Agent Card / SendMessage / GetTask / ListTasks / CancelTask, including direct Message and Task response forms.
-- **Next practical step: 29-1 SDK/transport compatibility spike**, using published `agent2agent 2.0.0`, then small implementation PRs and independent HTTP tests.
+- **Step 29-1: PASS** — [Client SDK/Demo real HTTP smoke](https://github.com/cuichangquan/a2a-rails/actions/runs/37746771841) (test-only [PR #77](https://github.com/cuichangquan/a2a-rails/pull/77), still in review).
+- **Step 29-2: public API contract in review** — [Draft PR #78](https://github.com/cuichangquan/a2a-rails/pull/78), [detailed contract](docs/design/a2a-client-public-api.md) and documented fixture-only sanity checks.
+- **Next proposed implementation: Step 29-3** — safe outbound discovery/transport (SSRF, DNS rebinding, redirects, TLS, credentials and logging). Do not ship production Client until the safety gates pass.
 - **v0.3.0 is only a candidate**; no release, backward-compatibility or production-security claims until tests and release approval.
 
 ## Prioritized backlog
