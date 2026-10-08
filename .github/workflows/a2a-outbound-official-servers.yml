@@ -1,0 +1,153 @@
+name: Step 29-5b outbound Rails Client versus official Python and Go Servers
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/a2a-outbound-official-servers.yml"
+      - "spikes/a2a_client_v03/python_sdk_https_server.py"
+      - "spikes/a2a_client_v03/go_sdk_https_server/**"
+      - "spikes/a2a_client_v03/official_sdk_native_https_probe.rb"
+      - "lib/a2a/rails/client.rb"
+      - "lib/a2a/rails/client/**"
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/a2a-outbound-official-servers.yml"
+      - "spikes/a2a_client_v03/python_sdk_https_server.py"
+      - "spikes/a2a_client_v03/go_sdk_https_server/**"
+      - "spikes/a2a_client_v03/official_sdk_native_https_probe.rb"
+      - "lib/a2a/rails/client.rb"
+      - "lib/a2a/rails/client/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  official-native-https-server:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        agent: [python, go]
+    env:
+      STEP29_5B_AGENT: ${{ matrix.agent }}
+      AGENT_HOST: ${{ matrix.agent }}-agent.test
+      AGENT_PORT: ${{ matrix.agent == 'python' && '3444' || '3445' }}
+      PYTHONUNBUFFERED: "1"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.4"
+          bundler-cache: true
+
+      - uses: actions/setup-python@v5
+        if: matrix.agent == 'python'
+        with:
+          python-version: "3.12"
+
+      - uses: actions/setup-go@v5
+        if: matrix.agent == 'go'
+        with:
+          go-version: "1.26.0"
+          cache: false
+
+      - name: Install official Python SDK A2A Server dependencies
+        if: matrix.agent == 'python'
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install "a2a-sdk==1.2.2" "uvicorn[standard]" starlette "sse-starlette"
+          python -c 'import a2a; import uvicorn; print("PASS: official Python SDK server dependencies")'
+
+      - name: Install official Go SDK A2A Server dependencies
+        if: matrix.agent == 'go'
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd spikes/a2a_client_v03/go_sdk_https_server
+          go mod download
+          go mod tidy
+          go build -o "$RUNNER_TEMP/official-go-a2a-server" .
+          test -x "$RUNNER_TEMP/official-go-a2a-server"
+
+      - name: Generate one-off native TLS certificate for the exact server hostname
+        shell: bash
+        run: |
+          set -euo pipefail
+          openssl req -x509 -nodes -newkey rsa:2048 -sha256 -days 1 \
+            -keyout "$RUNNER_TEMP/official-a2a-test.key" \
+            -out "$RUNNER_TEMP/official-a2a-test.crt" \
+            -subj "/CN=$AGENT_HOST" \
+            -addext "subjectAltName=DNS:$AGENT_HOST" >/dev/null 2>&1
+          echo "STEP29_5B_CA=$RUNNER_TEMP/official-a2a-test.crt" >> "$GITHUB_ENV"
+
+      - name: Start native HTTPS official A2A Server on loopback only
+        shell: bash
+        run: |
+          set -euo pipefail
+          if test "$STEP29_5B_AGENT" = python; then
+            python spikes/a2a_client_v03/python_sdk_https_server.py \
+              --certificate "$RUNNER_TEMP/official-a2a-test.crt" \
+              --key "$RUNNER_TEMP/official-a2a-test.key" --port "$AGENT_PORT" \
+              > "$RUNNER_TEMP/official-a2a-server.log" 2>&1 &
+          else
+            "$RUNNER_TEMP/official-go-a2a-server" \
+              --certificate "$RUNNER_TEMP/official-a2a-test.crt" \
+              --key "$RUNNER_TEMP/official-a2a-test.key" --port "$AGENT_PORT" \
+              > "$RUNNER_TEMP/official-a2a-server.log" 2>&1 &
+          fi
+          echo "$!" > "$RUNNER_TEMP/official-a2a-server.pid"
+
+          for attempt in $(seq 1 50); do
+            if curl --noproxy '*' --fail --silent --show-error \
+                --cacert "$RUNNER_TEMP/official-a2a-test.crt" \
+                --resolve "$AGENT_HOST:$AGENT_PORT:127.0.0.1" \
+                "https://$AGENT_HOST:$AGENT_PORT/.well-known/agent-card.json" \
+                > "$RUNNER_TEMP/official-a2a-card.json" 2>/dev/null; then
+              ruby -rjson -e '
+                card = JSON.parse(File.read(ARGV.fetch(0)))
+                host = ENV.fetch("AGENT_HOST")
+                port = ENV.fetch("AGENT_PORT")
+                name = ENV.fetch("STEP29_5B_AGENT")
+                path = name == "python" ? "/python/a2a/jsonrpc" : "/go/agent/jsonrpc"
+                candidate = card.fetch("supportedInterfaces").find { |item| item["protocolBinding"] == "JSONRPC" && item["protocolVersion"] == "1.0" }
+                abort "original Card missing exact native TLS interface" unless
+                  candidate && candidate["url"] == "https://#{host}:#{port}#{path}"
+                puts "PASS: original official SDK Card advertises its native HTTPS RPC endpoint"
+              ' "$RUNNER_TEMP/official-a2a-card.json"
+              exit 0
+            fi
+            if ! kill -0 "$(cat "$RUNNER_TEMP/official-a2a-server.pid")" 2>/dev/null; then
+              tail -n 70 "$RUNNER_TEMP/official-a2a-server.log"
+              exit 1
+            fi
+            sleep 1
+          done
+          tail -n 70 "$RUNNER_TEMP/official-a2a-server.log"
+          exit 1
+
+      - name: Run real public Rails outbound Client operations against official Server
+        shell: bash
+        run: |
+          set -euo pipefail
+          bundle exec ruby -Ilib spikes/a2a_client_v03/official_sdk_native_https_probe.rb
+
+      - name: Show limited server diagnostics only on failure
+        if: failure()
+        shell: bash
+        run: |
+          if test -f "$RUNNER_TEMP/official-a2a-server.log"; then
+            tail -n 60 "$RUNNER_TEMP/official-a2a-server.log"
+          fi
+
+      - name: Stop loopback official A2A Server
+        if: always()
+        shell: bash
+        run: |
+          if test -f "$RUNNER_TEMP/official-a2a-server.pid"; then
+            kill "$(cat "$RUNNER_TEMP/official-a2a-server.pid")" 2>/dev/null || true
+          fi
