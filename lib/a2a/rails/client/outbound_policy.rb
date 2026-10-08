@@ -63,6 +63,15 @@ module A2A
           @resolver = resolver
         end
 
+        # Check configured URL syntax and exact origin without resolving DNS.
+        # The actual HTTP transport MUST call resolve! again at connect time.
+        def validate_url!(value)
+          uri = checked_uri(value)
+          raise RejectedTarget, :unapproved_origin unless @allowed_origins.include?(canonical_origin(uri))
+
+          uri
+        end
+
         # Called for BOTH the configured Agent Card URL and each card-provided
         # supportedInterfaces[].url. The result is NOT permission to connect
         # by hostname: use Target#addresses as the connect-time allowlist.

@@ -20,6 +20,7 @@ require_relative "a2a/rails/protocol/adapter"
 require_relative "a2a/rails/protocol/task_mapper"
 require_relative "a2a/rails/protocol/request_handler"
 require_relative "a2a/rails/protocol/agent2agent_adapter"
+require_relative "a2a/rails/client"
 require_relative "a2a/rails/runtime"
 require_relative "a2a/rails/engine"
 
