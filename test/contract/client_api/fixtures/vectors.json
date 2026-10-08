@@ -1,0 +1,224 @@
+{
+  "title": "Step 29-2 proposal fixture vectors (examples only; not API tests)",
+  "spec": "A2A JSON-RPC v1.0",
+  "cases": [
+    {
+      "name": "task-rich-parts",
+      "operation": "SendMessage",
+      "wire": {
+        "task": {
+          "id": "remote-task-1",
+          "contextId": "ctx-1",
+          "status": {
+            "state": "TASK_STATE_COMPLETED"
+          },
+          "artifacts": [
+            {
+              "artifactId": "a1",
+              "parts": [
+                {
+                  "text": "Echo: Hello",
+                  "mediaType": "text/plain"
+                },
+                {
+                  "data": {
+                    "businessId": "a-123",
+                    "nested": {
+                      "sameCase": "preserved"
+                    }
+                  },
+                  "mediaType": "application/json"
+                },
+                {
+                  "raw": "SGVsbG8=",
+                  "mediaType": "text/plain",
+                  "filename": "message.txt"
+                }
+              ]
+            }
+          ],
+          "metadata": {
+            "customKey": "opaque"
+          }
+        }
+      },
+      "expected": {
+        "kind": "task",
+        "task": {
+          "id": "remote-task-1",
+          "context_id": "ctx-1",
+          "status": {
+            "state": "TASK_STATE_COMPLETED"
+          },
+          "artifacts": [
+            {
+              "artifact_id": "a1",
+              "parts": [
+                {
+                  "text": "Echo: Hello",
+                  "media_type": "text/plain"
+                },
+                {
+                  "data": {
+                    "businessId": "a-123",
+                    "nested": {
+                      "sameCase": "preserved"
+                    }
+                  },
+                  "media_type": "application/json"
+                },
+                {
+                  "raw": "SGVsbG8=",
+                  "media_type": "text/plain",
+                  "filename": "message.txt"
+                }
+              ]
+            }
+          ],
+          "metadata": {
+            "customKey": "opaque"
+          }
+        }
+      }
+    },
+    {
+      "name": "task-input-required",
+      "operation": "SendMessage",
+      "wire": {
+        "task": {
+          "id": "remote-task-2",
+          "status": {
+            "state": "TASK_STATE_INPUT_REQUIRED",
+            "message": {
+              "messageId": "status-1",
+              "role": "ROLE_AGENT",
+              "parts": [
+                {
+                  "text": "Please clarify"
+                }
+              ]
+            }
+          }
+        }
+      },
+      "expected": {
+        "kind": "task",
+        "task": {
+          "id": "remote-task-2",
+          "status": {
+            "state": "TASK_STATE_INPUT_REQUIRED",
+            "message": {
+              "message_id": "status-1",
+              "role": "ROLE_AGENT",
+              "parts": [
+                {
+                  "text": "Please clarify"
+                }
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "task-auth-required",
+      "operation": "GetTask",
+      "wire": {
+        "id": "remote-task-3",
+        "status": {
+          "state": "TASK_STATE_AUTH_REQUIRED"
+        }
+      },
+      "expected": {
+        "id": "remote-task-3",
+        "status": {
+          "state": "TASK_STATE_AUTH_REQUIRED"
+        }
+      }
+    },
+    {
+      "name": "direct-message",
+      "operation": "SendMessage",
+      "wire": {
+        "message": {
+          "messageId": "reply-1",
+          "contextId": "ctx-direct",
+          "role": "ROLE_AGENT",
+          "parts": [
+            {
+              "text": "Translation: Hello"
+            }
+          ],
+          "metadata": {
+            "requestTag": "a1"
+          }
+        }
+      },
+      "expected": {
+        "kind": "message",
+        "message": {
+          "message_id": "reply-1",
+          "context_id": "ctx-direct",
+          "role": "ROLE_AGENT",
+          "parts": [
+            {
+              "text": "Translation: Hello"
+            }
+          ],
+          "metadata": {
+            "requestTag": "a1"
+          }
+        }
+      }
+    },
+    {
+      "name": "list-tasks-terminal-page",
+      "operation": "ListTasks",
+      "wire": {
+        "tasks": [
+          {
+            "id": "remote-task-1",
+            "status": {
+              "state": "TASK_STATE_COMPLETED"
+            }
+          }
+        ],
+        "nextPageToken": "",
+        "pageSize": 1,
+        "totalSize": 1
+      },
+      "expected": {
+        "tasks": [
+          {
+            "id": "remote-task-1",
+            "status": {
+              "state": "TASK_STATE_COMPLETED"
+            }
+          }
+        ],
+        "next_page_token": "",
+        "page_size": 1,
+        "total_size": 1
+      }
+    },
+    {
+      "name": "invalid-send-result-both",
+      "operation": "SendMessage",
+      "wire": {
+        "task": {
+          "id": "t"
+        },
+        "message": {
+          "messageId": "m"
+        }
+      },
+      "expected_error": "InvalidResponseError"
+    },
+    {
+      "name": "invalid-send-result-neither",
+      "operation": "SendMessage",
+      "wire": {},
+      "expected_error": "InvalidResponseError"
+    }
+  ]
+}
