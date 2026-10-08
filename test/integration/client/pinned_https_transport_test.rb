@@ -102,6 +102,19 @@ class ClientPinnedHttpsTransportTest < Minitest::Test
     end
   end
 
+  def test_broken_credential_provider_does_not_leak_its_message_or_cause
+    error = assert_raises(Transport::Error) do
+      transport.get_json(
+        url: "https://trusted.example:8443/card",
+        authorization: -> { raise "private token secretABC" },
+        credential_origin: "https://trusted.example:8443"
+      )
+    end
+    assert_equal :credential_failure, error.reason
+    refute_includes error.message, "secretABC"
+    assert_nil error.cause
+  end
+
   def test_production_policy_rejects_loopback_dns_even_when_server_exists
     port, requests = tls_server(body: '{}')
     strict = Policy.new(
