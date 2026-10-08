@@ -23,10 +23,10 @@ Rails-native integration for exposing Rails applications as A2A v1.0 agents.
 
 **[a2a-rails-demo — independent Rails 8 Echo Agent](https://github.com/cuichangquan/a2a-rails-demo)**
 
-Run a complete standalone Rails Agent with the historical `a2a-rails` demo source pinned by Git commit (the published RubyGems v0.1.0 does not contain direct-Message support). The separate Demo covers Agent Card discovery, JSON-RPC v1.0 SendMessage **Task and direct Message**, GetTask, ListTasks and error handling.
+Run a complete standalone Rails Agent using the **published RubyGems `a2a-rails = 0.2.0`** (not a Git source checkout). The separate Demo covers Agent Card discovery, JSON-RPC v1.0 SendMessage **Task and direct Message**, GetTask, ListTasks and error handling.
 
 - [Demo Quick Start, code and example curl requests](https://github.com/cuichangquan/a2a-rails-demo#quick-start).
-- [Demo GitHub Actions smoke](https://github.com/cuichangquan/a2a-rails-demo/actions/workflows/smoke.yml) — independent real HTTP tests **16/16 checks passed** ([PR #1](https://github.com/cuichangquan/a2a-rails-demo/pull/1)).
+- [Demo GitHub Actions smoke](https://github.com/cuichangquan/a2a-rails-demo/actions/workflows/smoke.yml) — independent Rails 8.1.0 / Ruby 3.4.10 HTTP smoke **16/16 checks passed** against published Gem `0.2.0` ([Step 28 Demo PR #2, merged](https://github.com/cuichangquan/a2a-rails-demo/pull/2), [passing PR CI](https://github.com/cuichangquan/a2a-rails-demo/actions/runs/37736426834)). The CI also confirms `A2A::Rails::VERSION == "0.2.0"`, RubyGems as the dependency source, and the demo's production-startup refusal.
 - **Local-only development/test** demo: no trusted verifier or durable Task store, **not** an internet-facing production template. See [production security](docs/guides/production-security.md).
 
 ## What is a2a-rails?
