@@ -94,11 +94,6 @@ module PublishedGemPostgresSmoke
     GEMFILE
 
     run!("bundle", "install", chdir: host)
-    run!("bundle", "exec", "bin/rails", "generate", "a2a:rails:task_store", chdir: host)
-    run!("bundle", "exec", "bin/rails", "generate", "a2a:rails:agent", "echo", chdir: host)
-
-    migration = Dir.glob(File.join(host, "db/migrate/*create_a2a_rails_tasks.rb"))
-    assert(migration.length == 1, "installed-Gem generator did not create exactly one migration")
     # Published rc2 currently needs a host inflection workaround in a real
     # production eager-load Rails app (tracked at Issue #65). This fixture
     # is NOT proof of zero-configuration production startup.
@@ -107,6 +102,11 @@ module PublishedGemPostgresSmoke
         inflect.acronym "A2A"
       end
     RUBY
+    run!("bundle", "exec", "bin/rails", "generate", "a2a:rails:task_store", chdir: host)
+    run!("bundle", "exec", "bin/rails", "generate", "a2a:rails:agent", "echo", chdir: host)
+
+    migration = Dir.glob(File.join(host, "db/migrate/*create_a2a_rails_tasks.rb"))
+    assert(migration.length == 1, "installed-Gem generator did not create exactly one migration")
     File.write(File.join(host, "config/initializers/a2a_rails.rb"), INITIALIZER)
     File.write(File.join(host, "app/agents/echo_agent.rb"), AGENT)
     FileUtils.mkdir_p(File.join(host, "app/services/echo"))
