@@ -1,0 +1,50 @@
+name: Step 29-5c controlled public HTTPS outbound Client egress
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/a2a-outbound-public-egress.yml"
+      - "spikes/a2a_client_v03/public_https_probe.rb"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  probe-syntax:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.4"
+          bundler-cache: false
+      - name: Verify probe Ruby syntax without making any network request
+        run: ruby -c spikes/a2a_client_v03/public_https_probe.rb
+
+  controlled-public-egress:
+    # Never run external requests in untrusted PR code, even if a PR modifies
+    # the workflow. The real endpoint MUST be controlled and independently
+    # egress-filtered by a dedicated, operator-provisioned runner.
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
+    runs-on: [self-hosted, a2a-public-egress]
+    environment: a2a-public-egress
+    timeout-minutes: 10
+    env:
+      A2A_PUBLIC_EGRESS_APPROVED: ${{ vars.A2A_PUBLIC_EGRESS_APPROVED }}
+      A2A_PUBLIC_CARD_URL: ${{ vars.A2A_PUBLIC_CARD_URL }}
+      A2A_PUBLIC_EXPECTED_RPC_URL: ${{ vars.A2A_PUBLIC_EXPECTED_RPC_URL }}
+      A2A_PUBLIC_ALLOWED_ORIGINS: ${{ vars.A2A_PUBLIC_ALLOWED_ORIGINS }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.4"
+          bundler-cache: true
+      - name: Verify fail-closed public HTTPS smoke using only ordinary Client
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$A2A_PUBLIC_EGRESS_APPROVED" = "controlled-endpoint-no-auth"
+          bundle exec ruby -Ilib spikes/a2a_client_v03/public_https_probe.rb
