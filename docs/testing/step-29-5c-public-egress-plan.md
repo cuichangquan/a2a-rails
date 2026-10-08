@@ -31,7 +31,9 @@ Use an endpoint owned and operated by the project owner: an allowlisted **public
 
 The transport deadline is extended to include DNS resolution, credential callback evaluation, TLS connect, uploads and response parsing. Timeout exceptions from the DNS resolver and token callback are no longer misclassified as DNS/credential failures. The transport and DNS resolver wrappers strip causes from errors that might otherwise contain untrusted response text or credential-provider details.
 
-Regression tests cover slow DNS, slow credential callback, rebinding after a public DNS result, malformed Content-Length and parser/TLS exception causes. These local tests are **not** substitutes for a real public egress run and do not prove every adversarial security gate (notably slow write, concurrent Rails Jobs and controlled public CA connectivity). Verify corresponding CI results before marking this slice reviewed.
+[PR #92](https://github.com/cuichangquan/a2a-rails/pull/92) was merged with **29/29 CI passing**. Regression tests cover slow DNS, slow credential callbacks, rebinding after a public DNS result, malformed Content-Length, per-request parallel HTTPS credential separation and parser/TLS exception causes. These tests are **not** substitutes for a real public egress run, and do not prove every adversarial security gate (notably slow writes, multi-threaded Rails ActiveJobs or controlled public CA connectivity).
+
+The protected public egress probe now has a dedicated default-policy public IPv4 + system CA TLS preflight and requires **both** a direct Message and Task + GetTask + text Artifact round trips. Collect the actual Rails Client dialed IP separately; the preflight opens its own socket, and a successful preflight does not certify the later Client's socket route. Until an operator provides a controlled endpoint, protected environment and isolated egress runner, this remains **NOT RUN**.
 
 ## Decision
 
