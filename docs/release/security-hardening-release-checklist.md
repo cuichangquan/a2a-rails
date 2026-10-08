@@ -1,11 +1,11 @@
 # Security hardening — release and deployment readiness checklist
 
-Last reviewed: **2026-10-07 (Step 22)**  
+Last reviewed: **2026-10-08 (Step 24)**  
 Baseline published release: **a2a-rails 0.1.0** (2026-10-06)  
-Current main: includes Steps 16–22, including optional durable ActiveRecord Task Store and opt-in ActiveJob Task execution.  
-Release-candidate status: **`0.2.0.rc2` is selected for fresh verification; no candidate is approved for publication**.
+Current main: includes Steps 16–23, including optional durable ActiveRecord Task Store and opt-in ActiveJob Task execution; later changes after the Step 23 verified commit were docs-only.  
+Release-candidate status: **`0.2.0.rc2` passed Step 23 verification and is GO for publication review; publication remains NOT AUTHORIZED**. See [Step 24 release decision record](v0.2.0-rc.2-record.md).
 
-> The historical `0.2.0.rc1` artifact verified in Step 20 predates Step 21 and Step 22 runtime changes. Its commit/SHA evidence remains valid for that exact historical tree only and **must not be reused**. Step 23 selects `0.2.0.rc2` for a fresh exact-candidate verification.
+> The historical `0.2.0.rc1` artifact verified in Step 20 predates Step 21 and Step 22 runtime changes. Its commit/SHA evidence remains valid for that exact historical tree only and **must not be reused**. Step 23 completed fresh exact-candidate verification for `0.2.0.rc2`, recorded in [Issue #54](https://github.com/cuichangquan/a2a-rails/issues/54).
 
 ## Decision
 
@@ -13,8 +13,8 @@ Release and deployment decisions remain separate.
 
 | Decision | Status |
 | --- | --- |
-| Prepare a **new** candidate from current main | **GO for `0.2.0.rc2` verification only** |
-| Tag / GitHub Release / RubyGems publication | **NO-GO until new candidate gates pass + explicit approval** |
+| Candidate `0.2.0.rc2` verification | **PASS on exact Step 23 commit; GO for publication review** |
+| Tag / GitHub Release / RubyGems publication | **NOT AUTHORIZED; separate explicit approval required** |
 | Open public production using default MemoryStore | **NO-GO** |
 | Multi-worker/restart-safe Task persistence using ActiveRecordStore | **Gem capability verified; deployment-specific GO/NO-GO still required** |
 | Open public production overall | **NO-GO by default** until all host/deployment gates below are satisfied |
@@ -50,8 +50,8 @@ A durable Task Store removes one framework-level blocker. It does not provide cr
 - [x] Async production requirements and limits are documented: durable Store + durable queue, enqueue crash window, no generic Handler retry, Task-level duplicate suppression, host business idempotency, best-effort cancellation and explicit reconciliation of ambiguous WORKING Tasks.
 - [x] Update the v0.1.0 → next-v0.2 upgrade guide with Step 21 ActiveRecordStore configuration, migration and maintenance guidance.
 - [x] Decide the **new candidate version** for current main: `0.2.0.rc2`. Do not reuse the historical rc1 artifact identity.
-- [ ] On the exact new candidate tree, rerun Ruby/Rails CI, PostgreSQL Store CI, queue adapter + HTTP async E2E, production security smoke, Python/Go interoperability and the pinned official TCK (distinguishing the known upstream CORE-SEND-003 fixture issue).
-- [ ] Build one exact `.gem`, inspect it, clean-install it into Rails 8.0 and 8.1, rerun installed-artifact security/runtime smoke, and record SHA256.
+- [x] On the exact Step 23 candidate tree, rerun Ruby/Rails CI, PostgreSQL Store CI, queue adapter + HTTP async E2E, production security smoke, Python/Go interoperability and the pinned official TCK (distinguishing the known upstream CORE-SEND-003 fixture issue). [Step 23 verification evidence](v0.2.0-rc.2-record.md).
+- [x] Build one exact `.gem`, inspect it, clean-install it into Rails 8.0 and 8.1, rerun installed-artifact security smoke, and record SHA256. See [exact candidate record](v0.2.0-rc.2-record.md).
 - [x] Update CHANGELOG/README/release preparation notes for the selected `0.2.0.rc2` candidate while preserving rc1 as historical-only evidence.
 
 ## B. Public-production deployment gates
@@ -89,18 +89,18 @@ Historical candidate:
 
 ## D. Exact gates for the next candidate
 
-All items below are required again because Steps 21 and 22 changed runtime code.
+These items were required for Step 23 because Steps 21 and 22 changed runtime code. Step 23 was verified at `efdec49daa0ef20edff26d4d198a8afc91567535`; the subsequent main delta reviewed at Step 24 affects only `docs/` and does not alter gemspec-packaged files. See [record](v0.2.0-rc.2-record.md).
 
 - [x] Candidate version selected for verification: `0.2.0.rc2`. The exact candidate commit is recorded only after the preparation PR is merged.
-- [ ] Run the Ruby 3.3/3.4/4.0 + Rails 8.0/8.1 regression matrix on that exact candidate.
-- [ ] Run the ActiveRecordStore PostgreSQL workflow on the exact candidate.
-- [ ] Run production-shaped HTTP security smoke against the exact candidate: fail-closed Agent Card, 401/403, valid Bearer, foreign Task isolation, malformed/oversized requests.
-- [ ] Re-run/record official Python/Go interoperability on the exact candidate tree.
-- [ ] Re-run/record the pinned official TCK profile on the exact candidate tree.
-- [ ] Build the exact `.gem`, inspect package contents/metadata and record SHA256.
-- [ ] Install **that exact built artifact** into clean Rails 8.0 and Rails 8.1 hosts.
-- [ ] For ActiveRecordStore release claims, install/migrate the exact Gem in a clean DB-backed Rails host and verify restart/multi-instance persistence plus bounded maintenance commands.
-- [ ] Obtain explicit approval for tag, GitHub Release and RubyGems publication.
+- [x] Run the Ruby 3.3/3.4/4.0 + Rails 8.0/8.1 regression matrix on that exact candidate.
+- [x] Run the ActiveRecordStore PostgreSQL workflow on the exact candidate.
+- [x] Run production-shaped HTTP security smoke against the exact candidate: fail-closed Agent Card, 401/403, valid Bearer, foreign Task isolation, malformed/oversized requests.
+- [x] Re-run/record official Python/Go interoperability on the exact candidate tree.
+- [x] Re-run/record the pinned official TCK profile on the exact candidate tree.
+- [x] Build the exact `.gem`, inspect package contents/metadata and record SHA256.
+- [x] Install **that exact built artifact** into clean Rails 8.0 and Rails 8.1 hosts.
+- [ ] **Additional installed-artifact DB-host evidence:** install/migrate the exact Gem in a clean DB-backed Rails host and verify restart/multi-instance persistence plus bounded maintenance commands. Step 23 PostgreSQL smoke runs against source; installed-artifact security smoke is not a DB-host migration/pruning test. Do not assert this narrower deployment proof without a dedicated run.
+- [ ] Obtain **separate explicit approval** for tag, GitHub Release and RubyGems publication. Step 24 is documentation / readiness review only.
 - [ ] After upload, fetch the published Gem and confirm its SHA256 matches the approved artifact.
 
 ## Recommended decision record for a real deployment
@@ -122,4 +122,4 @@ Current unreleased main still does not provide:
 
 MemoryStore remains process-local. ActiveRecordStore must be explicitly selected and operated by the host.
 
-References: [ActiveRecord Task Store](../guides/active-record-task-store.md) · [ActiveJob Task execution](../design/active-job-task-execution.md) · [Production deployment guide](../guides/production-security.md) · [Authentication](../guides/authentication.md) · [Request hardening](../guides/request-hardening.md) · [Roadmap](../../ROADMAP.md) · [Security #11](https://github.com/cuichangquan/a2a-rails/issues/11) · [Step 23 #54](https://github.com/cuichangquan/a2a-rails/issues/54).
+References: [Step 24 rc2 decision record](v0.2.0-rc.2-record.md) · [ActiveRecord Task Store](../guides/active-record-task-store.md) · [ActiveJob Task execution](../design/active-job-task-execution.md) · [Production deployment guide](../guides/production-security.md) · [Authentication](../guides/authentication.md) · [Request hardening](../guides/request-hardening.md) · [Roadmap](../../ROADMAP.md) · [Security #11](https://github.com/cuichangquan/a2a-rails/issues/11) · [Step 23 #54](https://github.com/cuichangquan/a2a-rails/issues/54).
