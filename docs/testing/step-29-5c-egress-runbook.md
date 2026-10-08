@@ -1,6 +1,6 @@
 # Step 29-5c — controlled public egress execution runbook
 
-**Controlled Echo server deployment:** [Cloud Run private-first deploy / temporary public access / teardown](step-29-5c-cloud-run-echo-deployment.md). The deployment is a separate operator action and has not been performed.
+**Controlled Echo server deployment:** [Cloud Run private-first deploy / temporary public access / teardown](step-29-5c-cloud-run-echo-deployment.md). A private Cloud Run Echo has been deployed and its authenticated Rails Client interoperability smoke passed (2026-10-08, documented on [Issue #90](https://github.com/cuichangquan/a2a-rails/issues/90)); **the public unauthenticated test has not been performed**. Follow the [Step 29-5e readiness gate](step-29-5e-public-window-readiness.md) before any change to public access.
 
 This is a **manual, protected** probe. Merging its workflow does not establish passing public HTTPS evidence. The release gate remains **NO-GO** until the documented run succeeds and the remaining security checks are reviewed.
 
@@ -32,6 +32,6 @@ The total-deadline / DNS credential callback and exception-cause corrections wer
 
 ### Current action / ownership boundary
 
-No controlled production-class public IPv4 Agent, public CA certificate or dedicated egress-filtered runner is supplied by this repository. The repository cannot itself register DNS, acquire the domain certificate, set protected GitHub Environment values or register an isolated self-hosted runner. Those need to exist before a manual public-egress execution can return meaningful evidence. Do not put a placeholder or unapproved third-party URL into the environment to force a green result.
+A controlled IAM-protected Cloud Run HTTPS Echo Agent now exists for private authenticated tests, but the required no-auth public endpoint, protected workflow environment and dedicated egress-filtered runner are **not yet validated** for the public test. The repository cannot itself register DNS, acquire the domain certificate, set protected GitHub Environment values or register an isolated self-hosted runner. Those need to exist before a manual public-egress execution can return meaningful evidence. Do not put a placeholder or unapproved third-party URL into the environment to force a green result.
 
 After provisioning, start the workflow from **Actions → Step 29-5c controlled public HTTPS outbound Client egress → Run workflow** on `main`, approve the protected environment, and attach sanitized evidence to [Issue #90](https://github.com/cuichangquan/a2a-rails/issues/90).
