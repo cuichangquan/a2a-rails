@@ -19,7 +19,7 @@ module A2A
         :task_store, :task_page_token_secret, :task_retention,
         :task_prune_batch_size, :max_tasks_per_owner,
         :max_task_history_entries, :max_task_artifacts,
-        :task_execution_mode
+        :task_execution_mode, :server_enabled
 
       def initialize
         @agent = nil
@@ -37,6 +37,7 @@ module A2A
         @max_task_history_entries = DEFAULT_MAX_TASK_HISTORY_ENTRIES
         @max_task_artifacts = DEFAULT_MAX_TASK_ARTIFACTS
         @task_execution_mode = :sync
+        @server_enabled = true
         @logger_set = false
       end
 
@@ -53,7 +54,10 @@ module A2A
       end
 
       def validate!
-        validate_agent_name!
+        unless @server_enabled == true || @server_enabled == false
+          raise ConfigurationError, "config.server_enabled must be true or false"
+        end
+        validate_agent_name! if @server_enabled
         normalized_public_base_url
         validate_task_execution_mode!(@task_execution_mode, "config.task_execution_mode")
         self

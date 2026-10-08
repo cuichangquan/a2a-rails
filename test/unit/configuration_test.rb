@@ -12,6 +12,28 @@ class ConfigurationTest < Minitest::Test
     end
   end
 
+  def test_server_is_enabled_by_default_for_existing_host_apps
+    config = A2A::Rails::Configuration.new
+    assert_equal true, config.server_enabled
+    assert_raises(A2A::Rails::ConfigurationError) { config.validate! }
+  end
+
+  def test_client_only_mode_does_not_require_server_agent
+    config = A2A::Rails::Configuration.new
+    config.server_enabled = false
+    assert_nil config.agent
+    assert_same config, config.validate!
+  end
+
+  def test_server_enabled_must_be_explicit_boolean
+    config = A2A::Rails::Configuration.new
+    [nil, :false, "false", 0].each do |value|
+      config.server_enabled = value
+      error = assert_raises(A2A::Rails::ConfigurationError) { config.validate! }
+      assert_match(/server_enabled/, error.message)
+    end
+  end
+
   def test_configuration_is_incomplete_without_resolving_at_initialization
     config = A2A::Rails::Configuration.new
 
