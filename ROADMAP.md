@@ -160,3 +160,12 @@ Completed on `main` (unreleased; **not** part of RubyGems v0.1.0):
 - The current main delta after the candidate is limited to `docs/` and not included in the Gem payload; no runtime, gemspec or packaged documentation changed.
 - **Next required decision: obtain separate explicit approval before creating tag `v0.2.0-rc.2`, publishing a GitHub pre-release, or uploading `0.2.0.rc2` to RubyGems. None of these actions is authorized by Step 24.**
 - After publication, verify downloaded Gem SHA256 and installed-Gem smoke; keep host-specific production-readiness gates in [Issue #11](https://github.com/cuichangquan/a2a-rails/issues/11) open until independently satisfied.
+
+## Step 25 — v0.2.0-rc.2 pre-release publication (external execution pending)
+
+- [Issue #59](https://github.com/cuichangquan/a2a-rails/issues/59) tracks the user-authorized publication and post-publication verification.
+- [Human-facing release notes](docs/release/v0.2.0-rc.2-release-notes.md) and [exact-artifact publication runbook](docs/release/v0.2.0-rc.2-publication-runbook.md) describe the publish sequence and checksum gates.
+- The exact Step 23 Gem artifact was retrieved from GitHub Actions and independently SHA256-checked against `d65fdd65003987ece96f0a90a4cf28563929be99d26658deeb275fca30c5d694`.
+- **Next:** create the tag at verified commit `efdec49daa0ef20edff26d4d198a8afc91567535`, create a GitHub *pre-release*, publish that same Gem via authenticated RubyGems push, fetch the published Gem and verify SHA256.
+- These remote publication actions are **pending** because the connected GitHub tools do not offer tag/Release creation, and the environment does not provide an authenticated RubyGems publishing action. Do not mark Step 25 complete until the external actions and published-Gem smoke succeed.
+- Publishing a release candidate is separate from open-public-production readiness; [Issue #11](https://github.com/cuichangquan/a2a-rails/issues/11) remains open.
