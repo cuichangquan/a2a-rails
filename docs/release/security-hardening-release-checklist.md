@@ -4,7 +4,7 @@ Last reviewed: **2026-10-08 (Step 25 publication verification)**
 Baseline stable release: **a2a-rails 0.1.0** (2026-10-06); newest published candidate: **0.2.0.rc2** (2026-10-08)  
 Current main: includes Steps 16–23, including optional durable ActiveRecord Task Store and opt-in ActiveJob Task execution; later changes after the Step 23 verified commit were docs-only.  
 Release-candidate status: **`0.2.0.rc2` has been published as GitHub pre-release and RubyGems release candidate; public fetched Gem SHA256 and fresh Rails 8.1.4 load smoke PASS**. See [Step 25 publication record](v0.2.0-rc.2-record.md).
-Stable-release planning: **[Step 26 readiness matrix](v0.2.0-stable-readiness.md) / [Issue #62](https://github.com/cuichangquan/a2a-rails/issues/62)** now track the unproven installed-artifact PostgreSQL-host smoke, integration security cases and exact stable-release gates; **production Issue #11 remains OPEN**.
+Stable-release status: **Step 26 A1–A4 source-candidate verification complete**; [exact 0.2.0 candidate SHA, CI and conditional GO](v0.2.0-stable-candidate-record.md) recorded. **Stable `0.2.0` tag/Release/RubyGems publication is NOT AUTHORIZED** and has not occurred. Per-deployment **production Issue #11 remains OPEN / NO-GO by default**. [Readiness matrix](v0.2.0-stable-readiness.md) / [Issue #62](https://github.com/cuichangquan/a2a-rails/issues/62).
 
 > The historical `0.2.0.rc1` artifact verified in Step 20 predates Step 21 and Step 22 runtime changes. Its commit/SHA evidence remains valid for that exact historical tree only and **must not be reused**. Step 23 completed fresh exact-candidate verification for `0.2.0.rc2`, recorded in [Issue #54](https://github.com/cuichangquan/a2a-rails/issues/54).
 
@@ -15,6 +15,7 @@ Release and deployment decisions remain separate.
 | Decision | Status |
 | --- | --- |
 | Candidate `0.2.0.rc2` verification | **PASS on exact Step 23 commit; GO for publication review** |
+| **Stable `0.2.0` source-built candidate** | **Conditional GO for human publication review** — exact 7/7 artifact checks, 1 known informational TCK fixture failure; **not published/tagged** |
 | Tag / GitHub Release / RubyGems publication | **PUBLISHED as rc2 pre-release after separate user approval in Step 25; public Gem SHA256 verified** |
 | Open public production using default MemoryStore | **NO-GO** |
 | Multi-worker/restart-safe Task persistence using ActiveRecordStore | **Gem capability verified; deployment-specific GO/NO-GO still required** |
@@ -54,6 +55,17 @@ A durable Task Store removes one framework-level blocker. It does not provide cr
 - [x] On the exact Step 23 candidate tree, rerun Ruby/Rails CI, PostgreSQL Store CI, queue adapter + HTTP async E2E, production security smoke, Python/Go interoperability and the pinned official TCK (distinguishing the known upstream CORE-SEND-003 fixture issue). [Step 23 verification evidence](v0.2.0-rc.2-record.md).
 - [x] Build one exact `.gem`, inspect it, clean-install it into Rails 8.0 and 8.1, rerun installed-artifact security smoke, and record SHA256. See [exact candidate record](v0.2.0-rc.2-record.md).
 - [x] Update CHANGELOG/README/release preparation notes for the selected `0.2.0.rc2` candidate while preserving rc1 as historical-only evidence.
+
+## Step 26-4 stable candidate review (separate from historical rc2 gates)
+
+- [x] Candidate source version set to `0.2.0`; **no public stable release yet**.
+- [x] CHANGELOG/README and v0.1.0 → v0.2.0 upgrade guide updated, including production Zeitwerk migration fix **only in new stable candidate**, not published rc2.
+- [x] One candidate Gem package built/inspected/hashed, retained as Actions artifact; exact `a2a-rails-0.2.0.gem` SHA256: `497ce4b9d6a8b888d1d4ef0c71df3ab24998ef82fff2455dd6bbe919c22ed700` ([CI](https://github.com/cuichangquan/a2a-rails/actions/runs/37719731166)).
+- [x] Ruby/Rails matrix, Rails 8.0+8.1 installed-artifact security and PostgreSQL 16 clean-host regression, queue adapters, Python/Go clients; known pinned official TCK **1 fixture failure** remains visible.
+- [ ] **Explicit separate user approval** for creation of Git tag `v0.2.0`, GitHub Release and/or RubyGems push. **No publication is implied by candidate GO.**
+- [ ] Real production host acceptance under [Issue #11](https://github.com/cuichangquan/a2a-rails/issues/11) (must not be inferred from package quality).
+
+See [full stable candidate record](v0.2.0-stable-candidate-record.md).
 
 ## B. Public-production deployment gates
 
