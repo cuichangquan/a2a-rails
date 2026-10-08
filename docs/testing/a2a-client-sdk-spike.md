@@ -1,6 +1,6 @@
 # Step 29-1 — Ruby SDK Outbound Client Compatibility Spike
 
-> **Status:** execution pending; reproduce with [GitHub Actions workflow](../../.github/workflows/a2a-client-spike.yml).  
+> **Status: PASS** — [actual Step 29-1 GitHub Actions run #37746771841](https://github.com/cuichangquan/a2a-rails/actions/runs/37746771841), Ruby 3.4.10 / Rails 8.1.0 / published RubyGems 0.2.0, completed 2026-10-08.  
 > Tracking: [Issue #75](https://github.com/cuichangquan/a2a-rails/issues/75); proposed Client API remains separate in [Step 29 design PR #76](https://github.com/cuichangquan/a2a-rails/pull/76).  
 > This is **a test-only spike**, not a new A2A Client API nor a production-grade HTTP integration.
 
@@ -35,6 +35,21 @@ The client probe is at [`spikes/a2a_client_v03/client_probe.rb`](../../spikes/a2
 8. Use Faraday test adapter to confirm host-supplied `Authorization` and `A2A-Version` request headers and timeout options (fake token only).
 
 All failure paths fail the CI job. The no-header control is deliberately informational, as it is implementation-specific and not itself a conformance requirement.
+
+## Actual GitHub Actions observations (2026-10-08)
+
+- **CI:** [run #37746771841](https://github.com/cuichangquan/a2a-rails/actions/runs/37746771841) / job `published-demo-client` **SUCCESS**, including published RubyGems origin check, loopback startup and complete probe.
+- **18 named PASS checks** in `client_probe.rb`, plus the separate published-Gem Bundler check. Each covered Ruby SDK 2.0.0 against independent published-Gem Demo 0.2.0.
+- **Task flow:** completed Task and Echo text Artifact; GetTask and ListTasks found its remote ID. 
+- **Direct Message:** `SendMessage` returned `message` without `task`.
+- **CancelTask:** cancel of terminal Task raised `A2A::JsonRpcError` with **code `-32002`**.
+- **No explicit `A2A-Version` header:** call was **rejected**, with SDK-observed code **`-32009`**. Correct version header `A2A-Version: 1.0` was required for this server. Do not assume SDK automatically negotiates the version.
+- **Injected HTTP options:** synthetic Bearer Authorization and A2A-Version request headers and Faraday `timeout`/`open_timeout` values worked in a **test adapter only**. This is not a production authorization/TLS/deadline enforcement test.
+- **Connection model:** SDK Agent Card retrieval succeeded from the base URL, while JSONRPC operations succeeded against the explicit `supportedInterfaces[0].url` (`/a2a`). Discovery and endpoint selection are separate concerns.
+
+### Outcome
+
+**GO for designing the outbound Rails API contract (Step 29-2). NO-GO for production Client release** until outbound SSRF/redirect/TLS/logging/response-budget controls and negative tests exist. Keep the new outbound adapter separate from the existing Server adapter.
 
 ## Known source-level risks (not yet closed by this smoke)
 
