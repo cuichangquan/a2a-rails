@@ -19,6 +19,10 @@ class TaskStoreGeneratorTest < Minitest::Test
       assert_equal 1, migrations.length
 
       body = File.read(migrations.first)
+      expected_class = ::ActiveSupport::Inflector.camelize("create_a2a_rails_tasks")
+      assert_includes body, "class #{expected_class} < ActiveRecord::Migration[8.0]"
+      refute_includes body, "<%"
+
       assert_includes body, "create_table :a2a_rails_tasks"
       assert_includes body, "t.string :task_id, null: false"
       assert_includes body, "t.string :owner_id"
