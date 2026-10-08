@@ -27,9 +27,9 @@ module A2A
 
         Target = Struct.new(:url, :origin, :host, :port, :addresses, keyword_init: true)
 
-        # Conservative initial IPv4 policy. IPv6 is unsupported (fail closed)
-        # until the pinned-connection transport verifies a complete address
-        # classification and connection strategy for it.
+        # IPv4-pinned policy. Dual-stack DNS is accepted only if EVERY IPv6
+        # answer is a recognized public global-unicast candidate and at least
+        # one safe IPv4 address is present. IPv6 sockets remain unsupported.
         BLOCKED_IPV4 = %w[
           0.0.0.0/8
           10.0.0.0/8
@@ -46,6 +46,17 @@ module A2A
           203.0.113.0/24
           224.0.0.0/4
           240.0.0.0/4
+        ].map { |cidr| IPAddr.new(cidr) }.freeze
+
+        # Only recognize IPv6 global-unicast candidates for DNS validation;
+        # outbound sockets remain IPv4-only. Exclude special-use allocations
+        # conservatively, including IPv4-embedding transition mechanisms.
+        GLOBAL_UNICAST_IPV6 = IPAddr.new("2000::/3")
+        BLOCKED_IPV6 = %w[
+          2001::/23
+          2001:db8::/32
+          2002::/16
+          3fff::/20
         ].map { |cidr| IPAddr.new(cidr) }.freeze
 
         HOST_LABEL = /\A[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\z/
@@ -93,17 +104,22 @@ module A2A
             raise RejectedTarget, :dns_failure
           end
 
-          # If DNS returns even one private, unparseable or unsupported IP,
-          # reject the entire result rather than silently selecting another.
-          addresses = addresses.map do |address|
+          # Fail closed if ANY DNS answer is unsafe, even when another answer
+          # is public. Public IPv6 answers are checked, but NEVER selected as
+          # a socket destination; the transport pins an approved IPv4 only.
+          addresses = addresses.each_with_object([]) do |address, ipv4_addresses|
             parsed = IPAddr.new(address)
-            unless parsed.ipv4? && BLOCKED_IPV4.none? { |range| range.include?(parsed) }
+            if parsed.ipv4?
+              raise RejectedTarget, :blocked_ip if BLOCKED_IPV4.any? { |range| range.include?(parsed) }
+              ipv4_addresses << parsed.to_s
+            elsif !GLOBAL_UNICAST_IPV6.include?(parsed) ||
+                  BLOCKED_IPV6.any? { |range| range.include?(parsed) }
               raise RejectedTarget, :blocked_ip
             end
-            parsed.to_s
           rescue IPAddr::InvalidAddressError, ArgumentError
             raise RejectedTarget.new(:invalid_dns_address), cause: nil
           end.uniq.freeze
+          raise RejectedTarget, :unsupported_ip_family if addresses.empty?
 
           Target.new(
             url: uri.to_s.freeze,

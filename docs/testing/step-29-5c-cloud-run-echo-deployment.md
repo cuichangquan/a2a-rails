@@ -140,7 +140,7 @@ Run **Actions → Step 29-5c controlled public HTTPS outbound Client egress → 
 2. Unmodified `A2A::Rails::Client.new` direct Message echo.
 3. Remote Task + GetTask + Artifact echo.
 
-Record the actual **Rails Client** socket destination IP separately through trusted runner firewall or packet capture; the preflight IP is only evidence for its own socket. Check DNS A/AAAA: production `OutboundPolicy` currently rejects IPv6 and mixed A/AAAA; do not inject a fake resolver or weaken the blocklist to pass. A dual-stack result means **blocked pending a separate IPv6 security decision**, not PASS.
+Record the actual **Rails Client** socket destination IP separately through trusted runner firewall or packet capture; the preflight IP is only evidence for its own socket. Check DNS A/AAAA: Step 29-5d permits mixed DNS **only if all IPv4 and IPv6 answers pass conservative public-address checks**, and always pins the real connection to an approved IPv4. IPv6-only or any unsafe mixed answer fails closed. Do not inject a fake resolver or weaken the blocklist to pass. Public egress remains **NOT RUN** until the protected runner and actual network evidence exist.
 
 Attach sanitized workflow link, real endpoint paths, certificate chain/issuer/fingerprint, DNS answers, actual Client dialed IP and commit SHA to Issue #90. Never print tokens, request Parts or remote bodies.
 
