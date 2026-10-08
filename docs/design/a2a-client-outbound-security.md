@@ -18,8 +18,12 @@ a released/public Client API.
   unsupported or invalid.
 - Blocks common reserved/private IPv4 networks including link-local cloud metadata,
   loopback, shared address space, documentation networks and multicast.
-- **Temporarily rejects all IPv6**, to avoid assuming complete IPv6 and
-  IPv4-mapped-address enforcement before a transport implementation exists.
+- Step 29-5d accepts mixed public IPv4/IPv6 DNS **only when every answer passes
+  strict checks**. IPv6 is limited to global-unicast candidates (2000::/3),
+  excluding special-use/transition/documentation prefixes (2001::/23,
+  2001:db8::/32, 2002::/16, 3fff::/20). Private, link-local,
+  IPv4-mapped/embedded, multicast, and malformed addresses fail closed.
+  IPv6-only DNS remains unsupported; approved socket addresses are IPv4 only.
 - Returns an immutable `Target` carrying the exact `url`, `origin`, hostname,
   port and approved IPv4 addresses. Errors expose a safe category, not URL secrets.
 - Unit tests inject a fake DNS resolver; no outbound requests or production credentials.
@@ -62,8 +66,8 @@ tested and released.
 ## Verification
 
 `test/unit/client/outbound_policy_test.rb` tests URL/origin acceptance and rejection,
-private-DNS/mixed records, URL query/secret handling, an intentionally conservative
-IPv6 refusal and immutable target values.
+private-DNS/mixed records, URL query/secret handling, public dual-stack DNS
+filtering, fail-closed unsafe IPv6, IPv6-only refusal, and immutable IPv4 targets.
 
 Command (after bundle install on a supported Ruby):
 
