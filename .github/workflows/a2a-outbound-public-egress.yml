@@ -40,6 +40,10 @@ jobs:
     if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
     runs-on: [self-hosted, a2a-public-egress]
     environment: a2a-public-egress
+    # A second manual run must never overlap the first public probe.
+    concurrency:
+      group: a2a-controlled-public-egress
+      cancel-in-progress: false
     timeout-minutes: 10
     env:
       A2A_PUBLIC_EGRESS_APPROVED: ${{ vars.A2A_PUBLIC_EGRESS_APPROVED }}
@@ -47,6 +51,14 @@ jobs:
       A2A_PUBLIC_EXPECTED_RPC_URL: ${{ vars.A2A_PUBLIC_EXPECTED_RPC_URL }}
       A2A_PUBLIC_ALLOWED_ORIGINS: ${{ vars.A2A_PUBLIC_ALLOWED_ORIGINS }}
     steps:
+      - name: Require explicit controlled endpoint approval before code checkout
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$A2A_PUBLIC_EGRESS_APPROVED" = "controlled-endpoint-no-auth"
+          test -n "$A2A_PUBLIC_CARD_URL"
+          test -n "$A2A_PUBLIC_EXPECTED_RPC_URL"
+          test -n "$A2A_PUBLIC_ALLOWED_ORIGINS"
       - uses: actions/checkout@v4
       - uses: ruby/setup-ruby@v1
         with:
