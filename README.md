@@ -1,7 +1,8 @@
 # a2a-rails
-<img src="docs/assets/a2a-rails-0.2.0-rc2-overview.png">
+<img src="docs/assets/a2a-rails-infographics.png">
 <br/>
-<img src="docs/assets/a2a-railsで広がるAI協働図鑑.png">
+<br/>
+<img src="docs/assets/a2a-rails-infographics-en.png">
 
 Rails-native integration for exposing Rails applications as A2A v1.0 agents.
 
