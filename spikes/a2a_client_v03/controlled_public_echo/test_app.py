@@ -64,6 +64,7 @@ class ControlledCloudEchoTest(unittest.TestCase):
             direct = client.post(
                 "/python/a2a/jsonrpc",
                 json=request("direct-1", "direct: public-egress-" + nonce),
+                headers={"A2A-Version": "1.0"},
             )
             self.assertEqual(200, direct.status_code)
             result = direct.json()["result"]
@@ -73,6 +74,7 @@ class ControlledCloudEchoTest(unittest.TestCase):
             task_response = client.post(
                 "/python/a2a/jsonrpc",
                 json=request("task-1", "task: public-egress-" + nonce),
+                headers={"A2A-Version": "1.0"},
             )
             self.assertEqual(200, task_response.status_code)
             task = task_response.json()["result"]["task"]
@@ -83,6 +85,7 @@ class ControlledCloudEchoTest(unittest.TestCase):
                 "/python/a2a/jsonrpc",
                 json={"jsonrpc": "2.0", "id": "get-1",
                       "method": "GetTask", "params": {"id": task["id"]}},
+                headers={"A2A-Version": "1.0"},
             )
             self.assertEqual(200, fetched.status_code)
             self.assertEqual(task["id"], fetched.json()["result"]["id"])
