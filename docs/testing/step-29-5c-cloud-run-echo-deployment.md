@@ -37,9 +37,15 @@ export SA_EMAIL="${SA_NAME}@${PROJECT_ID}.iam.gserviceaccount.com"
 gcloud auth list --filter="status:ACTIVE"
 gcloud projects describe "$PROJECT_ID" --format="value(projectId,name)"
 # STOP if this is an existing production/Firebase application project.
-gcloud run services describe "$SERVICE" --project "$PROJECT_ID" --region "$REGION" && \
-  { echo "STOP: existing Cloud Run service; choose a fresh name" >&2; exit 1; }
-# The nonzero exit code above is expected ONLY for a service that doesn't exist.
+# A failed list (for example missing permissions) is a STOP, not evidence
+# that the requested service name is available.
+existing_services="$(gcloud run services list \
+  --project "$PROJECT_ID" --region "$REGION" \
+  --format="value(metadata.name)")" || { echo "STOP: cannot list Cloud Run services" >&2; exit 1; }
+if printf '%s\\n' "$existing_services" | grep -Fx -- "$SERVICE"; then
+  echo "STOP: existing Cloud Run service; choose a fresh name" >&2
+  exit 1
+fi
 
 gcloud config set project "$PROJECT_ID"
 gcloud services enable run.googleapis.com cloudbuild.googleapis.com artifactregistry.googleapis.com iam.googleapis.com
