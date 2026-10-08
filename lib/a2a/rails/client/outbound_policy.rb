@@ -102,7 +102,7 @@ module A2A
             end
             parsed.to_s
           rescue IPAddr::InvalidAddressError, ArgumentError
-            raise RejectedTarget, :invalid_dns_address
+            raise RejectedTarget.new(:invalid_dns_address), cause: nil
           end.uniq.freeze
 
           Target.new(
@@ -162,7 +162,7 @@ module A2A
           uri.host = host
           uri
         rescue URI::InvalidURIError, URI::InvalidComponentError
-          raise RejectedTarget, :invalid_url
+          raise RejectedTarget.new(:invalid_url), cause: nil
         end
 
         def canonical_origin(uri)
