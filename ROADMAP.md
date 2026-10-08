@@ -14,11 +14,13 @@
 
 ## Current next work — Step 29: outbound A2A Client (implementation in progress)
 
-- [Tracking Issue #75](https://github.com/cuichangquan/a2a-rails/issues/75) — design merged; first internal outbound policy slice under review. Public Client API is **not implemented or released**.
+- [Tracking Issue #75](https://github.com/cuichangquan/a2a-rails/issues/75) — design and internal Step 29-3a policy merged; Step 29-3b transport under review. Public Client API is **not implemented or released**.
 - [Proposed API / architecture / security-gates document](docs/design/a2a-client.md) — Rails can call remote Agent Card / SendMessage / GetTask / ListTasks / CancelTask, including direct Message and Task response forms.
 - **Step 29-1: PASS** — [Client SDK/Demo real HTTP smoke](https://github.com/cuichangquan/a2a-rails/actions/runs/37746771841) (test-only [PR #77](https://github.com/cuichangquan/a2a-rails/pull/77), merged).
 - **Step 29-2: public API contract merged** — [PR #78](https://github.com/cuichangquan/a2a-rails/pull/78), [detailed contract](docs/design/a2a-client-public-api.md) and documented fixture-only sanity checks.
-- **Step 29-3a: internal target policy** — [PR #79](https://github.com/cuichangquan/a2a-rails/pull/79) adds strict HTTPS/exact-origin and DNS public-IPv4 preflight with unit tests; this is **not a complete SSRF defense**. [Scope and remaining gates](docs/design/a2a-client-outbound-security.md). **Next: Step 29-3b pinned-IP safe HTTP transport**, followed by TLS, redirects, credentials and SDK logging validation. Do not ship production Client until all gates pass.
+- **Step 29-3a: merged** — [PR #79](https://github.com/cuichangquan/a2a-rails/pull/79): strict HTTPS/exact-origin and public-IPv4 DNS preflight. [Details](docs/design/a2a-client-outbound-security.md).
+- **Step 29-3b: pinned-IP HTTPS transport in review** — [PR #81](https://github.com/cuichangquan/a2a-rails/pull/81), [Issue #80](https://github.com/cuichangquan/a2a-rails/issues/80): actual socket-IP pinning, Host/SNI certificate verification, redirect and proxy denial, origin-bound credentials and bounded JSON/I/O; tested against a local TLS server. [Details and remaining risks](docs/design/a2a-client-pinned-https-transport.md).
+- **Next proposed slice: Step 29-3c** — safe Agent Card discovery and supportedInterfaces[] integration; **NO-GO for production Client** until complete adapter/DTO, security and independent interoperability coverage.
 - **v0.3.0 is only a candidate**; no release, backward-compatibility or production-security claims until tests and release approval.
 
 ## Prioritized backlog
