@@ -1,0 +1,149 @@
+name: Step 29-5a outbound Client against published Rails Demo (HTTPS)
+
+on:
+  pull_request:
+    paths:
+      - "spikes/a2a_client_v03/independent_demo_*"
+      - ".github/workflows/a2a-outbound-published-demo.yml"
+      - "lib/a2a/rails/client/**"
+      - "lib/a2a/rails/client.rb"
+  push:
+    branches: [main]
+    paths:
+      - "spikes/a2a_client_v03/independent_demo_*"
+      - ".github/workflows/a2a-outbound-published-demo.yml"
+      - "lib/a2a/rails/client/**"
+      - "lib/a2a/rails/client.rb"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  published-demo-outbound-client:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      RAILS_ENV: test
+      RACK_ENV: test
+      RAILS_MAX_THREADS: "1"
+      WEB_CONCURRENCY: "0"
+      STEP29_5_DEMO_TLS_BASE: https://echo-agent.test:3443
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.4.10"
+          bundler-cache: true
+
+      - name: Check out pinned independent Echo Agent Demo
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone -q https://github.com/cuichangquan/a2a-rails-demo.git "$RUNNER_TEMP/a2a-rails-demo"
+          cd "$RUNNER_TEMP/a2a-rails-demo"
+          git fetch -q origin 7cb002a63d6cc976b1562ee45e8a260771d7ef1d
+          git checkout -q --detach 7cb002a63d6cc976b1562ee45e8a260771d7ef1d
+          test "$(git rev-parse HEAD)" = "7cb002a63d6cc976b1562ee45e8a260771d7ef1d"
+
+      - name: Install Demo dependencies from RubyGems and confirm exact Gem
+        shell: bash
+        run: |
+          set -euo pipefail
+          export BUNDLE_GEMFILE="$RUNNER_TEMP/a2a-rails-demo/Gemfile"
+          bundle install --jobs 4 --retry 3
+          bundle exec ruby -e '
+            require "bundler"
+            require "a2a-rails"
+            spec = Gem.loaded_specs.fetch("a2a-rails")
+            source = Bundler.load.specs.find { |candidate| candidate.name == "a2a-rails" }.source
+            abort "wrong demo Gem version" unless spec.version.to_s == "0.2.0"
+            abort "Demo must install Gem from RubyGems" unless source.is_a?(Bundler::Source::Rubygems)
+            puts "PASS: independent Demo uses published RubyGems a2a-rails 0.2.0"
+          '
+
+      - name: Start isolated published-Gem Rails Echo Server
+        shell: bash
+        run: |
+          set -euo pipefail
+          export BUNDLE_GEMFILE="$RUNNER_TEMP/a2a-rails-demo/Gemfile"
+          bundle exec rails server -b 127.0.0.1 -p 3000 > "$RUNNER_TEMP/step29-5-demo.log" 2>&1 &
+          echo "$!" > "$RUNNER_TEMP/step29-5-demo.pid"
+          for attempt in $(seq 1 50); do
+            if curl --noproxy '*' -fsS http://127.0.0.1:3000/.well-known/agent-card.json >/dev/null 2>&1; then
+              exit 0
+            fi
+            if ! kill -0 "$(cat "$RUNNER_TEMP/step29-5-demo.pid")" 2>/dev/null; then
+              tail -n 80 "$RUNNER_TEMP/step29-5-demo.log"
+              exit 1
+            fi
+            sleep 1
+          done
+          tail -n 80 "$RUNNER_TEMP/step29-5-demo.log"
+          exit 1
+
+      - name: Generate ephemeral TLS certificate with validated fake DNS name
+        shell: bash
+        run: |
+          set -euo pipefail
+          openssl req -x509 -nodes -newkey rsa:2048 -sha256 -days 1 \
+            -keyout "$RUNNER_TEMP/step29-5-test.key" \
+            -out "$RUNNER_TEMP/step29-5-test.crt" \
+            -subj "/CN=echo-agent.test" \
+            -addext "subjectAltName=DNS:echo-agent.test" >/dev/null 2>&1
+          echo "STEP29_5_DEMO_TLS_CA=$RUNNER_TEMP/step29-5-test.crt" >> "$GITHUB_ENV"
+
+      - name: Start test-only HTTPS bridge in front of the independent Demo
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 spikes/a2a_client_v03/independent_demo_https_bridge.py \
+            --certificate "$RUNNER_TEMP/step29-5-test.crt" \
+            --key "$RUNNER_TEMP/step29-5-test.key" \
+            --port 3443 > "$RUNNER_TEMP/step29-5-tls-bridge.log" 2>&1 &
+          echo "$!" > "$RUNNER_TEMP/step29-5-tls-bridge.pid"
+          for attempt in $(seq 1 50); do
+            if curl --noproxy '*' -fsS \
+              --cacert "$RUNNER_TEMP/step29-5-test.crt" \
+              --resolve echo-agent.test:3443:127.0.0.1 \
+              https://echo-agent.test:3443/.well-known/agent-card.json > "$RUNNER_TEMP/step29-5-card.json"; then
+              ruby -rjson -e '
+                card = JSON.parse(File.read(ARGV.fetch(0)))
+                selected = card.fetch("supportedInterfaces").find { |i| i["protocolBinding"] == "JSONRPC" && i["protocolVersion"] == "1.0" }
+                abort "wrong HTTPS interface" unless selected && selected["url"] == "https://echo-agent.test:3443/a2a"
+                puts "PASS: published Demo Card adapted only for loopback TLS test"
+              ' "$RUNNER_TEMP/step29-5-card.json"
+              exit 0
+            fi
+            sleep 1
+          done
+          tail -n 60 "$RUNNER_TEMP/step29-5-tls-bridge.log"
+          exit 1
+
+      - name: Call independent published Demo from new Rails Client main source over real TLS
+        shell: bash
+        run: |
+          set -euo pipefail
+          bundle exec ruby -Ilib spikes/a2a_client_v03/independent_demo_outbound_probe.rb
+
+      - name: Report failures without dumping request payloads
+        if: failure()
+        shell: bash
+        run: |
+          if test -f "$RUNNER_TEMP/step29-5-tls-bridge.log"; then
+            tail -n 30 "$RUNNER_TEMP/step29-5-tls-bridge.log"
+          fi
+          if test -f "$RUNNER_TEMP/step29-5-demo.log"; then
+            tail -n 50 "$RUNNER_TEMP/step29-5-demo.log"
+          fi
+
+      - name: Stop loopback server and TLS bridge
+        if: always()
+        shell: bash
+        run: |
+          for name in step29-5-tls-bridge step29-5-demo; do
+            if test -f "$RUNNER_TEMP/$name.pid"; then
+              kill "$(cat "$RUNNER_TEMP/$name.pid")" 2>/dev/null || true
+            fi
+          done
