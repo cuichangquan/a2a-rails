@@ -1,6 +1,6 @@
 # Upgrading from a2a-rails v0.1.0 to the v0.2 line
 
-> **`0.2.0.rc2` was published as a pre-release on 2026-10-08.** The stable `0.2.0` release is not yet published or authorized. rc2 includes the Steps 16–22 changes described here; validate your host configuration before upgrading. See [Step 25 publication](v0.2.0-rc.2-record.md) and [Step 26 stable-readiness gates](v0.2.0-stable-readiness.md).
+> **`0.2.0.rc2` was published as a pre-release on 2026-10-08.** The new **`0.2.0` stable candidate is source-only**, not yet published or authorized for tag/Release/RubyGems push. The original published rc2 contains a production Zeitwerk/migration inflection issue that is **fixed only in the candidate source** ([Issue #65](https://github.com/cuichangquan/a2a-rails/issues/65)). See the [Step 25 rc2 publication record](v0.2.0-rc.2-record.md) and [Step 26 stable-readiness gates](v0.2.0-stable-readiness.md).
 
 ## Why this is not treated as a patch-only upgrade
 
@@ -70,7 +70,7 @@ If your v0.1.0 application assumed one shared process-wide Task namespace, updat
 
 MemoryStore remains the default and is appropriate for local development or single-process experiments. It is not restart-safe and is not shared across Rails workers.
 
-For durable Task state with the `0.2.0.rc2` pre-release or compatible source:
+For durable Task state with the new `0.2.0` candidate (source-built only, not yet published):
 
 ```bash
 bin/rails generate a2a:rails:task_store
@@ -106,6 +106,14 @@ bin/rails a2a:rails:tasks:prune
 
 See [ActiveRecord Task Store](../guides/active-record-task-store.md). The per-owner count is a resource guard, not a billing-grade strict quota.
 
+### Published rc2 vs new stable candidate: migration/production startup
+
+The released `0.2.0.rc2` bytes cannot be altered. They are known to require test-host inflection and migration adjustments when loading a freshly generated production Rails 8.0/8.1 app. This is **not** a recommended workaround for operating arbitrary public hosts.
+
+The newer **unpublished stable `0.2.0` candidate** configures its own exact `a2a` Zeitwerk basename (`A2A`) without changing host global inflections. Its Task Store generator derives the migration class from host ActiveSupport inflection rules. [Issue #65](https://github.com/cuichangquan/a2a-rails/issues/65) and [clean-host evidence](../testing/published-gem-postgres.md) describe the difference.
+
+If an earlier host already generated/applied a migration, **do not re-run or silently rename an applied migration**. Review existing migration file/classes, Rails `schema_migrations` state, and host inflection configuration before upgrading.
+
 ## 6. Account for stricter HTTP handling
 
 Current main rejects unsupported content types, compressed A2A request bodies, oversized request bodies and malformed fields at the Rails HTTP boundary.
@@ -138,9 +146,9 @@ See [Production security](../guides/production-security.md).
 
 ## 9. Release status
 
-- Stable RubyGems baseline: **`0.1.0`**; published pre-release: **`0.2.0.rc2`**.
+- Published stable baseline: **`0.1.0`**; published pre-release: **`0.2.0.rc2`**; **unpublished stable candidate: `0.2.0`**.
 - The pre-release was verified and published in Steps 23–25; do not confuse the historical `0.2.0.rc1` checks with rc2 evidence.
-- Stable `0.2.0` has **not** been approved or published; see [Step 26](v0.2.0-stable-readiness.md) for outstanding installed-artifact DB-host and security verification.
+- Stable `0.2.0` has **not** been approved or published. Gem-level Steps 26-1–26-3 (installed-artifact PostgreSQL, signed-test-verifier isolation, queue crash windows) have been verified; the final exact stable artifact and publication decision are tracked in [Step 26](v0.2.0-stable-readiness.md).
 - The presence of these features in rc2 does **not** approve any particular public production deployment; [Issue #11](https://github.com/cuichangquan/a2a-rails/issues/11) remains open.
 
 See the [current release/deployment checklist](security-hardening-release-checklist.md).
