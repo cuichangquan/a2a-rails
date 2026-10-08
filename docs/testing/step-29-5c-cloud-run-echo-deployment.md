@@ -14,8 +14,9 @@ The image in `spikes/a2a_client_v03/controlled_public_echo/` runs an independent
 - Configured origin must exactly match `https://*.run.app` without path, port, query, fragment or credentials. The application rejects malformed origins and never guesses one from untrusted Host headers.
 - Only `GET /healthz`, `GET /.well-known/agent-card.json` and `POST /python/a2a/jsonrpc` are reachable. RPC body is capped to **16 KiB**, including chunked requests; unsupported content type/encoding is rejected. All other paths return 404.
 - Only controlled probe requests matching `direct: public-egress-<24 hex>` or `task: public-egress-<24 hex>` are echoed. No model execution, secrets, database, production API permissions or user information. Request/response access logs are disabled in the container.
-- `InMemoryTaskStore` is **ephemeral and not durable**. Set one minimum and maximum instance for the short test window; do not claim high-availability behavior or use as a production Task Store.
-- **Public no-auth service means anyone on the internet can send requests.** Set a Google Cloud billing budget/alerts, review project quotas, keep the test window short and delete the service immediately after testing. Scaling limit is a cost guard, **not a hard billing cap** and can be briefly exceeded. Do not let the test process accept sensitive inputs.
+- `InMemoryTaskStore` is **ephemeral and not durable**. Use one minimum and maximum instance **only for the short test window** to reduce GetTask loss between requests. Cloud Run minimum instances have idle cost and do not guarantee persistence or instance lifetime; do not claim high-availability behavior or use as a production Task Store.
+- **Public no-auth service means anyone on the internet can send requests.** Set a Google Cloud billing budget/alerts, review project quotas, keep the test window short and delete the service immediately after testing. Scaling limit is a cost guard, **not a hard billing cap** and can be briefly exceeded. `--min 1` incurs charges even when idle; change to `--min 0` only if you accept the extra risk of losing in-memory Tasks across requests. Do not let the test process accept sensitive inputs.
+- **Use an explicit dedicated runtime service account with no granted project roles.** Without `--service-account`, Cloud Run normally uses the project's Compute Engine default service identity, which can have broader inherited permissions. The Echo Agent does not need access to any GCP APIs; never give it Editor, Cloud Run Admin, storage, database, or production credentials. The human deployer separately needs Cloud Run deploy and `iam.serviceAccounts.actAs` permissions.
 
 ## Phase 1: provision an initially PRIVATE Cloud Run service
 
@@ -29,16 +30,40 @@ export PROJECT_ID="YOUR_TEST_GCP_PROJECT_ID"
 export REGION="asia-northeast1"
 export SERVICE="a2a-public-interop-probe"
 export APP_DIR="spikes/a2a_client_v03/controlled_public_echo"
+export SA_NAME="a2a-interop-probe"
+export SA_EMAIL="${SA_NAME}@${PROJECT_ID}.iam.gserviceaccount.com"
+
+# Verify the intended account and target project BEFORE making cloud changes.
+gcloud auth list --filter="status:ACTIVE"
+gcloud projects describe "$PROJECT_ID" --format="value(projectId,name)"
+# STOP if this is an existing production/Firebase application project.
+# A failed list (for example missing permissions) is a STOP, not evidence
+# that the requested service name is available.
+existing_services="$(gcloud run services list \
+  --project "$PROJECT_ID" --region "$REGION" \
+  --format="value(metadata.name)")" || { echo "STOP: cannot list Cloud Run services" >&2; exit 1; }
+if printf '%s\\n' "$existing_services" | grep -Fx -- "$SERVICE"; then
+  echo "STOP: existing Cloud Run service; choose a fresh name" >&2
+  exit 1
+fi
 
 gcloud config set project "$PROJECT_ID"
-gcloud services enable run.googleapis.com cloudbuild.googleapis.com artifactregistry.googleapis.com
+gcloud services enable run.googleapis.com cloudbuild.googleapis.com artifactregistry.googleapis.com iam.googleapis.com
 
-# Choose a NEW, dedicated service that does not already exist. Do not deploy
-# into an existing public service with unknown IAM bindings or revisions.
+# A NEW identity with NO project IAM roles. The deployment principal must
+# separately possess iam.serviceAccounts.actAs on this identity.
+gcloud iam service-accounts create "$SA_NAME" \
+  --project "$PROJECT_ID" \
+  --display-name="Ephemeral Step 29-5c Echo Agent (no project roles)"
+gcloud iam service-accounts describe "$SA_EMAIL" --project "$PROJECT_ID" \
+  --format="value(email)"
+
+# Private-first; do not deploy into an existing public service.
 gcloud run deploy "$SERVICE" \
   --source "$APP_DIR" \
   --project "$PROJECT_ID" \
   --region "$REGION" \
+  --service-account "$SA_EMAIL" \
   --ingress all \
   --invoker-iam-check \
   --cpu 1 --memory 512Mi \
@@ -46,6 +71,8 @@ gcloud run deploy "$SERVICE" \
 ```
 
 This initial revision has **no** `A2A_PUBLIC_BASE_URL`, and does not expose A2A routes. Cloud Run initially requires IAM-authenticated callers; no unauthenticated public traffic should reach it. Verify IAM/service access settings before proceeding.
+
+**IAM prerequisite:** If deploying with the dedicated service identity fails because of `iam.serviceAccounts.actAs`, have the GCP administrator grant `roles/iam.serviceAccountUser` to the deployment principal **on this particular identity only**; do not grant project-wide Editor. If an `a2a-interop-probe` identity already exists, review its IAM roles and ownership instead of blindly reusing it. Service-account creation and attachment are real cloud writes, not GitHub repository operations.
 
 ## Phase 2: configure the actual platform-issued public URL, still PRIVATE
 
@@ -127,6 +154,10 @@ gcloud run services update "$SERVICE" \
   --invoker-iam-check
 gcloud run services delete "$SERVICE" \
   --project "$PROJECT_ID" --region "$REGION"
+# Remove only the service account specifically created for this disposable test,
+# after confirming it is not attached to any other service.
+gcloud iam service-accounts delete "$SA_EMAIL" \
+  --project "$PROJECT_ID"
 ```
 
 Remove the dedicated runner, environment variables and obsolete test artifacts, and review Cloud Run/Artifact Registry billing. Do not assume deleting Cloud Run also deletes built images, Artifact Registry artifacts or project costs.
