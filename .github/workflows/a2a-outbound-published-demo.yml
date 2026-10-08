@@ -68,6 +68,7 @@ jobs:
         run: |
           set -euo pipefail
           export BUNDLE_GEMFILE="$RUNNER_TEMP/a2a-rails-demo/Gemfile"
+          cd "$RUNNER_TEMP/a2a-rails-demo"
           bundle exec rails server -b 127.0.0.1 -p 3000 > "$RUNNER_TEMP/step29-5-demo.log" 2>&1 &
           echo "$!" > "$RUNNER_TEMP/step29-5-demo.pid"
           for attempt in $(seq 1 50); do
