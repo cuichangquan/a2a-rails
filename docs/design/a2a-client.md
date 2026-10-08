@@ -4,6 +4,12 @@
 > Tracking issue: [#75](https://github.com/cuichangquan/a2a-rails/issues/75).  
 > Baseline: published `a2a-rails 0.2.0` is an inbound Rails A2A Server; its public API and release status are unchanged.
 
+## Review status and detailed public contract
+
+- Step 29-1 [published SDK / independent Rails Demo HTTP spike](https://github.com/cuichangquan/a2a-rails/actions/runs/37746771841) **PASS**. The actual `A2A-Version: 1.0` header is required for the pinned demo.
+- Step 29-2 [precise Client API, DTO, error and security contract](a2a-client-public-api.md) is proposed in [Draft PR #78](https://github.com/cuichangquan/a2a-rails/pull/78), with self-contained reference fixtures. That CI checks **fixture examples only**, not a product Client.
+- Future Step 29-3 remains the release-blocking outbound transport policy; the public Client is **not implemented**.
+
 ## Goal and non-goals
 
 Allow **any** Rails 8 application to call remote A2A v1.0 Agents, whether or not that Rails app also exposes an A2A Server. This is a general-purpose Rails integration, not a Shopping Agent, LLM platform, orchestrator, or multi-agent workflow engine.
