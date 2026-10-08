@@ -37,6 +37,21 @@ Only use **explicitly approved HTTPS Agent origins**. Remote task IDs are scoped
 
 If Agent Card discovery and the advertised RPC endpoint are on different origins, supply both origins in `allowed_origins:`. Credential callbacks are not forwarded to that different origin automatically. Bind an RPC token explicitly using `credential_origin: "https://rpc.example"`; use `card_authorization` and `card_credential_origin` independently for non-public Agent Cards. No token is sent for public discovery by default. Remote Agent authentication and authorization remain the remote server's responsibility.
 
+## Using a Rails app only as an outbound Client
+
+Existing Rails Server installations continue to use `server_enabled = true` by default. In a Rails application that **only calls** external Agents, add:
+
+```ruby
+# config/initializers/a2a_rails.rb
+A2A::Rails.configure do |config|
+  config.server_enabled = false
+end
+```
+
+The host app then does **not** mount inbound `/.well-known/agent-card.json` or `/a2a`, and does not require `config.agent`. Outbound Client instances can still be constructed in services and ActiveJob. This setting is deliberately per Rails application and is not an automatically inferred mode.
+
+The separate-process [Client-only Rails HTTP boot test](../../test/integration/client_only_rails_boot_test.rb) verifies that both inbound paths return HTTP 404. The existing full Server HTTP integration suite verifies backward compatibility with the default setting. A staged Ruby/Gem build on main does **not** mean RubyGems 0.2.0 contains this feature.
+
 ## Returned values
 
 - `SendResult#kind` is exactly `:task` or `:message`; the other value is `nil`.
