@@ -27,9 +27,11 @@ Use an endpoint owned and operated by the project owner: an allowlisted **public
 5. Protocol: preserve caller message IDs, no automatic HTTP retries, send/cancel timeouts marked potentially executed, oneof validation, ListTasks pagination, nonterminal states, CancelTask, rich File/Data and nested extension keys against both official SDKs.
 6. Release: Ruby 3.3/3.4/4.0, Rails 8.0/8.1, packaged-artifact and PostgreSQL checks; independent security review and distinct v0.3.x go/no-go decision.
 
-## Implementation observation requiring regression proof
+## Implementation correction (Step 29-5c follow-up PR)
 
-The current `PinnedHttpsTransport#perform` begins its `Timeout.timeout(total_timeout)` **after** DNS resolution and credential callback execution, so the configured total request timeout does not currently include those stages. In addition, cause chains of rethrown internal network/JSON exceptions should be reviewed to avoid exposing untrusted response snippets in logs. Fix and demonstrate with tests before marking this gate PASS.
+The transport deadline is extended to include DNS resolution, credential callback evaluation, TLS connect, uploads and response parsing. Timeout exceptions from the DNS resolver and token callback are no longer misclassified as DNS/credential failures. The transport and DNS resolver wrappers strip causes from errors that might otherwise contain untrusted response text or credential-provider details.
+
+Regression tests cover slow DNS, slow credential callback, rebinding after a public DNS result, malformed Content-Length and parser/TLS exception causes. These local tests are **not** substitutes for a real public egress run and do not prove every adversarial security gate (notably slow write, concurrent Rails Jobs and controlled public CA connectivity). Verify corresponding CI results before marking this slice reviewed.
 
 ## Decision
 
