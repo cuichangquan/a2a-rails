@@ -223,6 +223,33 @@ class ClientPinnedHttpsTransportTest < Minitest::Test
     refute_includes error.message, "secret-token"
   end
 
+  def test_concurrent_requests_keep_authorization_and_response_data_isolated
+    sessions = 4.times.map do |index|
+      port, requests = tls_server(body: JSON.generate({ "slot" => index }))
+      { port: port, requests: requests, expected: "Bearer isolated-#{index}" }
+    end
+    shared_transport = transport
+    calls = sessions.each_with_index.map do |session, index|
+      Thread.new do
+        url = "https://trusted.example:#{session.fetch(:port)}/echo"
+        shared_transport.get_json(
+          url: url,
+          authorization: -> { "Bearer isolated-#{index}" },
+          credential_origin: "https://trusted.example:#{session.fetch(:port)}"
+        )
+      end
+    end
+
+    calls.map(&:value).each_with_index do |response, index|
+      assert_equal index, response.json.fetch("slot")
+    end
+    sessions.each do |session|
+      req = session.fetch(:requests).pop
+      assert_equal session.fetch(:expected), req.fetch(:headers).fetch("authorization")
+      assert_equal "/echo", req.fetch(:path)
+    end
+  end
+
   def test_real_https_total_timeout_on_slow_response
     port, _requests = tls_server(body: '{}', delay: 0.5)
     error = assert_raises(Transport::DeadlineExceeded) do
