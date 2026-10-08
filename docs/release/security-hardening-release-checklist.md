@@ -1,9 +1,9 @@
 # Security hardening — release and deployment readiness checklist
 
-Last reviewed: **2026-10-08 (Step 24)**  
-Baseline published release: **a2a-rails 0.1.0** (2026-10-06)  
+Last reviewed: **2026-10-08 (Step 25 publication verification)**  
+Baseline stable release: **a2a-rails 0.1.0** (2026-10-06); newest published candidate: **0.2.0.rc2** (2026-10-08)  
 Current main: includes Steps 16–23, including optional durable ActiveRecord Task Store and opt-in ActiveJob Task execution; later changes after the Step 23 verified commit were docs-only.  
-Release-candidate status: **`0.2.0.rc2` passed Step 23 verification and is GO for publication review; publication remains NOT AUTHORIZED**. See [Step 24 release decision record](v0.2.0-rc.2-record.md).
+Release-candidate status: **`0.2.0.rc2` has been published as GitHub pre-release and RubyGems release candidate; public fetched Gem SHA256 and fresh Rails 8.1.4 load smoke PASS**. See [Step 25 publication record](v0.2.0-rc.2-record.md).
 
 > The historical `0.2.0.rc1` artifact verified in Step 20 predates Step 21 and Step 22 runtime changes. Its commit/SHA evidence remains valid for that exact historical tree only and **must not be reused**. Step 23 completed fresh exact-candidate verification for `0.2.0.rc2`, recorded in [Issue #54](https://github.com/cuichangquan/a2a-rails/issues/54).
 
@@ -14,7 +14,7 @@ Release and deployment decisions remain separate.
 | Decision | Status |
 | --- | --- |
 | Candidate `0.2.0.rc2` verification | **PASS on exact Step 23 commit; GO for publication review** |
-| Tag / GitHub Release / RubyGems publication | **NOT AUTHORIZED; separate explicit approval required** |
+| Tag / GitHub Release / RubyGems publication | **PUBLISHED as rc2 pre-release after separate user approval in Step 25; public Gem SHA256 verified** |
 | Open public production using default MemoryStore | **NO-GO** |
 | Multi-worker/restart-safe Task persistence using ActiveRecordStore | **Gem capability verified; deployment-specific GO/NO-GO still required** |
 | Open public production overall | **NO-GO by default** until all host/deployment gates below are satisfied |
@@ -100,8 +100,8 @@ These items were required for Step 23 because Steps 21 and 22 changed runtime co
 - [x] Build the exact `.gem`, inspect package contents/metadata and record SHA256.
 - [x] Install **that exact built artifact** into clean Rails 8.0 and Rails 8.1 hosts.
 - [ ] **Additional installed-artifact DB-host evidence:** install/migrate the exact Gem in a clean DB-backed Rails host and verify restart/multi-instance persistence plus bounded maintenance commands. Step 23 PostgreSQL smoke runs against source; installed-artifact security smoke is not a DB-host migration/pruning test. Do not assert this narrower deployment proof without a dedicated run.
-- [ ] Obtain **separate explicit approval** for tag, GitHub Release and RubyGems publication. Step 24 is documentation / readiness review only.
-- [ ] After upload, fetch the published Gem and confirm its SHA256 matches the approved artifact.
+- [x] Obtain **separate explicit approval** for tag, GitHub Release and RubyGems publication; user authorized Step 25 and published exactly this pre-release.
+- [x] After upload, fetched published Gem from RubyGems.org in a fresh directory; SHA256 matched approved artifact. Subsequent clean temporary Bundler install/load with Rails 8.1.4 also PASS. See [Step 25 record](v0.2.0-rc.2-record.md).
 
 ## Recommended decision record for a real deployment
 
@@ -109,9 +109,9 @@ Record: release commit and Gem SHA256, Rails environment, ingress/TLS configurat
 
 ## Known limitations
 
-The published v0.1.0 lacks the security controls and ActiveRecordStore described above.
+The stable published v0.1.0 lacks the security controls and ActiveRecordStore described above; these features are present in the published **pre-release** `0.2.0.rc2`, but require correct host configuration.
 
-Current unreleased main still does not provide:
+Current Gem (including the newly published `0.2.0.rc2` candidate) still does not provide:
 
 - an OAuth2/OIDC server or universal credential verifier;
 - universal business/delegated authorization;

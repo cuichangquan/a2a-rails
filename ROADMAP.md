@@ -153,19 +153,19 @@ Completed on `main` (unreleased; **not** part of RubyGems v0.1.0):
 - Passing Step 23 makes the candidate reviewable; it does not close deployment-specific Issue #11.
 - Tag creation, GitHub Release creation, and RubyGems publication still require separate explicit approval.
 
-## Step 24 — v0.2.0.rc2 release-decision record (publication approval pending)
+## Step 24 — v0.2.0.rc2 release-decision record (complete; historical)
 
 - [Issue #57](https://github.com/cuichangquan/a2a-rails/issues/57) tracks the final checklist reconciliation and release-decision documentation.
 - [Final verified candidate record](docs/release/v0.2.0-rc.2-record.md): candidate quality **PASS / GO for publication review**, verified exact Step 23 commit, SHA256 and all test evidence.
 - The current main delta after the candidate is limited to `docs/` and not included in the Gem payload; no runtime, gemspec or packaged documentation changed.
-- **Next required decision: obtain separate explicit approval before creating tag `v0.2.0-rc.2`, publishing a GitHub pre-release, or uploading `0.2.0.rc2` to RubyGems. None of these actions is authorized by Step 24.**
+- **Step 24's publication approval requirement was satisfied later when the user authorized Step 25.** The historical Step 24 decision did not itself authorize publication.
 - After publication, verify downloaded Gem SHA256 and installed-Gem smoke; keep host-specific production-readiness gates in [Issue #11](https://github.com/cuichangquan/a2a-rails/issues/11) open until independently satisfied.
 
-## Step 25 — v0.2.0-rc.2 pre-release publication (external execution pending)
+## Step 25 — v0.2.0-rc.2 pre-release publication (complete: 2026-10-08)
 
 - [Issue #59](https://github.com/cuichangquan/a2a-rails/issues/59) tracks the user-authorized publication and post-publication verification.
-- [Human-facing release notes](docs/release/v0.2.0-rc.2-release-notes.md) and [exact-artifact publication runbook](docs/release/v0.2.0-rc.2-publication-runbook.md) describe the publish sequence and checksum gates.
-- The exact Step 23 Gem artifact was retrieved from GitHub Actions and independently SHA256-checked against `d65fdd65003987ece96f0a90a4cf28563929be99d26658deeb275fca30c5d694`.
-- **Next:** create the tag at verified commit `efdec49daa0ef20edff26d4d198a8afc91567535`, create a GitHub *pre-release*, publish that same Gem via authenticated RubyGems push, fetch the published Gem and verify SHA256.
-- These remote publication actions are **pending** because the connected GitHub tools do not offer tag/Release creation, and the environment does not provide an authenticated RubyGems publishing action. Do not mark Step 25 complete until the external actions and published-Gem smoke succeed.
-- Publishing a release candidate is separate from open-public-production readiness; [Issue #11](https://github.com/cuichangquan/a2a-rails/issues/11) remains open.
+- **PUBLISHED AND VERIFIED:** annotated tag [`v0.2.0-rc.2`](https://github.com/cuichangquan/a2a-rails/releases/tag/v0.2.0-rc.2) targets verified Step 23 commit `efdec49daa0ef20edff26d4d198a8afc91567535`; GitHub Release is marked **pre-release**, with the original exact `.gem` attached.
+- [RubyGems `a2a-rails 0.2.0.rc2`](https://rubygems.org/gems/a2a-rails/versions/0.2.0.rc2) fetched in a fresh temporary directory: published SHA256 **matched** `d65fdd65003987ece96f0a90a4cf28563929be99d26658deeb275fca30c5d694`.
+- Published-Gem local clean Bundler install/load/version smoke **PASS** on Ruby 3.4.1 / Rails 8.1.4; this smoke does **not** assert new HTTP Task lifecycle coverage.
+- [Final Step 25 publication and verification record](docs/release/v0.2.0-rc.2-record.md) · [release notes](docs/release/v0.2.0-rc.2-release-notes.md) · [publication runbook](docs/release/v0.2.0-rc.2-publication-runbook.md).
+- **Next focus:** choose next stable-release criteria and separately review actual production host/deployment controls in [Issue #11](https://github.com/cuichangquan/a2a-rails/issues/11). Candidate publication does not approve public production.
