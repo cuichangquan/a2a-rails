@@ -1,0 +1,5 @@
+# Match the independently validated official SDK version from Step 29-5b.
+a2a-sdk==1.2.2
+uvicorn==0.35.0
+starlette
+sse-starlette
