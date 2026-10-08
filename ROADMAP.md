@@ -153,7 +153,7 @@ Completed on `main` (unreleased; **not** part of RubyGems v0.1.0):
 - Passing Step 23 makes the candidate reviewable; it does not close deployment-specific Issue #11.
 - Tag creation, GitHub Release creation, and RubyGems publication still require separate explicit approval.
 
-## Step 24 — v0.2.0.rc2 release-decision record (documentation in progress)
+## Step 24 — v0.2.0.rc2 release-decision record (publication approval pending)
 
 - [Issue #57](https://github.com/cuichangquan/a2a-rails/issues/57) tracks the final checklist reconciliation and release-decision documentation.
 - [Final verified candidate record](docs/release/v0.2.0-rc.2-record.md): candidate quality **PASS / GO for publication review**, verified exact Step 23 commit, SHA256 and all test evidence.
