@@ -107,6 +107,14 @@ module PublishedGemPostgresSmoke
 
     migration = Dir.glob(File.join(host, "db/migrate/*create_a2a_rails_tasks.rb"))
     assert(migration.length == 1, "installed-Gem generator did not create exactly one migration")
+    # The rc2 migration template hardcodes CreateA2aRailsTasks. Registering
+    # the A2A acronym for Zeitwerk changes Rails' expected migration class to
+    # CreateA2ARailsTasks. Patch ONLY this disposable host fixture until
+    # Issue #65 addresses both behaviors in the next Gem release.
+    migration_source = File.read(migration.first)
+    original_class = "class CreateA2aRailsTasks <"
+    assert(migration_source.include?(original_class), "rc2 migration template changed unexpectedly")
+    File.write(migration.first, migration_source.sub(original_class, "class CreateA2ARailsTasks <"))
     File.write(File.join(host, "config/initializers/a2a_rails.rb"), INITIALIZER)
     File.write(File.join(host, "app/agents/echo_agent.rb"), AGENT)
     FileUtils.mkdir_p(File.join(host, "app/services/echo"))
