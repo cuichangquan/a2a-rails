@@ -1,8 +1,8 @@
 # Production security and deployment review (Step 16-6)
 
-> **Deployment verdict as of 2026-10-07: NO-GO for open, untrusted production traffic.**
+> **Deployment verdict as of 2026-10-08: NO-GO by default for open, untrusted production traffic.**
 >
-> Security changes from Steps 16-1–16-5 exist on the **unreleased `main` branch**, not in the published RubyGems **v0.1.0** artifact. A passed CI matrix and an authentication hook are not sufficient to call a public deployment secure.
+> Security changes from Steps 16-1–16-5 and the opt-in ActiveRecordStore are included in the published **`0.2.0.rc2` pre-release**, but **not** in stable RubyGems `v0.1.0`. Merely installing rc2 does not make a public deployment secure. See the [Step 26 stable-release readiness matrix](../release/v0.2.0-stable-readiness.md).
 
 This guide distinguishes what **a2a-rails enforces** from what the **host Rails application and ingress must enforce**. Use it before accepting any external A2A client connections. See [Issue #11](https://github.com/cuichangquan/a2a-rails/issues/11) and the [security review checklist](../release/security-hardening-release-checklist.md).
 
@@ -17,7 +17,7 @@ This guide distinguishes what **a2a-rails enforces** from what the **host Rails 
 
 Passing the checks below can inform a **deployment-specific risk decision**, not a global production-ready statement about the Gem.
 
-## 1. What the current development branch enforces
+## 1. What the rc2 pre-release and current main enforce
 
 | Boundary | Implemented behavior |
 | --- | --- |
@@ -87,7 +87,7 @@ The public Agent Card exposes Agent and Skill names, endpoint URLs and descripti
 
 ## 4. Smoke checks before any external network access
 
-**Never run the commands below with real credentials in shared terminal recordings or CI logs.** Perform these checks first in restricted staging using the exact **unreleased commit or future release candidate**, not published `v0.1.0`.
+**Never run the commands below with real credentials in shared terminal recordings or CI logs.** Perform these checks first in restricted staging using an **exact reviewed pre-release or stable artifact**, not the older published `v0.1.0` if you expect the newer protections.
 
 1. `GET /.well-known/agent-card.json` returns 200, advertises only the actual authentication scheme and an HTTPS `supportedInterfaces[].url`; it must **not** expose token values, client identities, internal hostnames or hidden Skills.
 2. `POST /a2a` with no Authorization header returns **401** and `WWW-Authenticate: Bearer …`, without executing the Handler.
@@ -104,7 +104,7 @@ The public Agent Card exposes Agent and Skill names, endpoint URLs and descripti
 
 **Do not publish a new Gem version from this documentation change alone.** The exact security feature set and deployment risks must be reviewed, versioned and verified as an artifact in a separate release process.
 
-The published `v0.1.0` has no built-in A2A authentication or owner-scoped Task access. By contrast, the unreleased code changes the behavior of **production** endpoints:
+The stable published `v0.1.0` has no built-in A2A authentication or owner-scoped Task access. The published `0.2.0.rc2` **pre-release** changes the behavior of **production** endpoints:
 
 - Production `POST /a2a` now denies unconfigured or invalid authentication.
 - Production Agent Card discovery no longer succeeds without a valid advertised/verified security configuration.
@@ -112,16 +112,16 @@ The published `v0.1.0` has no built-in A2A authentication or owner-scoped Task a
 - POST content type/body validation rejects requests accepted by earlier versions.
 - The host must configure both its authentication callback **and matching Agent Card declarations**; setting only one is not enough.
 
-These changes can break previously functional deployments and clients. Choose an appropriate **pre-1.0 SemVer-compatible version bump** after explicitly deciding whether to align the roadmap with this release. Do not silently call the current development state `v0.1.0`, and do not claim patch-version drop-in compatibility. Before tagging: update release notes, rerun packaged-artifact tests, exercise a clean host Rails app in **production environment** and verify the final published bytes against the candidate checksum.
+These changes can break previously functional deployments and clients. Do not claim patch-version drop-in compatibility. `0.2.0.rc2` is already distributed as a **pre-release**, while stable `0.2.0` still requires separate compatibility, installed-artifact PostgreSQL-host, security and exact-package verification per [Step 26](../release/v0.2.0-stable-readiness.md). No stable publication is approved yet.
 
 ## 6. Current security review outcome
 
 | Item | Decision |
 | --- | --- |
-| Authentication / Task owner isolation / security metadata | Implemented in unreleased main; CI-covered. Application verifier and business authorization are still host responsibilities. |
-| HTTP input checks and safer Gem error logging | Implemented in unreleased main; CI-covered. Gateway/middleware controls remain external. |
+| Authentication / Task owner isolation / security metadata | Included in published rc2 pre-release and CI-covered. Application verifier and business authorization remain host responsibilities. |
+| HTTP input checks and safer Gem error logging | Included in published rc2 pre-release and CI-covered. Gateway/middleware controls remain external. |
 | Public multi-worker or restart-safe production | **Still not globally approved.** The Step 21 ActiveRecordStore removes the Gem-level persistence/worker-sharing blocker when explicitly configured and maintained, but deployment-specific auth, authorization, rate/concurrency limits, TLS/proxy policy, observability and execution budgets remain mandatory. |
 | End-to-end production security | **Not approved** without a specific deployment review and the completed release checklist. |
-| New RubyGems publication | **Not authorized by Step 16-6.** Prepare separately once user approves scope, version and artifact checks. |
+| New RubyGems publication | **rc2 pre-release was published with separate approval in Step 25.** Stable `0.2.0` publication is not authorized by this guide; follow Step 26 and obtain new explicit approval. |
 
 See [A2A protocol security guidance](https://a2a-protocol.org/latest/specification/#7-authentication-and-authorization) and [enterprise deployment considerations](https://a2a-protocol.org/latest/topics/enterprise-ready/).
