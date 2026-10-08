@@ -121,9 +121,40 @@ class ClientOutboundPolicyTest < Minitest::Test
     assert_nil error.cause
   end
 
-  def test_ipv6_fails_closed_even_if_globally_routable
-    assert_rejected(:blocked_ip) do
+  def test_public_dual_stack_resolves_only_pinned_ipv4_destinations
+    target = policy(records: [
+      "2600:1900:4240:200::", "34.143.75.2",
+      "2600:1901:81d4:200::", "34.143.75.2", "34.143.74.2"
+    ]).resolve!("https://trusted.example/a2a")
+    assert_equal ["34.143.75.2", "34.143.74.2"], target.addresses
+    assert_predicate target.addresses, :frozen?
+    assert target.addresses.all? { |ip| IPAddr.new(ip).ipv4? }
+  end
+
+  def test_public_ipv6_only_cannot_be_dialed_without_ipv4
+    assert_rejected(:unsupported_ip_family) do
       policy(records: ["2606:4700:4700::1111"]).resolve!("https://trusted.example/a2a")
+    end
+  end
+
+  def test_rejects_any_unsafe_ipv6_even_alongside_public_ipv4
+    [
+      "::", "::1", "::ffff:169.254.169.254",
+      "fe80::1", "fc00::1", "ff02::1",
+      "64:ff9b::a9fe:a9fe", "2001::1",
+      "2001:db8::1", "2002:c0a8:101::1",
+      "3fff::1", "4000::1"
+    ].each do |unsafe|
+      assert_rejected(:blocked_ip) do
+        policy(records: ["34.143.75.2", unsafe]).resolve!("https://trusted.example/a2a")
+      end
+    end
+  end
+
+  def test_rejects_unsafe_ipv4_even_alongside_public_ipv6
+    assert_rejected(:blocked_ip) do
+      policy(records: ["2600:1900:4240:200::", "34.143.75.2", "169.254.169.254"])
+        .resolve!("https://trusted.example/a2a")
     end
   end
 
