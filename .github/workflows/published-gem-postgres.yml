@@ -1,0 +1,77 @@
+name: Published rc2 PostgreSQL host smoke
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/published-gem-postgres.yml"
+      - "spikes/published_gem_postgres/**"
+      - "docs/release/**"
+  pull_request:
+    paths:
+      - ".github/workflows/published-gem-postgres.yml"
+      - "spikes/published_gem_postgres/**"
+      - "docs/release/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  installed-postgres-host:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        rails: ["~> 8.0.0", "~> 8.1.0"]
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: a2a_rails_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d a2a_rails_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      TARGET_RAILS: ${{ matrix.rails }}
+      DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/a2a_rails_test
+      RAILS_ENV: production
+      RACK_ENV: production
+      SECRET_KEY_BASE: step-26-1-isolated-ci-host-secret-key-base-not-for-production
+      BUNDLE_JOBS: "4"
+      BUNDLE_RETRY: "3"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.4.10"
+
+      - name: Fetch the published RubyGems artifact and verify its approved SHA256
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP"
+          gem fetch a2a-rails -v 0.2.0.rc2 --clear-sources --source https://rubygems.org
+          echo "d65fdd65003987ece96f0a90a4cf28563929be99d26658deeb275fca30c5d694  a2a-rails-0.2.0.rc2.gem" | sha256sum -c -
+          gem install --no-document ./a2a-rails-0.2.0.rc2.gem
+          gem install --no-document rails -v "$TARGET_RAILS"
+          ruby -rrubygems -e 'abort "not installed" unless Gem::Specification.find_all_by_name("a2a-rails", "= 0.2.0.rc2").any?'
+          pg_config --version
+
+      - name: Run clean DB-backed Rails host migration, HTTP, restart and prune smoke
+        shell: bash
+        env:
+          PUBLISHED_GEM_FILE: ${{ runner.temp }}/a2a-rails-0.2.0.rc2.gem
+          A2A_RAILS_SOURCE_ROOT: ${{ github.workspace }}
+        run: ruby spikes/published_gem_postgres/smoke.rb
