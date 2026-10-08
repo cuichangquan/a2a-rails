@@ -2,6 +2,7 @@
 
 require "ipaddr"
 require "resolv"
+require "timeout"
 require "uri"
 require_relative "../errors"
 
@@ -82,8 +83,11 @@ module A2A
 
           addresses = begin
             @resolver.call(uri.host)
+          rescue Timeout::Error
+            # The transport's total deadline must not be converted into a DNS failure.
+            raise
           rescue StandardError
-            raise RejectedTarget, :dns_failure
+            raise RejectedTarget.new(:dns_failure), cause: nil
           end
           unless addresses.is_a?(Array) && !addresses.empty?
             raise RejectedTarget, :dns_failure
