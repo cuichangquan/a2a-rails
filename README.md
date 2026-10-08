@@ -1,5 +1,5 @@
 # a2a-rails
-<img src="docs/assets/a2a-rails-handwritten-note.png">
+<img src="docs/assets/a2a-rails-0.2.0-rc2-overview.png">
 <br/>
 <img src="docs/assets/a2a-railsで広がるAI協働図鑑.png">
 
