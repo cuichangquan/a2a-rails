@@ -1,6 +1,6 @@
-# File Artifact outputs (unreleased main, Step 17-3)
+# File Artifact outputs (Step 17-3; published in pre-release rc2)
 
-> **Not in published RubyGems v0.1.0.** File Artifact output is under development in [PR #23](https://github.com/cuichangquan/a2a-rails/pull/23). This is not a production deployment approval.
+> **Not in published RubyGems v0.1.0.** File Artifact output was implemented in [PR #23](https://github.com/cuichangquan/a2a-rails/pull/23) and is included in the published `0.2.0.rc2` pre-release and unpublished stable `0.2.0` source candidate. This is not a production deployment approval.
 
 `a2a-rails` lets a Rails Handler return **one file Artifact** as an explicit `A2A::Rails::FileArtifact` object. The Gem converts it to an A2A v1.0 Part through its existing Task result pipeline; no SDK-specific objects are passed into the Handler.
 
