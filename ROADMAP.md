@@ -1,15 +1,16 @@
 # a2a-rails Roadmap
 
-> Status: updated 2026-10-08 through Step 26 planning. These are priorities, not promised release dates or API commitments.
+> Status: updated 2026-10-08 through Step 28 completion. These are priorities, not promised release dates or API commitments.
 >
-> **Step 21 complete:** [Issue #35](https://github.com/cuichangquan/a2a-rails/issues/35) delivered an optional durable ActiveRecord Task Store, owner-scoped SQL access, row locking, keyset pagination, retention/pruning/quota/payload maintenance, shared Store contract tests and PostgreSQL 16 durability/locking smoke. [Design](docs/design/active-record-task-store.md) · [Guide](docs/guides/active-record-task-store.md). Step 20's `0.2.0.rc1` artifact is historical only; [`0.2.0.rc2`](https://github.com/cuichangquan/a2a-rails/releases/tag/v0.2.0-rc.2) was subsequently verified and published as a **pre-release**. [Step 26](docs/release/v0.2.0-stable-readiness.md) now tracks stable-release evidence separately from the open public-production security [Issue #11](https://github.com/cuichangquan/a2a-rails/issues/11).
+> **Step 21 complete:** [Issue #35](https://github.com/cuichangquan/a2a-rails/issues/35) delivered an optional durable ActiveRecord Task Store, owner-scoped SQL access, row locking, keyset pagination, retention/pruning/quota/payload maintenance, shared Store contract tests and PostgreSQL 16 durability/locking smoke. [Design](docs/design/active-record-task-store.md) · [Guide](docs/guides/active-record-task-store.md). Step 20's `0.2.0.rc1` artifact is historical only; [`0.2.0.rc2`](https://github.com/cuichangquan/a2a-rails/releases/tag/v0.2.0-rc.2) was subsequently verified and published as a **pre-release**. [Step 26](docs/release/v0.2.0-stable-readiness.md) completed the stable-release evidence, [Step 27](docs/release/v0.2.0-publication-record.md) published `0.2.0`, and Step 28 proved that the independent Rails demo runs against that public Gem. Public-production security [Issue #11](https://github.com/cuichangquan/a2a-rails/issues/11) remains open.
 
-## Current baseline — v0.1.0 (released)
+## Current stable baseline — v0.2.0 (released)
 
-- [x] RubyGems + GitHub Release published.
-- [x] Server-first A2A v1.0 JSON-RPC integration, Agent Card, Rails generators, synchronous Task lifecycle.
-- [x] CI / packaged-gem verification and a clean Rails Echo smoke test.
+- [x] [RubyGems + GitHub Release `0.2.0` published](docs/release/v0.2.0-publication-record.md); public package SHA256 verified.
+- [x] A2A v1.0 JSON-RPC integration, Agent Card, Rails generators, synchronous Task lifecycle and opt-in ActiveRecordStore / ActiveJob execution.
+- [x] Exact stable artifact verification and independent Rails 8 Echo HTTP smoke using the **published `0.2.0` Gem** ([Step 28 PR #2](https://github.com/cuichangquan/a2a-rails-demo/pull/2)).
 - [x] README Quick Start, JP / EN A2A overview PDFs, Zenn / Qiita articles and community submissions.
+- [ ] Open public-production approval: deployment-specific controls are still required under [Issue #11](https://github.com/cuichangquan/a2a-rails/issues/11).
 
 ## Prioritized backlog
 
@@ -18,7 +19,7 @@
 | P0 | 1 | [Security hardening](https://github.com/cuichangquan/a2a-rails/issues/11) | Authenticate requests; protect Task reads/lists/cancellation per principal; safe production guidance | Version to decide | **Steps 16-1–16-6 merged; public production NO-GO** |
 | P0 | 2 | [Official A2A TCK tests](https://github.com/cuichangquan/a2a-rails/issues/19) | Pin and run official JSON-RPC MUST suite, report results, fix genuine mismatches | Version to decide | **PRs #20–#24 merged; official JSON-RPC MUST: 63 passed / 1 failed / 171 skipped; upstream TCK #202 open** |
 | P0 | 3 | [Cross-language interoperability](https://github.com/cuichangquan/a2a-rails/issues/25) | Official Python / Go clients with JSON-RPC 1.0 | v0.1.x proposal | **Complete — PR #27 merged** |
-| P0 | 4 | [Runnable Rails example](https://github.com/cuichangquan/a2a-rails/issues/28) | [Separate demo](https://github.com/cuichangquan/a2a-rails-demo), Rails 8 Echo | unreleased Git-pinned Gem source | **Complete — Demo PR #1 merged; CI green** |
+| P0 | 4 | [Runnable Rails example](https://github.com/cuichangquan/a2a-rails/issues/28) | [Separate demo](https://github.com/cuichangquan/a2a-rails-demo), Rails 8 Echo | published RubyGems `0.2.0` | **Complete — Step 28 Demo PR #2 merged; published-Gem CI green** |
 | P0 | 5 | GitHub roadmap visibility | Publish and maintain priorities, milestones and next steps | Now | **In progress** |
 | P1 | 6 | GitHub Issues organization | Create focused issues for approved upcoming changes, with acceptance criteria | Now | Planned |
 | P1 | 7 | [ActiveRecord Task Store](https://github.com/cuichangquan/a2a-rails/issues/35) | Durable owner-scoped Tasks across workers/restarts + lifecycle maintenance | next v0.2 candidate | **Complete — PRs #36–#39** |
@@ -93,9 +94,8 @@ Completed on `main` (unreleased; **not** part of RubyGems v0.1.0):
 
 ## Suggested release sequence (subject to change)
 
-- **Next release (version TBD):** security changes (potentially incompatible with v0.1.0), conformance evidence, interoperability and reproducible demo. Confirm the release version separately.
-- **Next v0.2 candidate (version TBD):** ActiveRecord Task Store and ActiveJob Task execution are complete on `main`; choose a fresh candidate version and rerun the full exact-candidate release matrix before any publication.
-- **v0.3 proposal:** A2A Client.
+- **Released `0.2.0`:** stable Gem, optional ActiveRecord Task Store / ActiveJob, and [published-Gem Rails demo verification](https://github.com/cuichangquan/a2a-rails-demo/pull/2) are complete; deployment-specific public-production gates remain open.
+- **v0.3 proposal:** A2A Client (not yet committed).
 - **v0.4 proposal:** Streaming / SSE.
 - **v0.5 proposal:** Human-in-the-loop.
 - **Later:** optional ActingFor integration.
@@ -170,10 +170,21 @@ Completed on `main` (unreleased; **not** part of RubyGems v0.1.0):
 - [Final Step 25 publication and verification record](docs/release/v0.2.0-rc.2-record.md) · [release notes](docs/release/v0.2.0-rc.2-release-notes.md) · [publication runbook](docs/release/v0.2.0-rc.2-publication-runbook.md).
 - **Next focus:** choose next stable-release criteria and separately review actual production host/deployment controls in [Issue #11](https://github.com/cuichangquan/a2a-rails/issues/11). Candidate publication does not approve public production.
 
-## Step 26 — v0.2.0 stable-release readiness and production verification (planning)
+## Step 26 — v0.2.0 stable-release readiness (complete)
 
-- [Issue #62](https://github.com/cuichangquan/a2a-rails/issues/62) and [release gate matrix](docs/release/v0.2.0-stable-readiness.md) track the next actions after rc2 pre-release publication.
-- **First priority (26-1):** install the **published** `0.2.0.rc2` artifact in clean PostgreSQL-backed Rails 8.0/8.1 hosts; prove migration, cross-process/restart-safe owner-isolated Task operations, and bounded retention/pruning. Previous PostgreSQL source CI and installed-Gem security CI passed separately and do **not** fill this exact evidence gap.
-- **Then (26-2/26-3):** production-shaped negative token/tenant tests, safe logging, durable queue failure/recovery and idempotency contract.
-- **Finally (26-4):** complete compatibility and exact-stable-artifact verification before a separate publication approval. Stable `0.2.0` is **not yet approved or published**.
-- [Issue #11](https://github.com/cuichangquan/a2a-rails/issues/11) remains **OPEN** for real-host authentication/authorization, ingress/rate/concurrency budgets, operated DB/queue, logging and recovery. A stable Gem release **never automatically grants a public-production GO**.
+- [Issue #62](https://github.com/cuichangquan/a2a-rails/issues/62) and the [release gate matrix](docs/release/v0.2.0-stable-readiness.md) record completed **A1–A4** Gem-level verification: PostgreSQL/installed-artifact host checks, authentication/isolation, durable queue failure semantics and exact stable-candidate validation.
+- Step 26 covered release *readiness*, not publication. The stable release was separately authorized and published in Step 27.
+- Host-specific **B1–B4** production deployment gates remain **OPEN / NO-GO by default** under [Issue #11](https://github.com/cuichangquan/a2a-rails/issues/11).
+
+## Step 27 — v0.2.0 stable publication (complete: 2026-10-08)
+
+- [Publication record](docs/release/v0.2.0-publication-record.md): [GitHub Release v0.2.0](https://github.com/cuichangquan/a2a-rails/releases/tag/v0.2.0) and [RubyGems 0.2.0](https://rubygems.org/gems/a2a-rails/versions/0.2.0) were published and independently verified.
+- Immutable artifact SHA256: `497ce4b9d6a8b888d1d4ef0c71df3ab24998ef82fff2455dd6bbe919c22ed700`. Published-Gem install/version and production-shaped HTTP security smoke passed.
+- Publication does **not** close production [Issue #11](https://github.com/cuichangquan/a2a-rails/issues/11).
+
+## Step 28 — independent Rails demo using published 0.2.0 (complete: 2026-10-08)
+
+- [`a2a-rails-demo` PR #2](https://github.com/cuichangquan/a2a-rails-demo/pull/2) merged as `7cb002a63d6cc976b1562ee45e8a260771d7ef1d`: replaced an unreleased Git commit with `gem "a2a-rails", "= 0.2.0` from RubyGems.
+- [PR CI run #37736426834](https://github.com/cuichangquan/a2a-rails-demo/actions/runs/37736426834) and [push CI run #37736412150](https://github.com/cuichangquan/a2a-rails-demo/actions/runs/37736412150): **SUCCESS**. Independent real HTTP smoke **16/16 PASS** covers Agent Card, JSON-RPC v1.0 Task/direct Message, GetTask, ListTasks and expected error cases. CI also verifies published Gem version and RubyGems dependency source plus refusal to start in production.
+- Scope is **local-only**, synchronous default Task + MemoryStore. It does **not** prove ActiveRecord/ActiveJob integration in this demo or authorize public production; production [Issue #11](https://github.com/cuichangquan/a2a-rails/issues/11) remains open.
+- **Next proposed development focus:** A2A Client (v0.3 proposal), prioritized against adopter feedback and production security follow-ups.
