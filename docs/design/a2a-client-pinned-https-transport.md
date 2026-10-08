@@ -1,6 +1,6 @@
 # Step 29-3b — Pinned-IP HTTPS Transport Security Boundary
 
-> **Status:** internal implementation under test, **not** the public `A2A::Rails::Client` and **not approved for production**.
+> **Status:** internal implementation verified by the Ruby 3.3/3.4/4.0 SDK/Gem matrix ([first successful CI run](https://github.com/cuichangquan/a2a-rails/actions/runs/37752099516)), **not** the public `A2A::Rails::Client` and **not approved for production**.
 > Tracking: [Issue #80](https://github.com/cuichangquan/a2a-rails/issues/80) and [Issue #75](https://github.com/cuichangquan/a2a-rails/issues/75).
 
 ## Connection and trust model
@@ -35,9 +35,10 @@ The real TLS tests cover:
 - Reject untrusted certificates and certificates valid only for another hostname
 - Reject slow responses by configured deadline
 - Return sanitized 403 error status without exposing its body
+- Sanitize failed authorization callbacks without exposing the original exception/cause
 - Enforce per-request size and option limits
 
-CI: existing `sdk-spike.yml` runs all Minitest suites on Ruby 3.3, 3.4, and 4.0 and Rails 8.0/8.1.
+CI: existing `sdk-spike.yml` runs all Minitest suites on Ruby 3.3, 3.4, and 4.0 and Rails 8.0/8.1. The first complete real-TLS suite run passed [Actions #37752099516](https://github.com/cuichangquan/a2a-rails/actions/runs/37752099516) (**Ruby 3.4: 227 tests, 994 assertions, zero failures/errors**), before a further credential-error hardening test was added. Verify the newer head SHA and report final matrix status before merge.
 
 ## Security properties **not yet proven**
 
