@@ -159,6 +159,18 @@ jobs:
           host="$RUNNER_TEMP/clean-host"
           BUNDLE_GEMFILE="$host/Gemfile"             bundle exec ruby "$GITHUB_WORKSPACE/test/support/production_security_http_smoke.rb"
 
+      - name: Verify signed test-issuer tokens, fail-closed auth and tenant isolation
+        shell: bash
+        env:
+          RAILS_ENV: production
+          RACK_ENV: production
+          A2A_RAILS_USE_INSTALLED_GEM: "1"
+          A2A_RAILS_SOURCE_ROOT: ${{ github.workspace }}
+        run: |
+          set -euo pipefail
+          host="$RUNNER_TEMP/clean-host"
+          BUNDLE_GEMFILE="$host/Gemfile" bundle exec ruby "$GITHUB_WORKSPACE/test/support/installed_auth_isolation_smoke.rb"
+
   installed-artifact-clean-postgres:
     needs: build-candidate
     runs-on: ubuntu-latest
