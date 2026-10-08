@@ -2,6 +2,10 @@
 
 > **Deployment is manual and temporary.** This repository does not provision or own any Google Cloud project, DNS name, certificate, protected GitHub Environment or network-filtered CI runner. Completing the files in this directory is **not** proof of public egress. Publication of `a2a-rails` v0.3.x remains NO-GO; [Issue #90](https://github.com/cuichangquan/a2a-rails/issues/90) stays OPEN.
 
+## Current operator state (2026-10-08)
+
+Private Echo deployment in `a2a-rails-test` is active; Ruby 3.4.11 `A2A::Rails::Client` retrieved the original Agent Card and completed authenticated direct Message, Task, GetTask and Artifact checks. **Public no-auth egress has NOT RUN.** Before altering access follow the [Step 29-5e readiness checklist](step-29-5e-public-window-readiness.md). The origin to use is the verified `status.url`, not an alternative hostname that may be printed by the deploy CLI. The operator observed HTTP 404 from `/healthz` via the public gateway, so use unauthenticated `GET /` (expect 403) when checking the IAM gate.
+
 ## Why Cloud Run
 
 Google Cloud Run provides a stable, Google-managed **HTTPS `run.app` hostname** with publicly trusted TLS. The public TLS connection terminates at the managed Cloud Run endpoint. This is a real public HTTPS endpoint, not the localhost bridge or self-signed CA used by Step 29-5a/5b. The internal Cloud Run container listens on HTTP on its private `PORT` as required by the platform.
@@ -14,7 +18,7 @@ The image in `spikes/a2a_client_v03/controlled_public_echo/` runs an independent
 - Configured origin must exactly match `https://*.run.app` without path, port, query, fragment or credentials. The application rejects malformed origins and never guesses one from untrusted Host headers.
 - Only `GET /healthz`, `GET /.well-known/agent-card.json` and `POST /python/a2a/jsonrpc` are reachable. RPC body is capped to **16 KiB**, including chunked requests; unsupported content type/encoding is rejected. All other paths return 404.
 - Only controlled probe requests matching `direct: public-egress-<24 hex>` or `task: public-egress-<24 hex>` are echoed. No model execution, secrets, database, production API permissions or user information. Request/response access logs are disabled in the container.
-- `InMemoryTaskStore` is **ephemeral and not durable**. Use one minimum and maximum instance **only for the short test window** to reduce GetTask loss between requests. Cloud Run minimum instances have idle cost and do not guarantee persistence or instance lifetime; do not claim high-availability behavior or use as a production Task Store.
+- `InMemoryTaskStore` is **ephemeral and not durable**. Keep **minimum instances 0** in private preparation to reduce idle cost; if approved for a short public test, consider temporarily using minimum and maximum instances **1** to reduce GetTask loss between requests. Cloud Run minimum instances have idle cost and do not guarantee persistence or instance lifetime; do not claim high-availability behavior or use as a production Task Store.
 - **Public no-auth service means anyone on the internet can send requests.** Set a Google Cloud billing budget/alerts, review project quotas, keep the test window short and delete the service immediately after testing. Scaling limit is a cost guard, **not a hard billing cap** and can be briefly exceeded. `--min 1` incurs charges even when idle; change to `--min 0` only if you accept the extra risk of losing in-memory Tasks across requests. Do not let the test process accept sensitive inputs.
 - **Use an explicit dedicated runtime service account with no granted project roles.** Without `--service-account`, Cloud Run normally uses the project's Compute Engine default service identity, which can have broader inherited permissions. The Echo Agent does not need access to any GCP APIs; never give it Editor, Cloud Run Admin, storage, database, or production credentials. The human deployer separately needs Cloud Run deploy and `iam.serviceAccounts.actAs` permissions.
 
@@ -67,7 +71,7 @@ gcloud run deploy "$SERVICE" \
   --ingress all \
   --invoker-iam-check \
   --cpu 1 --memory 512Mi \
-  --concurrency 1 --min 1 --max 1 --timeout 15s
+  --concurrency 1 --min 0 --max 1 --timeout 15s
 ```
 
 This initial revision has **no** `A2A_PUBLIC_BASE_URL`, and does not expose A2A routes. Cloud Run initially requires IAM-authenticated callers; no unauthenticated public traffic should reach it. Verify IAM/service access settings before proceeding.
@@ -100,7 +104,7 @@ Do not put these URLs into CI until the service is known to be owned by the test
 
 ## Phase 3: explicitly allow temporary public access
 
-Only when the security owner has reviewed billing limits, TTL, public exposure, allowed network egress and the test environment:
+Only after the [Step 29-5e readiness gate](step-29-5e-public-window-readiness.md) is checked, the security owner has **explicitly approved public no-auth access**, and billing limits, human-supervised exposure window, allowed network egress and test environment have been reviewed:
 
 ```sh
 gcloud run services update "$SERVICE" \
