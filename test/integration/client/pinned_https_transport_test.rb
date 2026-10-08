@@ -129,6 +129,22 @@ class ClientPinnedHttpsTransportTest < Minitest::Test
     assert_empty requests
   end
 
+  def test_mixed_dns_is_rejected_before_credential_callback
+    strict = Policy.new(
+      allowed_origins: ["https://trusted.example"],
+      resolver: ->(_host) { ["8.8.8.8", "169.254.169.254"] }
+    )
+    invoked = false
+    assert_raises(Policy::RejectedTarget) do
+      Transport.new(policy: strict).get_json(
+        url: "https://trusted.example/card",
+        authorization: -> { invoked = true; "Bearer should-not-be-used" },
+        credential_origin: "https://trusted.example"
+      )
+    end
+    refute invoked
+  end
+
   def test_real_https_redirect_is_blocked_not_followed
     port, requests = tls_server(status: "302 Found",
       headers: { "Location" => "http://169.254.169.254/latest/meta-data" },
@@ -157,6 +173,7 @@ class ClientPinnedHttpsTransportTest < Minitest::Test
       )
     end
     assert_equal :connection_failed, error.reason
+    assert_nil error.cause
     assert_empty requests
   end
 
@@ -167,7 +184,86 @@ class ClientPinnedHttpsTransportTest < Minitest::Test
       transport.get_json(url: "https://trusted.example:#{port}/card")
     end
     assert_equal :connection_failed, error.reason
+    assert_nil error.cause
     assert_empty requests
+  end
+
+  def test_total_deadline_includes_slow_dns_resolution
+    # An actual production policy is used, with only DNS stubbed. The
+    # resolver must not swallow Timeout::Error as an ordinary DNS failure.
+    strict = Policy.new(
+      allowed_origins: ["https://trusted.example"],
+      resolver: ->(_host) { sleep 0.4; ["8.8.8.8"] }
+    )
+    error = assert_raises(Transport::DeadlineExceeded) do
+      Transport.new(policy: strict, total_timeout: 0.05).get_json(
+        url: "https://trusted.example/card"
+      )
+    end
+    assert_equal :timeout, error.reason
+    assert_nil error.cause
+  end
+
+  def test_total_deadline_includes_credential_provider_and_does_not_mask_timeout
+    url = "https://trusted.example:443/card"
+    callback_count = 0
+    error = assert_raises(Transport::DeadlineExceeded) do
+      transport(total_timeout: 0.05).get_json(
+        url: url,
+        authorization: -> { callback_count += 1; sleep 0.4; "Bearer secret-token" },
+        credential_origin: "https://trusted.example:443"
+      )
+    end
+    assert_equal :timeout, error.reason
+    assert_equal 1, callback_count
+    assert_nil error.cause
+    refute_includes error.message, "secret-token"
+  end
+
+  def test_malformed_content_length_is_not_treated_as_zero
+    port, requests = tls_server(body: '{}', headers: { "Content-Length" => "invalid" })
+    error = assert_raises(Transport::InvalidResponse) do
+      transport.get_json(url: "https://trusted.example:#{port}/card")
+    end
+    assert_equal :invalid_content_length, error.reason
+    assert_equal "/card", requests.pop.fetch(:path)
+  end
+
+  def test_invalid_json_error_does_not_expose_original_parser_exception_as_cause
+    port, _requests = tls_server(body: '{"private":"secret-token", INVALID}')
+    error = assert_raises(Transport::InvalidResponse) do
+      transport.get_json(url: "https://trusted.example:#{port}/card")
+    end
+    assert_equal :invalid_json, error.reason
+    assert_nil error.cause
+    refute_includes error.message, "secret-token"
+  end
+
+  def test_concurrent_requests_keep_authorization_and_response_data_isolated
+    sessions = 4.times.map do |index|
+      port, requests = tls_server(body: JSON.generate({ "slot" => index }))
+      { port: port, requests: requests, expected: "Bearer isolated-#{index}" }
+    end
+    shared_transport = transport
+    calls = sessions.each_with_index.map do |session, index|
+      Thread.new do
+        url = "https://trusted.example:#{session.fetch(:port)}/echo"
+        shared_transport.get_json(
+          url: url,
+          authorization: -> { "Bearer isolated-#{index}" },
+          credential_origin: "https://trusted.example:#{session.fetch(:port)}"
+        )
+      end
+    end
+
+    calls.map(&:value).each_with_index do |response, index|
+      assert_equal index, response.json.fetch("slot")
+    end
+    sessions.each do |session|
+      req = session.fetch(:requests).pop
+      assert_equal session.fetch(:expected), req.fetch(:headers).fetch("authorization")
+      assert_equal "/echo", req.fetch(:path)
+    end
   end
 
   def test_real_https_total_timeout_on_slow_response
