@@ -60,7 +60,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          python -m pip install "a2a-sdk==1.2.2" "uvicorn[standard]" starlette
+          python -m pip install "a2a-sdk==1.2.2" "uvicorn[standard]" starlette "sse-starlette"
           python -c 'import a2a; import uvicorn; print("PASS: official Python SDK server dependencies")'
 
       - name: Install official Go SDK A2A Server dependencies
