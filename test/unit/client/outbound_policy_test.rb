@@ -101,6 +101,26 @@ class ClientOutboundPolicyTest < Minitest::Test
     end
   end
 
+  def test_rebind_is_rejected_even_after_previously_public_resolution
+    answers = [["8.8.8.8"], ["169.254.169.254"]]
+    p = policy { |_host| answers.shift || ["169.254.169.254"] }
+    assert_equal ["8.8.8.8"], p.resolve!("https://trusted.example/a2a").addresses
+    assert_rejected(:blocked_ip) { p.resolve!("https://trusted.example/a2a") }
+  end
+
+  def test_timeout_exception_is_not_hidden_by_dns_failure_wrapper
+    p = policy { |_host| raise Timeout::Error, "DNS resolver private details" }
+    error = assert_raises(Timeout::Error) { p.resolve!("https://trusted.example/a2a") }
+    assert_kind_of Timeout::Error, error
+  end
+
+  def test_dns_failure_exception_does_not_retain_sensitive_cause
+    p = policy { |_host| raise "private resolver query detail" }
+    error = assert_raises(Rejected) { p.resolve!("https://trusted.example/a2a") }
+    assert_equal :dns_failure, error.reason
+    assert_nil error.cause
+  end
+
   def test_ipv6_fails_closed_even_if_globally_routable
     assert_rejected(:blocked_ip) do
       policy(records: ["2606:4700:4700::1111"]).resolve!("https://trusted.example/a2a")
