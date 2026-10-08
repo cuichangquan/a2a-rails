@@ -77,7 +77,12 @@ module PublishedGemPostgresSmoke
 
   def install_host!(root)
     host = File.join(root, "rails-host")
-    run!("rails", "new", host, "--minimal", "--database=postgresql",
+    rails_constraint = Gem::Requirement.new(ENV.fetch("TARGET_RAILS"))
+    railties = Gem::Specification.find_all_by_name("railties")
+      .select { |spec| rails_constraint.satisfied_by?(spec.version) }
+      .max_by(&:version)
+    assert(railties, "required Rails generator version is not installed")
+    run!("rails", "_#{railties.version}_", "new", host, "--minimal", "--database=postgresql",
       "--skip-asset-pipeline", "--skip-bootsnap", "--skip-bundle", "--skip-git",
       chdir: root)
     File.write(File.join(host, "Gemfile"), <<~GEMFILE)
@@ -94,6 +99,14 @@ module PublishedGemPostgresSmoke
 
     migration = Dir.glob(File.join(host, "db/migrate/*create_a2a_rails_tasks.rb"))
     assert(migration.length == 1, "installed-Gem generator did not create exactly one migration")
+    # Published rc2 currently needs a host inflection workaround in a real
+    # production eager-load Rails app (tracked at Issue #65). This fixture
+    # is NOT proof of zero-configuration production startup.
+    File.write(File.join(host, "config/initializers/inflections.rb"), <<~'RUBY')
+      ActiveSupport::Inflector.inflections(:en) do |inflect|
+        inflect.acronym "A2A"
+      end
+    RUBY
     File.write(File.join(host, "config/initializers/a2a_rails.rb"), INITIALIZER)
     File.write(File.join(host, "app/agents/echo_agent.rb"), AGENT)
     FileUtils.mkdir_p(File.join(host, "app/services/echo"))
