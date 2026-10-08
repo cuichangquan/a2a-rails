@@ -48,7 +48,7 @@ class ClientPublicApiTest < Minitest::Test
     JSON.parse(File.read(path)).fetch("cases").find { |record| record["name"] == name }.fetch("wire")
   end
 
-  def message(text: "Hello")
+  def user_message(text: "Hello")
     { message_id: "m-123", role: "ROLE_USER", parts: [{ text: text }] }
   end
 
@@ -60,7 +60,7 @@ class ClientPublicApiTest < Minitest::Test
 
   def test_send_result_task_and_rich_parts_follow_contract_vectors
     @resolver.reply = fixture("task-rich-parts")
-    result = @client.send_message(message: message)
+    result = @client.send_message(message: user_message)
     assert_equal :task, result.kind
     assert_nil result.message
     assert_predicate result, :frozen?
@@ -84,7 +84,7 @@ class ClientPublicApiTest < Minitest::Test
 
   def test_send_result_direct_message_and_output_configuration
     @resolver.reply = fixture("direct-message")
-    r = @client.send_message(message: message,
+    r = @client.send_message(message: user_message,
       configuration: { accepted_output_modes: ["text/plain"], return_immediately: false },
       metadata: { auditTag: "keepCamelCase" })
     assert_equal :message, r.kind
@@ -97,7 +97,7 @@ class ClientPublicApiTest < Minitest::Test
 
   def test_nonterminal_states_remain_visible
     @resolver.reply = fixture("task-input-required")
-    result = @client.send_message(message: message)
+    result = @client.send_message(message: user_message)
     assert_equal "TASK_STATE_INPUT_REQUIRED", result.task.dig(:status, :state)
     assert_equal "status-1", result.task.dig(:status, :message, :message_id)
 
@@ -143,7 +143,7 @@ class ClientPublicApiTest < Minitest::Test
   def test_send_response_must_be_exactly_one_of_task_or_message
     %w[invalid-send-result-both invalid-send-result-neither].each do |name|
       @resolver.reply = fixture(name)
-      e = assert_raises(Client::InvalidResponseError) { @client.send_message(message: message) }
+      e = assert_raises(Client::InvalidResponseError) { @client.send_message(message: user_message) }
       assert_equal :invalid_send_result, e.reason
     end
   end
@@ -162,7 +162,7 @@ class ClientPublicApiTest < Minitest::Test
   end
 
   def test_codec_rejects_ambiguous_protocol_keys_in_request
-    msg = message.merge("messageId" => "conflicting")
+    msg = user_message.merge("messageId" => "conflicting")
     assert_raises(Client::InvalidInputError) { @client.send_message(message: msg) }
     assert_empty @resolver.calls
   end
@@ -178,7 +178,7 @@ class ClientPublicApiTest < Minitest::Test
 
   def test_timeout_is_ambiguous_only_for_side_effecting_methods
     @resolver.failure = Client::PinnedHttpsTransport::DeadlineExceeded.new(:timeout)
-    e = assert_raises(Client::TimeoutError) { @client.send_message(message: message) }
+    e = assert_raises(Client::TimeoutError) { @client.send_message(message: user_message) }
     assert e.may_have_executed
     e = assert_raises(Client::TimeoutError) { @client.get_task(id: "t1") }
     refute e.may_have_executed
