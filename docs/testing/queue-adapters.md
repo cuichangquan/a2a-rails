@@ -61,3 +61,10 @@ This starts a Puma Rails server on **127.0.0.1:9997**, sends JSON-RPC requests o
 - Restarting Web preserves queued/terminal Tasks and Artifacts; work submitted while the worker is stopped completes after worker restart.
 
 This is loopback, test-environment E2E using SQLite. It is not a production deployment, hard-crash recovery test, or full A2A interoperability certification. PostgreSQL cross-process locking remains covered by the separate Store workflow. Reconciliation of ambiguous WORKING Tasks is still explicit.
+
+
+## Step 26-3: Worker SIGKILL and unresolved execution windows
+
+[Failure injection and recovery evidence](step-26-3-durable-async.md) extends the same Rails 8.0/8.1 × Solid Queue/Sidekiq matrix with **real worker SIGKILL while WORKING**, recovery by another process, duplicate Job delivery, canceled-before-start Jobs, and an illustrative host-side business idempotency unique constraint. [CI #37718397716](https://github.com/cuichangquan/a2a-rails/actions/runs/37718397716) passed 4/4.
+
+Important: replaying an uncertain WORKING Task is deliberately blocked, **not** automatically recovered. Crash between Task DB commit and queue enqueue also remains a host reconciliation concern. The optional ActiveRecordStore is durable, but no generic exactly-once external business guarantee exists.
