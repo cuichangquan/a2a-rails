@@ -12,6 +12,13 @@
 - [x] README Quick Start, JP / EN A2A overview PDFs, Zenn / Qiita articles and community submissions.
 - [ ] Open public-production approval: deployment-specific controls are still required under [Issue #11](https://github.com/cuichangquan/a2a-rails/issues/11).
 
+## Current next work — Step 29: outbound A2A Client (design proposal)
+
+- [Tracking Issue #75](https://github.com/cuichangquan/a2a-rails/issues/75) — design in review; no outbound Client code has shipped.
+- [Proposed API / architecture / security-gates document](docs/design/a2a-client.md) — Rails can call remote Agent Card / SendMessage / GetTask / ListTasks / CancelTask, including direct Message and Task response forms.
+- **Next practical step: 29-1 SDK/transport compatibility spike**, using published `agent2agent 2.0.0`, then small implementation PRs and independent HTTP tests.
+- **v0.3.0 is only a candidate**; no release, backward-compatibility or production-security claims until tests and release approval.
+
 ## Prioritized backlog
 
 | Priority | # | Work item | Outcome | Proposed phase | Status |
@@ -25,7 +32,7 @@
 | P1 | 7 | [ActiveRecord Task Store](https://github.com/cuichangquan/a2a-rails/issues/35) | Durable owner-scoped Tasks across workers/restarts + lifecycle maintenance | next v0.2 candidate | **Complete — PRs #36–#39** |
 | P1 | 8 | [ActiveJob Task execution](https://github.com/cuichangquan/a2a-rails/issues/41) | Run long-running Tasks asynchronously with explicit lifecycle semantics | next v0.2 candidate | **Complete — Steps 22-1–22-10** |
 | P0 | 8.5 | [v0.2.0.rc2 candidate verification](https://github.com/cuichangquan/a2a-rails/issues/54) | Fresh exact-candidate verification after Steps 21–22 | v0.2.0.rc2 | **Steps 23–25 complete — rc2 published and verified** |
-| P1 | 9 | A2A Client | Call remote A2A Agents from Rails | v0.3 proposal | Planned |
+| P1 | 9 | [A2A Client / Step 29](https://github.com/cuichangquan/a2a-rails/issues/75) | Call remote A2A Agents from Rails | v0.3 proposal | **Design in review** |
 | P2 | 10 | SSE Streaming | Stream Task status/results over A2A-compatible transport | v0.4 proposal | Planned |
 | P2 | 11 | Human-in-the-loop | Model INPUT_REQUIRED / AUTH_REQUIRED flows and resume safely | v0.5 proposal | Planned |
 | P2 | 12 | ActingFor integration | Optional delegated-authorization integration, never a hard dependency | Future | Planned |
