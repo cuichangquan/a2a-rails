@@ -184,7 +184,7 @@ Completed on `main` (unreleased; **not** part of RubyGems v0.1.0):
 
 ## Step 28 — independent Rails demo using published 0.2.0 (complete: 2026-10-08)
 
-- [`a2a-rails-demo` PR #2](https://github.com/cuichangquan/a2a-rails-demo/pull/2) merged as `7cb002a63d6cc976b1562ee45e8a260771d7ef1d`: replaced an unreleased Git commit with `gem "a2a-rails", "= 0.2.0` from RubyGems.
+- [`a2a-rails-demo` PR #2](https://github.com/cuichangquan/a2a-rails-demo/pull/2) merged as `7cb002a63d6cc976b1562ee45e8a260771d7ef1d`: replaced an unreleased Git commit with `gem "a2a-rails", "= 0.2.0"` from RubyGems.
 - [PR CI run #37736426834](https://github.com/cuichangquan/a2a-rails-demo/actions/runs/37736426834) and [push CI run #37736412150](https://github.com/cuichangquan/a2a-rails-demo/actions/runs/37736412150): **SUCCESS**. Independent real HTTP smoke **16/16 PASS** covers Agent Card, JSON-RPC v1.0 Task/direct Message, GetTask, ListTasks and expected error cases. CI also verifies published Gem version and RubyGems dependency source plus refusal to start in production.
 - Scope is **local-only**, synchronous default Task + MemoryStore. It does **not** prove ActiveRecord/ActiveJob integration in this demo or authorize public production; production [Issue #11](https://github.com/cuichangquan/a2a-rails/issues/11) remains open.
 - **Next proposed development focus:** A2A Client (v0.3 proposal), prioritized against adopter feedback and production security follow-ups.
