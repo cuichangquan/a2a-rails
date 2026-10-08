@@ -73,6 +73,16 @@ module PublishedGemPostgresProbe
   def verify_installed_gem
     spec = Gem.loaded_specs.fetch("a2a-rails")
     assert(spec.version.to_s == "0.2.0.rc2", "not the expected released version")
+    if ENV["A2A_VERIFY_ENGINE_INFLECTION"] == "1"
+      # A clean host must eager-load Gem controllers as A2A::Rails without
+      # changing ActiveSupport's global inflections, including migration
+      # inference. Also verify compatibility with a host acronym if provided.
+      expected_global = ENV.fetch("A2A_TEST_INFLECTION", "default") == "acronym" ? "A2A" : "A2a"
+      assert(::Rails.autoloaders.main.inflector.camelize("a2a", __FILE__) == "A2A",
+        "Engine failed to register A2A for the main Zeitwerk loader")
+      assert(::ActiveSupport::Inflector.camelize("a2a") == expected_global,
+        "Gem unexpectedly changed host ActiveSupport inflections")
+    end
     installed = File.realpath(spec.full_gem_path)
     source = File.realpath(ENV.fetch("A2A_RAILS_SOURCE_ROOT"))
     assert(!installed.start_with?(source + File::SEPARATOR), "loaded source tree instead of published Gem")
