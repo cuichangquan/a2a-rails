@@ -1,0 +1,30 @@
+name: Step 29-2 Client contract fixture sanity
+
+on:
+  pull_request:
+    paths:
+      - "docs/design/a2a-client-public-api.md"
+      - "spikes/a2a_client_v03/public_contract_vectors_test.rb"
+      - "test/contract/client_api/fixtures/**"
+      - ".github/workflows/a2a-client-contract.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  fixture-sanity:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        ruby: ["3.3", "3.4", "4.0"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ matrix.ruby }}
+          bundler-cache: false
+      - name: Validate documented API fixtures (no Client implementation)
+        run: ruby spikes/a2a_client_v03/public_contract_vectors_test.rb
