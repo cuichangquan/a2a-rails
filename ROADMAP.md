@@ -144,11 +144,19 @@ Completed on `main` (unreleased; **not** part of RubyGems v0.1.0):
 
 
 
-## Step 23 — v0.2.0.rc2 release-candidate verification (in progress)
+## Step 23 — v0.2.0.rc2 release-candidate verification (complete)
 
 - [Issue #54](https://github.com/cuichangquan/a2a-rails/issues/54) tracks candidate preparation and verification.
 - Candidate source version: `0.2.0.rc2`; user-facing candidate name: `v0.2.0-rc.2`.
 - The old Step 20 `0.2.0.rc1` artifact/SHA remains historical evidence only because Steps 21 and 22 changed runtime behavior afterward.
-- Required fresh evidence: Ruby/Rails matrix, PostgreSQL Task Store, Solid Queue/Sidekiq + HTTP async E2E, installed-artifact production security smoke, Python/Go interoperability, pinned official TCK, exact Gem inspection / Rails 8.0 + 8.1 clean installs, and SHA256.
+- [x] Fresh Step 23 evidence completed at commit `efdec49daa0ef20edff26d4d198a8afc91567535`: Ruby/Rails matrix, PostgreSQL Task Store, Solid Queue/Sidekiq + HTTP async E2E, installed-artifact production security smoke, Python/Go interoperability, pinned official TCK, exact Gem inspection / Rails 8.0 + 8.1 clean installs, and SHA256 (`d65fdd65003987ece96f0a90a4cf28563929be99d26658deeb275fca30c5d694`). [Evidence record](docs/release/v0.2.0-rc.2-record.md).
 - Passing Step 23 makes the candidate reviewable; it does not close deployment-specific Issue #11.
 - Tag creation, GitHub Release creation, and RubyGems publication still require separate explicit approval.
+
+## Step 24 — v0.2.0.rc2 release-decision record (documentation in progress)
+
+- [Issue #57](https://github.com/cuichangquan/a2a-rails/issues/57) tracks the final checklist reconciliation and release-decision documentation.
+- [Final verified candidate record](docs/release/v0.2.0-rc.2-record.md): candidate quality **PASS / GO for publication review**, verified exact Step 23 commit, SHA256 and all test evidence.
+- The current main delta after the candidate is limited to `docs/` and not included in the Gem payload; no runtime, gemspec or packaged documentation changed.
+- **Next required decision: obtain separate explicit approval before creating tag `v0.2.0-rc.2`, publishing a GitHub pre-release, or uploading `0.2.0.rc2` to RubyGems. None of these actions is authorized by Step 24.**
+- After publication, verify downloaded Gem SHA256 and installed-Gem smoke; keep host-specific production-readiness gates in [Issue #11](https://github.com/cuichangquan/a2a-rails/issues/11) open until independently satisfied.
