@@ -121,7 +121,8 @@ module Step262SecuritySmoke
     raise message unless condition
   end
 
-  def rpc(auth, method, params = {}, env_overrides: {})
+  def rpc(auth, method, params = {}, env_overrides: {}, **keyword_params)
+    params = params.merge(keyword_params)
     body = JSON.generate(
       "jsonrpc" => "2.0", "id" => SecureRandom.uuid,
       "method" => method, "params" => params
