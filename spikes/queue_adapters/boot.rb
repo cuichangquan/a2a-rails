@@ -38,6 +38,16 @@ module QueueAdapterSmoke
       raise "test handler failure" if text == "fail"
       raise A2A::Rails::RejectedTask, "test rejection" if text == "reject"
 
+      if ENV["ASYNC_FAILURE_SMOKE"] == "1" && text == "crash"
+        # The separate worker is intentionally SIGKILLed while in WORKING.
+        # A persisted Invocation above records possible business effects.
+        deadline = Process.clock_gettime(Process::CLOCK_MONOTONIC) + 35
+        until File.exist?(File.join(ENV.fetch("SMOKE_ROOT"), "allow-crash-handler-return"))
+          raise "failure-injection gate timed out" if Process.clock_gettime(Process::CLOCK_MONOTONIC) >= deadline
+          sleep 0.05
+        end
+      end
+
       if ENV["HTTP_ASYNC_SMOKE"] == "1" && text == "hold"
         deadline = Process.clock_gettime(Process::CLOCK_MONOTONIC) + 30
         until File.exist?(File.join(ENV.fetch("SMOKE_ROOT"), "release-#{context.fetch(:task_id)}"))
