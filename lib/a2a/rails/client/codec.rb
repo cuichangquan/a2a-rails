@@ -91,7 +91,7 @@ module A2A
         KNOWN_KEYS = %w[
           id name description version skills capabilities streaming
           role parts text raw url data filename mimeType mediaType
-          status state timestamp artifacts history message task tasks
+          status state timestamp artifacts history message task tasks extensions
           tenant contextId messageId taskId artifactId
           supportedInterfaces protocolBinding protocolVersion
           defaultInputModes defaultOutputModes inputModes outputModes
