@@ -15,7 +15,7 @@ on:
       - "docs/release/**"
       - "CHANGELOG.md"
   push:
-    branches: [main]
+    branches: [main, candidate/v0.3.0-rc1]
     paths:
       - ".github/workflows/v0.3-client-private-candidate.yml"
       - "a2a-rails.gemspec"
@@ -33,8 +33,10 @@ on:
 permissions:
   contents: read
 
-# Verification artifact ONLY. Building and uploading CI artifacts does not
-# authorize RubyGems publication, tagging or changing source VERSION on main.
+# Verification artifact ONLY. candidate/v0.3.0-rc1 must have a real
+# source VERSION=0.3.0.rc1 and is built with *zero* staging edits.
+# Main and legacy PR rehearsal still stage a version from 0.2.0 without
+# changing main. Neither path authorizes tagging or RubyGems publication.
 env:
   RC_VERSION: "0.3.0.rc1"
   RC_FILENAME: "a2a-rails-0.3.0.rc1.gem"
@@ -49,21 +51,41 @@ jobs:
       - uses: ruby/setup-ruby@v1
         with:
           ruby-version: "3.4.10"
-      - name: Snapshot source and build one private RC without altering checkout
+      - name: Build from immutable checkout, with no staging delta for genuine RC1 source
         shell: bash
         run: |
           set -euo pipefail
-          test "$(ruby -Ilib -ra2a/rails/version -e 'print A2A::Rails::VERSION')" = "0.2.0"
           source_sha="$(git rev-parse HEAD)"
+          source_version="$(ruby -Ilib -ra2a/rails/version -e 'print A2A::Rails::VERSION')"
           mkdir -p "$RUNNER_TEMP/rc-source" "$RUNNER_TEMP/rc-package"
           git archive "$source_sha" | tar -xf - -C "$RUNNER_TEMP/rc-source"
-          ruby - "$RUNNER_TEMP/rc-source/lib/a2a/rails/version.rb" <<'RUBY'
+
+          if test "$GITHUB_REF" = "refs/heads/candidate/v0.3.0-rc1"; then
+            test "$source_version" = "$RC_VERSION" || {
+              echo "Frozen candidate branch must contain an actual RC1 VERSION"; exit 1;
+            }
+          fi
+
+          case "$source_version" in
+            0.2.0)
+              # Backward-compatible Step 29-5r main/PR rehearsal, NOT frozen source.
+              ruby - "$RUNNER_TEMP/rc-source/lib/a2a/rails/version.rb" <<'RUBY'
           path = ARGV.fetch(0)
           original = File.read(path)
           before = 'VERSION = "0.2.0"'
-          abort "unexpected source VERSION" unless original.scan(before).length == 1
+          abort "unexpected staging VERSION" unless original.scan(before).length == 1
           File.write(path, original.sub(before, 'VERSION = "0.3.0.rc1"'))
           RUBY
+              printf '%s\n' 'CI rehearsal: only staged VERSION changed 0.2.0 -> 0.3.0.rc1'                 > "$RUNNER_TEMP/rc-package/STAGING_DELTA"
+              ;;
+            0.3.0.rc1)
+              # Real source candidate branch: ZERO package-input modifications.
+              printf '%s\n' 'NONE: packaged directly from immutable source SHA with VERSION=0.3.0.rc1'                 > "$RUNNER_TEMP/rc-package/STAGING_DELTA"
+              ;;
+            *)
+              echo "Unsupported source VERSION: $source_version"; exit 1;
+              ;;
+          esac
           (
             cd "$RUNNER_TEMP/rc-source"
             gem build a2a-rails.gemspec --output "$RUNNER_TEMP/rc-package/$RC_FILENAME"
@@ -99,7 +121,7 @@ jobs:
             cd "$RUNNER_TEMP/rc-package"
             sha256sum "$RC_FILENAME" > SHA256SUMS
             printf '%s\n' "$source_sha" > SOURCE_COMMIT
-            printf '%s\n' 'Only lib/a2a/rails/version.rb was changed inside the CI staging copy.' > STAGING_DELTA
+            test -s STAGING_DELTA
             cat SHA256SUMS
             cat SOURCE_COMMIT
           )
