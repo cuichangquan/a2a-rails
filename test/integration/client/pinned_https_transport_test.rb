@@ -691,7 +691,7 @@ class ClientPinnedHttpsTransportTest < Minitest::Test
 
       wire = JSON.parse(rpc_requests.pop.fetch(:body))
       assert_equal(operation == :send_message ? "SendMessage" : "CancelTask", wire.fetch("method"))
-      assert_match(/\\A[0-9a-f-]{36}\\z/, wire.fetch("id"))
+      assert_match(/\A[0-9a-f-]{36}\z/, wire.fetch("id"))
       if operation == :send_message
         assert_equal "sent-once-123", wire.dig("params", "message", "messageId")
       else
