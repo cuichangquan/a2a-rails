@@ -1,9 +1,11 @@
 # Step 29-5e — Temporary public Cloud Run test: operator readiness / NO-GO checklist
 
-> **Preparation only.** Do **NOT** remove Cloud Run IAM authentication, deploy, dispatch
-> a public egress workflow, or create billable infrastructure by following the
-> read-only checks below. A separate, explicit owner approval is required before
-> the service can become public. [Issue #90](https://github.com/cuichangquan/a2a-rails/issues/90)
+> **Public/no-auth release gate remains NOT RUN.** The owner-approved, IAM-private
+> real GCE outbound Client interoperability smoke **PASSed** on 2026-10-09,
+> and the named temporary VM/NAT/firewall resources were subsequently
+> **verified deleted**. Do **NOT** change the Cloud Run IAM authentication,
+> deploy a public egress workflow or create new billable resources without
+> a separate, explicit owner approval. [Issue #90](https://github.com/cuichangquan/a2a-rails/issues/90)
 > remains OPEN and a2a-rails v0.3.x remains **NO-GO**.
 
 ## Ground truth (2026-10-08, operator-provided)
@@ -25,9 +27,57 @@
 - Unauthenticated GET `/` returned **HTTP 403**. Cloud Run is **not public**.
   Do not infer access-control success from `GET /healthz`: the operator got 404
   even when IAM was enabled. Use `/` for the unauthenticated denial check.
-- Provisioning and authenticated smoke are **not** the controlled no-auth public
-  egress proof: no dedicated runner / packet trace or actual Client dialed-IP
-  attestation has yet been recorded.
+- The previous 2026-10-08 Cloud Shell authenticated smoke was distinct from
+  the **2026-10-09 dedicated GCE VM** Client-initiated public HTTPS test,
+  independently observed with `strace` and fully torn down as recorded below.
+  **No public/no-auth Cloud Run exposure was approved or performed.**
+
+## 2026-10-09: restricted GCE / IAM-private outbound Client proof — PASS; teardown PASS
+
+Under separately recorded operator approvals for the short-lived VM,
+network controls and IAM-private test, unreleased `A2A::Rails::Client`
+ran from an external-IP-less Debian 13 GCE VM to the **original
+publicly trusted HTTPS hostname** of the still-IAM-private Cloud
+Run Python A2A SDK v1.0 Agent. Independent `strace` of the **real
+Client process** observed `connect()` to one of the eight explicitly
+allowed public `/32` destinations over TCP 443, without other HTTPS
+destinations. Exact origin, pinned DNS, TLS peer and hostname checks,
+separate user-token-over-IAP-stdin and Cloud Run IAM enforcement
+were preserved throughout. After an operations-only test payload
+prefix mismatch was corrected (the controlled fixture accepts
+`public-egress-<24 hex>` irrespective of the IAM-private service),
+the retry succeeded for the **original Agent Card, JSON-RPC v1.0
+direct SendMessage, completed Task, GetTask and Artifact echo**.
+One-time user ID tokens were for operator testing only, not
+production credentials. [Evidence: Issue #90](https://github.com/cuichangquan/a2a-rails/issues/90#issuecomment-6081842739).
+
+The operator **removed** the temporary tagged EGRESS tcp443 allow
+rule, dedicated Cloud NAT, ephemeral VM with auto-delete boot disk,
+and tagged IAP SSH ingress rule, then independently checked the
+absence of all four groups. The original all-egress DENY remained
+enabled, and the original Cloud Run IAM policy remained nonpublic.
+The original VPC, subnet, Router and IAM-private Cloud Run were
+retained intentionally. [Verified final cleanup: Issue #90](https://github.com/cuichangquan/a2a-rails/issues/90#issuecomment-6081958173).
+
+**What this proves:** real restricted-network Client-originated
+HTTPS + authenticated cross-language A2A Message/Task interoperability
+and verified cleanup for the named disposable network/VM resources.
+**What it does not prove:** public/no-auth externally accessible
+Cloud Run, completion of all outbound Client SSRF/negative/TLS,
+concurrency or production release gates, zero project charges,
+or a durable/production Task Store. The no-auth GitHub manual
+workflow here was **not triggered**, and Cloud Run authentication
+was **never disabled**. The Python controlled Echo uses an
+in-memory Task Store. Incremental USD10 was a planning threshold,
+not a hard spend cap; retained Cloud Run and registry artifacts
+require separate read-only billing inventory if costs matter.
+
+**Disposition:** Step 29-5e IAM-private GCE Stage D **PASS**;
+public-no-auth release gate **NOT RUN**; Issue #90 **OPEN**;
+`a2a-rails v0.3.x` **NO-GO**. Do not re-enable NAT/ALLOW or expose
+Cloud Run without fresh explicit approval. Historical steps below
+are proposals/runbooks for a **different public test**, not
+instructions to perform automatically after the IAM-private PASS.
 
 ## A. Cost readiness — operator-owned, BEFORE exposure
 
@@ -172,10 +222,11 @@ and verification, positive Message + Task + GetTask + Artifact result, **actual
 Client process destination IP**, negative SSRF/TLS/auth/concurrency results,
 and rollback 403 proof. No tokens, nonce payloads or private keys.
 
-**Current state: PREPARATION / NO-GO.** A working authenticated Cloud Shell
-Client is useful interop evidence but does NOT satisfy this public no-auth
-release gate. Stable released Gem remains **0.2.0**; **do not release 0.3.x**
-based on these preparations.
+**Current state: IAM-private GCE real Client interop + temporary-resource teardown PASS; public no-auth gate NOT RUN / v0.3.x NO-GO.**
+The bounded external-GCE authenticated Client evidence does not by itself
+satisfy this separately scoped no-auth public release gate. Stable
+released Gem remains **0.2.0**; **do not release 0.3.x** based only
+on this experiment.
 
 See [Google Cloud Run public access documentation](https://docs.cloud.google.com/run/docs/authenticating/public)
 and [GitHub environment approvals](https://docs.github.com/en/actions/reference/workflows-and-actions/deployments-and-environments).
