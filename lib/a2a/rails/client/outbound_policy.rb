@@ -108,10 +108,15 @@ module A2A
           # is public. Public IPv6 answers are checked, but NEVER selected as
           # a socket destination; the transport pins an approved IPv4 only.
           addresses = addresses.each_with_object([]) do |address, ipv4_addresses|
+            # IPAddr accepts CIDR strings and normalizes them to network addresses.
+            # DNS answers must instead be individual host IP literals.
+            unless address.is_a?(String) && !address.include?("/")
+              raise RejectedTarget, :invalid_dns_address
+            end
             parsed = IPAddr.new(address)
             if parsed.ipv4?
               raise RejectedTarget, :blocked_ip if BLOCKED_IPV4.any? { |range| range.include?(parsed) }
-              ipv4_addresses << parsed.to_s
+              ipv4_addresses << parsed.to_s.freeze
             elsif !GLOBAL_UNICAST_IPV6.include?(parsed) ||
                   BLOCKED_IPV6.any? { |range| range.include?(parsed) }
               raise RejectedTarget, :blocked_ip
