@@ -1,5 +1,7 @@
 # Step 29-5k — Outbound Client release-blocker evidence audit and priorities
 
+> **Historical Step 29-5k evidence snapshot:** this matrix predates merged PRs #104–#107. See [current Step 29-5p release-security decision](../release/v0.3.x-client-pre-release-security-review.md), which supersedes the stale open-work columns while retaining #90 NO-GO.
+
 **Review date:** 2026-10-09 (JST) · **Reviewed main:** `50a450157b338fb28d271508f07d44f5c4600f3e` (through Step 29-5j / PR #102) · **Tracking:** [Issue #90](https://github.com/cuichangquan/a2a-rails/issues/90), [parent #87](https://github.com/cuichangquan/a2a-rails/issues/87).
 
 **Decision: v0.3.x NO-GO.** Stable RubyGems remains **0.2.0**. This is a **documentation-only reconciliation**, not a security approval, a claim of protocol-wide certification, a new cloud test, or permission to publish. In particular, individual completed tests do not automatically check off an entire composite release requirement in Issue #90.
