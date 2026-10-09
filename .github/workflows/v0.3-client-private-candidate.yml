@@ -280,7 +280,15 @@ jobs:
           sha256sum -c SHA256SUMS
           test "$(cat SOURCE_COMMIT)" = "$GITHUB_SHA"
           gem install --no-document "./$RC_FILENAME"
-          ruby -e '
+          gem install --no-document rails -v "~> 8.1.0"
+          mkdir -p "$RUNNER_TEMP/isolated-interop-host"
+          cat > "$RUNNER_TEMP/isolated-interop-host/Gemfile" <<GEMFILE
+          source "https://rubygems.org"
+          gem "rails", "~> 8.1.0"
+          gem "a2a-rails", "= 0.3.0.rc1"
+          GEMFILE
+          BUNDLE_GEMFILE="$RUNNER_TEMP/isolated-interop-host/Gemfile" bundle install --local
+          BUNDLE_GEMFILE="$RUNNER_TEMP/isolated-interop-host/Gemfile" bundle exec ruby -e '
             require "a2a-rails"
             spec = Gem.loaded_specs.fetch("a2a-rails")
             abort "wrong RC" unless A2A::Rails::VERSION == ENV.fetch("RC_VERSION")
@@ -295,7 +303,7 @@ jobs:
           if test "$STEP29_5B_AGENT" = python; then
             python -m pip install "a2a-sdk==1.2.2" "uvicorn[standard]" starlette "sse-starlette"
           else
-            (cd spikes/a2a_client_v03/go_sdk_https_server && go mod download && go build -o "$RUNNER_TEMP/official-go-server" .)
+            (cd spikes/a2a_client_v03/go_sdk_https_server && go mod download && go mod tidy && go build -o "$RUNNER_TEMP/official-go-server" .)
           fi
       - name: Generate native HTTPS identity and launch local independent SDK
         shell: bash
@@ -339,7 +347,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          ruby "$GITHUB_WORKSPACE/spikes/a2a_client_v03/official_sdk_native_https_probe.rb"
+          BUNDLE_GEMFILE="$RUNNER_TEMP/isolated-interop-host/Gemfile" bundle exec ruby "$GITHUB_WORKSPACE/spikes/a2a_client_v03/official_sdk_native_https_probe.rb"
       - name: Show test-only server diagnostics on failure
         if: failure()
         run: tail -n 60 "$RUNNER_TEMP/official-server.log" || true
