@@ -1,0 +1,351 @@
+name: Step 29-5r private v0.3.0.rc1 exact-installed-candidate
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/v0.3-client-private-candidate.yml"
+      - "a2a-rails.gemspec"
+      - "lib/**"
+      - "app/**"
+      - "config/**"
+      - "test/support/client_only_rails_smoke.rb"
+      - "test/support/production_security_http_smoke.rb"
+      - "spikes/clean_host_postgres/**"
+      - "spikes/a2a_client_v03/**"
+      - "docs/release/**"
+      - "CHANGELOG.md"
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/v0.3-client-private-candidate.yml"
+      - "a2a-rails.gemspec"
+      - "lib/**"
+      - "app/**"
+      - "config/**"
+      - "test/support/client_only_rails_smoke.rb"
+      - "test/support/production_security_http_smoke.rb"
+      - "spikes/clean_host_postgres/**"
+      - "spikes/a2a_client_v03/**"
+      - "docs/release/**"
+      - "CHANGELOG.md"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Verification artifact ONLY. Building and uploading CI artifacts does not
+# authorize RubyGems publication, tagging or changing source VERSION on main.
+env:
+  RC_VERSION: "0.3.0.rc1"
+  RC_FILENAME: "a2a-rails-0.3.0.rc1.gem"
+  RC_ARTIFACT: "a2a-rails-0.3.0.rc1-private-ci-only"
+
+jobs:
+  build-once:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.4.10"
+      - name: Snapshot source and build one private RC without altering checkout
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(ruby -Ilib -ra2a/rails/version -e 'print A2A::Rails::VERSION')" = "0.2.0"
+          source_sha="$(git rev-parse HEAD)"
+          mkdir -p "$RUNNER_TEMP/rc-source" "$RUNNER_TEMP/rc-package"
+          git archive "$source_sha" | tar -xf - -C "$RUNNER_TEMP/rc-source"
+          ruby - "$RUNNER_TEMP/rc-source/lib/a2a/rails/version.rb" <<'RUBY'
+          path = ARGV.fetch(0)
+          original = File.read(path)
+          before = 'VERSION = "0.2.0"'
+          abort "unexpected source VERSION" unless original.scan(before).length == 1
+          File.write(path, original.sub(before, 'VERSION = "0.3.0.rc1"'))
+          RUBY
+          (
+            cd "$RUNNER_TEMP/rc-source"
+            gem build a2a-rails.gemspec --output "$RUNNER_TEMP/rc-package/$RC_FILENAME"
+          )
+          test -f "$RUNNER_TEMP/rc-package/$RC_FILENAME"
+          ruby -rrubygems/package -rdigest -rtmpdir - "$RUNNER_TEMP/rc-package/$RC_FILENAME" <<'RUBY'
+          path = ARGV.fetch(0)
+          spec = Gem::Package.new(path).spec
+          abort "not an RC Gem" unless spec.name == "a2a-rails" &&
+            spec.version.to_s == "0.3.0.rc1" &&
+            spec.required_ruby_version.satisfied_by?(Gem::Version.new("3.3.0"))
+          Dir.mktmpdir do |dir|
+            Gem::Package.new(path).extract_files(dir)
+            %w[
+              lib/a2a/rails/client.rb
+              lib/a2a/rails/client/agent_card_resolver.rb
+              lib/a2a/rails/client/outbound_policy.rb
+              lib/a2a/rails/client/pinned_https_transport.rb
+              lib/a2a/rails/engine.rb
+            ].each do |relative|
+              origin = File.join(ENV.fetch("GITHUB_WORKSPACE"), relative)
+              packaged = File.join(dir, relative)
+              abort "missing or differing packaged Client file: #{relative}" unless
+                File.file?(packaged) &&
+                Digest::SHA256.file(origin).hexdigest == Digest::SHA256.file(packaged).hexdigest
+            end
+            abort "wrong version within package" unless
+              File.read(File.join(dir, "lib/a2a/rails/version.rb")).include?('VERSION = "0.3.0.rc1"')
+          end
+          puts "PASS: packaged original source Client/Server bytes, isolated rc1 VERSION only"
+          RUBY
+          (
+            cd "$RUNNER_TEMP/rc-package"
+            sha256sum "$RC_FILENAME" > SHA256SUMS
+            printf '%s\n' "$source_sha" > SOURCE_COMMIT
+            printf '%s\n' 'Only lib/a2a/rails/version.rb was changed inside the CI staging copy.' > STAGING_DELTA
+            cat SHA256SUMS
+            cat SOURCE_COMMIT
+          )
+      - name: Upload one immutable run-scoped candidate for downstream jobs
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.RC_ARTIFACT }}
+          path: |
+            ${{ runner.temp }}/rc-package/a2a-rails-0.3.0.rc1.gem
+            ${{ runner.temp }}/rc-package/SHA256SUMS
+            ${{ runner.temp }}/rc-package/SOURCE_COMMIT
+            ${{ runner.temp }}/rc-package/STAGING_DELTA
+          if-no-files-found: error
+          retention-days: 14
+
+  installed-client:
+    needs: build-once
+    runs-on: ubuntu-latest
+    timeout-minutes: 22
+    strategy:
+      fail-fast: false
+      matrix:
+        ruby: ["3.3", "3.4", "4.0"]
+        rails: ["~> 8.0.0", "~> 8.1.0"]
+    env:
+      TARGET_RAILS: ${{ matrix.rails }}
+      A2A_RAILS_EXPECTED_VERSION: "0.3.0.rc1"
+      A2A_RAILS_USE_INSTALLED_GEM: "1"
+      A2A_RAILS_SOURCE_ROOT: ${{ github.workspace }}
+      RAILS_ENV: production
+      RACK_ENV: production
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ matrix.ruby }}
+      - uses: actions/download-artifact@v4
+        with:
+          name: ${{ env.RC_ARTIFACT }}
+          path: ${{ runner.temp }}/rc
+      - name: Verify exact build-once artifact before installation
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP/rc"
+          sha256sum -c SHA256SUMS
+          test "$(cat SOURCE_COMMIT)" = "$GITHUB_SHA"
+          gem install --no-document "./$RC_FILENAME"
+          gem install --no-document rails -v "$TARGET_RAILS"
+          mkdir -p "$RUNNER_TEMP/clean-client-host"
+          cat > "$RUNNER_TEMP/clean-client-host/Gemfile" <<GEMFILE
+          source "https://rubygems.org"
+          gem "rails", "$TARGET_RAILS"
+          gem "a2a-rails", "= $RC_VERSION"
+          GEMFILE
+          BUNDLE_GEMFILE="$RUNNER_TEMP/clean-client-host/Gemfile" bundle install --local
+      - name: Require exact installed RC and verify Client-only Rails boot
+        shell: bash
+        run: |
+          set -euo pipefail
+          export BUNDLE_GEMFILE="$RUNNER_TEMP/clean-client-host/Gemfile"
+          bundle exec ruby -e '
+            require "rails"
+            require "a2a-rails"
+            spec = Gem.loaded_specs.fetch("a2a-rails")
+            abort "wrong RC version" unless A2A::Rails::VERSION == ENV.fetch("RC_VERSION")
+            abort "loaded source checkout" if File.realpath(spec.full_gem_path).start_with?(
+              File.realpath(ENV.fetch("GITHUB_WORKSPACE")) + File::SEPARATOR)
+            abort "Client missing from installed RC" unless defined?(A2A::Rails::Client)
+            puts "PASS installed isolated RC #{spec.full_gem_path} Rails #{Rails.version}"
+          '
+          bundle exec ruby "$GITHUB_WORKSPACE/test/support/client_only_rails_smoke.rb"
+      - name: Verify fail-closed production Server security from same installed RC
+        shell: bash
+        run: |
+          set -euo pipefail
+          export BUNDLE_GEMFILE="$RUNNER_TEMP/clean-client-host/Gemfile"
+          bundle exec ruby "$GITHUB_WORKSPACE/test/support/production_security_http_smoke.rb"
+
+  installed-postgres:
+    needs: build-once
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        rails: ["~> 8.0.0", "~> 8.1.0"]
+        inflection: ["default", "acronym"]
+    services:
+      postgres:
+        image: public.ecr.aws/docker/library/postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: a2a_rails_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d a2a_rails_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      TARGET_RAILS: ${{ matrix.rails }}
+      A2A_TEST_INFLECTION: ${{ matrix.inflection }}
+      A2A_RAILS_EXPECTED_VERSION: "0.3.0.rc1"
+      A2A_RAILS_SOURCE_ROOT: ${{ github.workspace }}
+      DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/a2a_rails_test
+      RAILS_ENV: production
+      RACK_ENV: production
+      SECRET_KEY_BASE: step-29-5r-test-only-production-shape-key
+      BUNDLE_JOBS: "4"
+      BUNDLE_RETRY: "3"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.4.10"
+      - uses: actions/download-artifact@v4
+        with:
+          name: ${{ env.RC_ARTIFACT }}
+          path: ${{ runner.temp }}/rc
+      - name: Verify same immutable RC Gem and run independent installed PG host
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP/rc"
+          sha256sum -c SHA256SUMS
+          test "$(cat SOURCE_COMMIT)" = "$GITHUB_SHA"
+          echo "CANDIDATE_GEM_SHA256=$(sha256sum "$RC_FILENAME" | cut -d ' ' -f 1)" >> "$GITHUB_ENV"
+          gem install --no-document "./$RC_FILENAME"
+          gem install --no-document rails -v "$TARGET_RAILS"
+          pg_config --version
+      - name: Verify installed RC clean Rails/PostgreSQL migration, restart, race and prune
+        env:
+          CANDIDATE_GEM_FILE: ${{ runner.temp }}/rc/a2a-rails-0.3.0.rc1.gem
+        run: ruby spikes/clean_host_postgres/smoke.rb
+
+  installed-official-sdk:
+    needs: build-once
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        agent: [python, go]
+    env:
+      STEP29_5B_AGENT: ${{ matrix.agent }}
+      AGENT_HOST: ${{ matrix.agent }}-agent.test
+      AGENT_PORT: ${{ matrix.agent == 'python' && '3444' || '3445' }}
+      A2A_RAILS_EXPECTED_VERSION: "0.3.0.rc1"
+      A2A_RAILS_USE_INSTALLED_GEM: "1"
+      A2A_RAILS_SOURCE_ROOT: ${{ github.workspace }}
+      PYTHONUNBUFFERED: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.4.10"
+      - uses: actions/setup-python@v5
+        if: matrix.agent == 'python'
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-go@v5
+        if: matrix.agent == 'go'
+        with:
+          go-version: "1.26.0"
+          cache: false
+      - uses: actions/download-artifact@v4
+        with:
+          name: ${{ env.RC_ARTIFACT }}
+          path: ${{ runner.temp }}/rc
+      - name: Install exact staged RC without referencing Gem source checkout
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP/rc"
+          sha256sum -c SHA256SUMS
+          test "$(cat SOURCE_COMMIT)" = "$GITHUB_SHA"
+          gem install --no-document "./$RC_FILENAME"
+          ruby -e '
+            require "a2a-rails"
+            spec = Gem.loaded_specs.fetch("a2a-rails")
+            abort "wrong RC" unless A2A::Rails::VERSION == ENV.fetch("RC_VERSION")
+            abort "checkout was loaded" if File.realpath(spec.full_gem_path).start_with?(
+              File.realpath(ENV.fetch("GITHUB_WORKSPACE")) + File::SEPARATOR)
+            puts "PASS actual installed Client candidate: #{spec.full_gem_path}"
+          '
+      - name: Prepare official native Python or Go A2A SDK server
+        shell: bash
+        run: |
+          set -euo pipefail
+          if test "$STEP29_5B_AGENT" = python; then
+            python -m pip install "a2a-sdk==1.2.2" "uvicorn[standard]" starlette "sse-starlette"
+          else
+            (cd spikes/a2a_client_v03/go_sdk_https_server && go mod download && go build -o "$RUNNER_TEMP/official-go-server" .)
+          fi
+      - name: Generate native HTTPS identity and launch local independent SDK
+        shell: bash
+        run: |
+          set -euo pipefail
+          openssl req -x509 -nodes -newkey rsa:2048 -sha256 -days 1 \
+            -keyout "$RUNNER_TEMP/native-test.key" \
+            -out "$RUNNER_TEMP/native-test.crt" \
+            -subj "/CN=$AGENT_HOST" \
+            -addext "subjectAltName=DNS:$AGENT_HOST" >/dev/null 2>&1
+          echo "STEP29_5B_CA=$RUNNER_TEMP/native-test.crt" >> "$GITHUB_ENV"
+          if test "$STEP29_5B_AGENT" = python; then
+            python spikes/a2a_client_v03/python_sdk_https_server.py \
+              --certificate "$RUNNER_TEMP/native-test.crt" \
+              --key "$RUNNER_TEMP/native-test.key" --port "$AGENT_PORT" \
+              > "$RUNNER_TEMP/official-server.log" 2>&1 &
+          else
+            "$RUNNER_TEMP/official-go-server" \
+              --certificate "$RUNNER_TEMP/native-test.crt" \
+              --key "$RUNNER_TEMP/native-test.key" --port "$AGENT_PORT" \
+              > "$RUNNER_TEMP/official-server.log" 2>&1 &
+          fi
+          echo "$!" > "$RUNNER_TEMP/official-server.pid"
+          for n in $(seq 1 50); do
+            if curl --noproxy '*' --fail --silent --show-error \
+              --cacert "$RUNNER_TEMP/native-test.crt" \
+              --resolve "$AGENT_HOST:$AGENT_PORT:127.0.0.1" \
+              "https://$AGENT_HOST:$AGENT_PORT/.well-known/agent-card.json" \
+              > "$RUNNER_TEMP/card.json" 2>/dev/null; then
+              echo "PASS official SDK native HTTPS Agent Card"
+              break
+            fi
+            if ! kill -0 "$(cat "$RUNNER_TEMP/official-server.pid")" 2>/dev/null; then
+              tail -n 60 "$RUNNER_TEMP/official-server.log"
+              exit 1
+            fi
+            sleep 1
+          done
+          test -s "$RUNNER_TEMP/card.json"
+      - name: Run full native SDK rich Parts/Task/auth/tenant interop from installed RC
+        shell: bash
+        run: |
+          set -euo pipefail
+          ruby "$GITHUB_WORKSPACE/spikes/a2a_client_v03/official_sdk_native_https_probe.rb"
+      - name: Show test-only server diagnostics on failure
+        if: failure()
+        run: tail -n 60 "$RUNNER_TEMP/official-server.log" || true
+      - name: Stop test-only server
+        if: always()
+        run: |
+          if test -f "$RUNNER_TEMP/official-server.pid"; then
+            kill "$(cat "$RUNNER_TEMP/official-server.pid")" 2>/dev/null || true
+          fi
