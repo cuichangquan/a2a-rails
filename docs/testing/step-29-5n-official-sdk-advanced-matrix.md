@@ -25,24 +25,33 @@ handlers are used throughout.
 
 | Protocol dimension | Python | Go | Meaning of PASS |
 | --- | --- | --- | --- |
-| Direct SendMessage | CI | CI | Official SDK actually returned Message, correct role/text |
-| Rich direct Message | CI | CI | Native SDK text, structured Data, raw bytes, URL File; preserve opaque nested Data, base64, no remote file fetch |
-| Task + Artifact | CI | CI | SDK-owned Task reaches COMPLETED with actual Artifact text/Data/raw and GetTask roundtrip |
-| Nonterminal state | CI | CI | SDK-owned Task transitions to INPUT_REQUIRED, retrievable via GetTask |
-| CancelTask | CI or **CAPABILITY-GAP** | CI or **CAPABILITY-GAP** | Server switches parked task to CANCELED; otherwise print SDK numeric remote error code |
-| ListTasks pagination | CI or **CAPABILITY-GAP** | CI or **CAPABILITY-GAP** | Request page_size 1, obtain non-empty cursor and distinct second page; unsupported SDK RPC must be explicit |
-| Missing GetTask | CI | CI | Numeric typed remote error code, nil Ruby exception cause and no untrusted error string |
+| Direct SendMessage | **PASS** | **PASS** | Official SDK actually returned Message, correct role/text |
+| Rich direct Message | **PASS** | **PASS** | Native SDK text, structured Data, raw bytes, URL File; preserve opaque nested Data, base64, no remote file fetch |
+| Task + Artifact | **PASS** | **PASS** | SDK-owned Task reaches COMPLETED with actual Artifact text/Data/raw and GetTask roundtrip |
+| Nonterminal state | **PASS** | **PASS** | SDK-owned Task transitions to INPUT_REQUIRED, retrievable via GetTask |
+| CancelTask | **PASS** | **PASS** | Server switches parked task to CANCELED, GetTask observes transition |
+| ListTasks pagination | **PASS** | **AUTH_REQUIRED (-31401)** | Python: page_size 1, nonempty cursor, distinct second page. Go: SDK refuses anonymous listing before pagination can be assessed; do **not** claim unsupported operation or PASS. |
+| Missing GetTask | **PASS** | **PASS** | Numeric typed remote error code, nil Ruby exception cause and no untrusted error string |
 
 **Reporting semantics:** `PASS` only on a successful operation with checked
-protocol outputs. For CancelTask/ListTasks, an SDK-reported JSON-RPC
-`RemoteError` is recorded as `CAPABILITY-GAP: UNSUPPORTED(code=N)`; this
-is **not** proof of feature support and does not satisfy the release acceptance
-gate. Malformed JSON, bad response types, wrong status, cursor absent with
-multiple Tasks, unsafe TLS/origin behavior, or any other unexpected error
-**fails the CI matrix** rather than being swallowed.
+protocol outputs. For CancelTask/ListTasks, an SDK-reported JSON-RPC `RemoteError`
+is recorded as a `CAPABILITY-GAP`, **classified by code**. `-31401`
+means the SDK refuses unauthenticated access; `-31403` means forbidden.
+Known unsupported operation codes (`-32601` / `-32004`) are separately
+classified `UNSUPPORTED`. All other codes are marked `REMOTE_ERROR_UNVERIFIED`,
+never assumed to mean "unsupported". These classifications do **not**
+prove successful execution. Malformed JSON, bad response types, wrong
+status, a missing pagination cursor with multiple Tasks, unsafe TLS/origin
+behavior, or any other unexpected error **fails CI** rather than being swallowed.
 
-All results must be read from the actual two-job GitHub Actions matrix;
-this design section is not a claim of PASS until those jobs finish.
+**Evidence from native SDK CI:** the Python job demonstrated every row,
+including real `ListTasks` pagination. The Go job demonstrated all rows
+except ListTasks pagination, whose anonymous request is rejected by the
+official SDK with `-31401` (unauthenticated). This is an **authorization
+scope constraint**, not a verified missing method. A follow-up with a
+specifically authorized caller/SDK authentication policy is needed before
+claiming Go ListTasks interop. The final PR-head CI run is the source
+of truth for overall pass status.
 
 ## Files and reproducibility
 
