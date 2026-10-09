@@ -68,3 +68,52 @@ This is loopback, test-environment E2E using SQLite. It is not a production depl
 [Failure injection and recovery evidence](step-26-3-durable-async.md) extends the same Rails 8.0/8.1 × Solid Queue/Sidekiq matrix with **real worker SIGKILL while WORKING**, recovery by another process, duplicate Job delivery, canceled-before-start Jobs, and an illustrative host-side business idempotency unique constraint. [CI #37718397716](https://github.com/cuichangquan/a2a-rails/actions/runs/37718397716) passed 4/4.
 
 Important: replaying an uncertain WORKING Task is deliberately blocked, **not** automatically recovered. Crash between Task DB commit and queue enqueue also remains a host reconciliation concern. The optional ActiveRecordStore is durable, but no generic exactly-once external business guarantee exists.
+
+## Step 29-5o: Real queued *outbound* Client calls (new release candidate)
+
+The earlier queue tests validate **inbound** A2A Server TaskExecutionJob. The
+outbound v0.3.x Client requires a **distinct** test, because background
+workers must reconstruct Client/credentials safely and must not blindly
+retry an ambiguous remote SendMessage.
+
+Run inside the existing queue fixture with Rails 8.0/8.1, both adapters and
+a completely isolated temporary SQLite/Redis backend:
+
+```sh
+cd spikes/queue_adapters
+QUEUE_ADAPTER=solid_queue bundle exec ruby outbound_client_smoke.rb
+QUEUE_ADAPTER=sidekiq REDIS_URL=redis://127.0.0.1:6379/15 bundle exec ruby outbound_client_smoke.rb
+```
+
+The `outbound_client_smoke.rb` producer creates **four jobs using only
+non-secret reference IDs**, creates test-only local native HTTPS servers,
+and **does not perform RPC** until the real Solid Queue/Sidekiq worker
+process is started. Each job reconstructs the outbound Client, loads
+scoped fake credentials only **inside the worker**, and uses a *test-only*
+pinned loopback policy/CA injection. There is no runtime Client API
+change, no public Agent endpoint and no GCP.
+
+| Test | Required evidence |
+| --- | --- |
+| Two independent tenants | Both outbound SendMessage round trips through real native TLS with the correct per-tenant bearer and original caller Message ID; different worker PID from producer |
+| One ambiguous SendMessage | Server receives exactly **one** complete POST but delays its response; worker records `uncertain_no_retry`, not a guaranteed failure/rollback; automatic Sidekiq retry set / Solid Queue failed executions empty |
+| One invalid origin binding | Card is fetched but **no** RPC is issued; `credential_origin_mismatch` is recorded without invoking the token provider |
+| Queue/log hygiene | Actual Redis/Solid Queue serialized job payloads contain only reference ID, never credentials, Client objects or raw Parts; worker logs never include fake credential or raw Part strings |
+| Real worker boundary | All persisted outcomes have OS `worker_pid != producer PID`, queue drained, no inline adapter/perform_now |
+| Matrix | Four combinations: Solid Queue/Sidekiq × Rails 8.0/8.1 (Ruby 3.4), in the existing `queue-adapters.yml` workflow |
+
+The host-owned **reconciliation contract** is deliberate: a timed-out
+SendMessage may already have caused effects. An application must use a
+stable caller `message_id` and its own reconciliation/idempotency strategy.
+It must not equate `may_have_executed` with a remote rollback, retry an
+uncertain SendMessage automatically, or claim exactly-once external effects.
+A Sidekiq/Solid Queue adapter may otherwise retry **uncaught** exceptions;
+the sample job consumes the typed ambiguity and persists an operator-visible
+state for application-specific recovery.
+
+**Limitations:** The test uses one short-lived local fake credential store,
+SQLite and a disposable Redis test service. It is not multi-host/production
+secrets-management certification, a true external remote task state
+reconciliation implementation, a hard-crash replay matrix, PostgreSQL
+outbound-worker proof, or a public/no-auth HTTPS test. [Issue #90](https://github.com/cuichangquan/a2a-rails/issues/90)
+stays OPEN; **v0.3.x NO-GO**.

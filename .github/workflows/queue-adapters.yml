@@ -61,3 +61,5 @@ jobs:
         run: bundle exec ruby http_smoke.rb
       - name: Run real queue crash and ambiguous Task failure-injection smoke
         run: bundle exec ruby failure_smoke.rb
+      - name: Run real separate-worker outbound Rails Client HTTPS smoke
+        run: bundle exec ruby outbound_client_smoke.rb
