@@ -9,10 +9,27 @@ require "rbconfig"
 require "socket"
 require "tempfile"
 require "timeout"
+require "active_job"
+require "active_support/logger"
+require "active_support/tagged_logging"
+require "active_support/notifications"
+require "stringio"
 
 class ClientPinnedHttpsTransportTest < Minitest::Test
   Transport = A2A::Rails::Client::PinnedHttpsTransport
   Policy = A2A::Rails::Client::OutboundPolicy
+
+  # Real ActiveJob callbacks/log subscribers are exercised. Only opaque,
+  # non-secret IDs are passed as arguments; the probe is a test-only registry.
+  class PrivacyProbeJob < ActiveJob::Base
+    class << self
+      attr_accessor :probe
+    end
+
+    def perform(reference)
+      self.class.probe.call(reference)
+    end
+  end
 
   class LoopbackTestPolicy
     attr_reader :resolved_urls
@@ -455,6 +472,160 @@ class ClientPinnedHttpsTransportTest < Minitest::Test
       assert_equal session.fetch(:expected), req.fetch(:headers).fetch("authorization")
       assert_equal "/echo", req.fetch(:path)
     end
+  end
+
+  def test_concurrent_card_and_rpc_callbacks_stay_scoped_to_distinct_origins
+    shared_transport = transport
+    sessions = 4.times.map do |index|
+      rpc_port, rpc_requests = tls_server(body: JSON.generate({
+        "jsonrpc" => "2.0", "id" => "privacy-#{index}",
+        "result" => { "task" => { "id" => "task-#{index}" } }
+      }))
+      rpc_origin = "https://trusted.example:#{rpc_port}"
+      card_port, card_requests = tls_server(body: JSON.generate(sample_discovery_card(
+        "#{rpc_origin}/jsonrpc"
+      )))
+      card_origin = "https://trusted.example:#{card_port}"
+      {
+        rpc_origin: rpc_origin, card_origin: card_origin,
+        rpc_requests: rpc_requests, card_requests: card_requests,
+        rpc_token: "Bearer scoped-rpc-token-#{index}",
+        card_token: "Bearer scoped-card-token-#{index}"
+      }
+    end
+
+    ready = Queue.new
+    go = Queue.new
+    threads = sessions.each_with_index.map do |session, index|
+      Thread.new do
+        resolver = A2A::Rails::Client::AgentCardResolver.new(
+          agent_card_url: "#{session.fetch(:card_origin)}/.well-known/agent-card.json",
+          policy: @policy, transport: shared_transport,
+          card_authorization: -> { session.fetch(:card_token) },
+          card_credential_origin: session.fetch(:card_origin),
+          authorization: -> { session.fetch(:rpc_token) },
+          credential_origin: session.fetch(:rpc_origin)
+        )
+        ready << true
+        go.pop
+        resolver.rpc(
+          method: "SendMessage",
+          params: { "message" => {
+            "messageId" => "privacy-message-#{index}", "role" => "ROLE_USER",
+            "parts" => [{ "text" => "private-message-part-#{index}" }]
+          } },
+          id: "privacy-#{index}"
+        )
+      end
+    end
+    sessions.size.times { ready.pop }
+    sessions.size.times { go << true }
+
+    threads.each_with_index do |thread, index|
+      assert_equal "task-#{index}", thread.value.dig("task", "id")
+    end
+    sessions.each_with_index do |session, index|
+      card = session.fetch(:card_requests).pop
+      rpc = session.fetch(:rpc_requests).pop
+      assert_equal session.fetch(:card_token), card.fetch(:headers).fetch("authorization")
+      assert_equal session.fetch(:rpc_token), rpc.fetch(:headers).fetch("authorization")
+      refute_equal card.fetch(:headers).fetch("authorization"), rpc.fetch(:headers).fetch("authorization")
+      assert_equal "privacy-message-#{index}", JSON.parse(rpc.fetch(:body))
+        .dig("params", "message", "messageId")
+      assert_empty session.fetch(:card_requests)
+      assert_empty session.fetch(:rpc_requests)
+    end
+  end
+
+  def test_active_job_logs_and_notifications_never_contain_credentials_or_parts
+    sessions = 4.times.map do |index|
+      port, requests = tls_server(
+        status: "403 Forbidden", body: JSON.generate({ "error" => "remote-secret-body-#{index}" })
+      )
+      {
+        url: "https://trusted.example:#{port}/rpc",
+        origin: "https://trusted.example:#{port}",
+        requests: requests,
+        token: "Bearer job-private-token-#{index}",
+        part: "job-private-Part-#{index}",
+        callback_secret: "provider-private-secret-#{index}"
+      }
+    end
+
+    sink = StringIO.new
+    original_logger = ActiveJob::Base.logger
+    ActiveJob::Base.logger = ActiveSupport::TaggedLogging.new(ActiveSupport::Logger.new(sink))
+    notifications = Queue.new
+    subscription = ActiveSupport::Notifications.subscribe("perform.active_job") do |name, _start, _finish, _unique_id, payload|
+      notifications << [name, payload.dup]
+    end
+
+    PrivacyProbeJob.probe = lambda do |index|
+      session = sessions.fetch(index)
+      transport.post_json(
+        url: session.fetch(:url),
+        json: {
+          "jsonrpc" => "2.0", "id" => "safe-id-#{index}", "method" => "SendMessage",
+          "params" => { "message" => {
+            "messageId" => "safe-message-#{index}", "role" => "ROLE_USER",
+            "parts" => [{ "text" => session.fetch(:part) }]
+          } }
+        },
+        authorization: lambda {
+          raise session.fetch(:callback_secret) if index.odd?
+
+          session.fetch(:token)
+        },
+        credential_origin: session.fetch(:origin)
+      )
+    end
+
+    ready = Queue.new
+    go = Queue.new
+    workers = sessions.each_index.map do |index|
+      Thread.new do
+        ready << true
+        go.pop
+        begin
+          PrivacyProbeJob.perform_now(index)
+          nil
+        rescue Transport::Error => error
+          error
+        end
+      end
+    end
+    sessions.size.times { ready.pop }
+    sessions.size.times { go << true }
+    errors = workers.map(&:value)
+    errors.each_with_index do |error, index|
+      assert_kind_of Transport::Error, error
+      assert_equal(index.odd? ? :credential_failure : :http_error, error.reason)
+      assert_nil error.cause
+    end
+
+    # ActiveJob logger and its actual Notification payloads must carry only
+    # opaque job reference IDs, not the per-request secrets held in closures.
+    events = notifications.size.times.map { notifications.pop }
+    assert_operator events.count { |name, _payload| name == "perform.active_job" }, :>=, 4
+    captured = sink.string + events.map(&:inspect).join
+    assert_includes captured, "PrivacyProbeJob"
+    sessions.each_with_index do |session, index|
+      [session.fetch(:token), session.fetch(:part),
+       session.fetch(:callback_secret), "remote-secret-body-#{index}"].each do |secret|
+        refute_includes captured, secret
+        refute_includes errors.fetch(index).message, secret
+      end
+      if index.even?
+        wire = session.fetch(:requests).pop
+        assert_equal session.fetch(:token), wire.fetch(:headers).fetch("authorization")
+        assert_includes wire.fetch(:body), session.fetch(:part)
+      end
+      assert_empty session.fetch(:requests)
+    end
+  ensure
+    ActiveSupport::Notifications.unsubscribe(subscription) if subscription
+    ActiveJob::Base.logger = original_logger if original_logger
+    PrivacyProbeJob.probe = nil
   end
 
   def test_stalled_post_upload_is_bounded_by_write_or_total_timeout
