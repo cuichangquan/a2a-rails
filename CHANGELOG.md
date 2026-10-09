@@ -4,13 +4,16 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased] — outbound Client v0.3.x proposal (NO-GO)
+## [0.3.0.rc1] — 2026-10-10 (frozen-source review candidate; NOT published)
 
-> **Not released, tagged or published.** This entry describes source changes merged
-> **after** the published stable `0.2.0`. The gemspec/source `VERSION`
-> still reads `0.2.0`, so it is **not** a versioned 0.3.x release
-> candidate. See [Step 29-5p security readiness NO-GO](docs/release/v0.3.x-client-pre-release-security-review.md)
-> and open [Issue #90](https://github.com/cuichangquan/a2a-rails/issues/90).
+> **Candidate branch ONLY — not released, tagged, merged into main or pushed
+> to RubyGems.** The exact `candidate/v0.3.0-rc1` source version is
+> `A2A::Rails::VERSION = "0.3.0.rc1"` and matches the gemspec.
+> This is a source-level candidate for CI and **independent security review**,
+> not a distribution or production deployment approval. The published stable
+> remains RubyGems `0.2.0`; main's source VERSION still reads `0.2.0`.
+> See [Step 29-5s review packet](docs/release/step-29-5s-versioned-source-review-handoff.md)
+> and blocking [Issue #90](https://github.com/cuichangquan/a2a-rails/issues/90).
 
 ### Proposed added capabilities (on main, unreleased)
 
@@ -33,9 +36,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   malformed/chunked/truncated HTTP, JSON nesting, ambiguous remote
   SendMessage/CancelTask timeout and nested response validation.
 - **Go SDK follow-up:** Step 29-5q verified authenticated Go ListTasks pagination with two scoped test users and isolated Task visibility; anonymous callers still receive `-31401`.
-- **Open review items:** exact versioned v0.3.x candidate tests and
-  candidate Gem SHA256, installed-host verification, an independent security
-  reviewer, and final explicit publication/public-test scope decisions.
+- **Open review items:** exact frozen-source RC1 Gem SHA256 and installed-host
+  verification (separate from the prior staged-version rehearsal), an
+  independent security reviewer, and final explicit publication/public-test
+  scope decisions.
 - Publishing a Gem and approving open-public **production deployment**
   are distinct; a host must provide credential issuer verification,
   business authorization, rate/concurrency and operational limits.
