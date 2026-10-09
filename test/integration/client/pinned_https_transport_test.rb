@@ -278,6 +278,19 @@ class ClientPinnedHttpsTransportTest < Minitest::Test
     assert_equal "/card", requests.pop.fetch(:path)
   end
 
+  def test_truncated_content_length_is_not_accepted_as_valid_json
+    # Response declares 32 bytes but closes after sending only two.
+    # Never treat a syntactically valid JSON prefix as complete HTTP content.
+    port, requests = tls_server(body: "{}", headers: { "Content-Length" => "32" })
+    error = assert_raises(Transport::Error) do
+      transport(read_timeout: 0.2, total_timeout: 1).get_json(
+        url: "https://trusted.example:#{port}/card"
+      )
+    end
+    assert_nil error.cause
+    assert_equal "/card", requests.pop.fetch(:path)
+  end
+
   def test_empty_success_body_is_not_accepted_as_json
     port, requests = tls_server(status: "204 No Content", body: "")
     error = assert_raises(Transport::InvalidResponse) do
@@ -441,6 +454,42 @@ class ClientPinnedHttpsTransportTest < Minitest::Test
       assert_equal session.fetch(:expected), req.fetch(:headers).fetch("authorization")
       assert_equal "/echo", req.fetch(:path)
     end
+  end
+
+  def test_stalled_post_upload_is_bounded_by_write_or_total_timeout
+    # A TLS peer accepts a connection, but deliberately never reads the
+    # request: a large POST cannot fit in the socket send buffer indefinitely.
+    socket = TCPServer.new("127.0.0.1", 0)
+    @servers << socket
+    ssl_context = OpenSSL::SSL::SSLContext.new
+    ssl_context.cert = @certificate
+    ssl_context.key = @private_key
+    server = OpenSSL::SSL::SSLServer.new(socket, ssl_context)
+    accepted = Queue.new
+    thread = Thread.new do
+      peer = nil
+      begin
+        peer = server.accept
+        accepted << true
+        sleep 1.2
+      rescue OpenSSL::SSL::SSLError, IOError, Errno::ECONNRESET
+        # Timeout and socket teardown are expected.
+      ensure
+        peer&.close rescue nil
+      end
+    end
+    @server_threads << thread
+
+    error = assert_raises(Transport::DeadlineExceeded) do
+      transport(max_request_bytes: 12 * 1024 * 1024,
+                read_timeout: 0.2, total_timeout: 0.75).post_json(
+        url: "https://trusted.example:#{socket.addr[1]}/rpc",
+        json: { data: "x" * (8 * 1024 * 1024) }
+      )
+    end
+    assert_equal :timeout, error.reason
+    assert_nil error.cause
+    assert Timeout.timeout(1) { accepted.pop }
   end
 
   def test_read_timeout_when_headers_arrive_but_body_never_completes
