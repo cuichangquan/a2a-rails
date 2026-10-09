@@ -142,6 +142,27 @@ class ClientAgentCardResolverTest < Minitest::Test
     end
   end
 
+  def test_rejects_adversarial_json_rpc_error_envelopes
+    [
+      { "jsonrpc" => "2.0", "id" => 12, "error" => [] },
+      { "jsonrpc" => "2.0", "id" => 12,
+        "error" => { "code" => "-32009", "message" => "private diagnostic" } },
+      { "jsonrpc" => "2.0", "id" => 12,
+        "error" => { "code" => nil, "data" => "private diagnostic" } },
+      { "jsonrpc" => "2.0", "id" => 12, "result" => nil },
+      { "jsonrpc" => "2.0", "id" => "12", "result" => {} },
+      { "jsonrpc" => "1.0", "id" => 12, "result" => {} }
+    ].each do |bad|
+      @transport.response = bad
+      error = assert_raises(Resolver::InvalidRPC) do
+        resolver.rpc(method: "GetTask", params: { "id" => "remote-t1" }, id: 12)
+      end
+      refute_includes error.message, "private diagnostic"
+      assert_equal :invalid_envelope, error.reason
+      assert_equal 12, @transport.posts.last.fetch(:json).fetch("id")
+    end
+  end
+
   def test_preserves_remote_error_code_but_not_untrusted_message
     @transport.response = {
       "jsonrpc" => "2.0", "id" => 12,
