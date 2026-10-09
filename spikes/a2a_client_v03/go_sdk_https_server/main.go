@@ -10,6 +10,7 @@ import (
     "iter"
     "log"
     "net/http"
+    "strings"
 
     "github.com/a2aproject/a2a-go/v2/a2a"
     "github.com/a2aproject/a2a-go/v2/a2asrv"
@@ -19,8 +20,51 @@ const rpcPath = "/go/agent/jsonrpc"
 
 type echoExecutor struct {}
 
-func (e *echoExecutor) Execute(_ context.Context, _ *a2asrv.ExecutorContext) iter.Seq2[a2a.Event, error] {
+func (e *echoExecutor) Execute(_ context.Context, ec *a2asrv.ExecutorContext) iter.Seq2[a2a.Event, error] {
     return func(yield func(a2a.Event, error) bool) {
+        text := ""
+        if ec.Message != nil && len(ec.Message.Parts) > 0 {
+            text = ec.Message.Parts[0].Text()
+        }
+
+        if strings.HasPrefix(text, "rich:") {
+            richData := a2a.NewDataPart(map[string]any{
+                "businessId": "go-123",
+                "nested": map[string]any{"keepCamelCase": []any{true, float64(0), nil}},
+            })
+            richData.SetMeta("caseSensitive", "go")
+            message := a2a.NewMessage(a2a.MessageRoleAgent,
+                a2a.NewTextPart("Go: rich official SDK reply"),
+                richData,
+                a2a.NewRawPart([]byte("go-bytes")),
+                a2a.NewFileURLPart(a2a.URL("https://files.example/go.pdf"), "application/pdf"),
+            )
+            message.SetMeta("interopTest", "go")
+            yield(message, nil)
+            return
+        }
+
+        if strings.HasPrefix(text, "task:") || strings.HasPrefix(text, "rich-task:") ||
+            strings.HasPrefix(text, "input-required:") {
+            if !yield(a2a.NewSubmittedTask(ec, ec.Message), nil) {
+                return
+            }
+            if strings.HasPrefix(text, "input-required:") {
+                yield(a2a.NewStatusUpdateEvent(ec, a2a.TaskStateInputRequired,
+                    a2a.NewMessageForTask(a2a.MessageRoleAgent, ec, a2a.NewTextPart("Go needs more input"))), nil)
+                return
+            }
+            if !yield(a2a.NewArtifactEvent(ec,
+                a2a.NewTextPart("Go: official task artifact"),
+                a2a.NewDataPart(map[string]any{"businessId": "go-task-123",
+                    "nested": map[string]any{"keepCamelCase": true}}),
+                a2a.NewRawPart([]byte("go-task-bytes"))), nil) {
+                return
+            }
+            yield(a2a.NewStatusUpdateEvent(ec, a2a.TaskStateCompleted, nil), nil)
+            return
+        }
+
         yield(a2a.NewMessage(a2a.MessageRoleAgent, a2a.NewTextPart("Go: hello from official SDK")), nil)
     }
 }

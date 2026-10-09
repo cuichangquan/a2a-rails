@@ -108,6 +108,120 @@ if AGENT == "python"
           "GetTask retrieves official Python server Task")
 end
 
+# Step 29-5n: exercise rich Part representations created by the *official*
+# Python/Go SDKs, NOT a Rails-generated fixture or a synthetic wire response.
+rich = client.send_message(message: {
+  message_id: SecureRandom.uuid,
+  role: "ROLE_USER",
+  parts: [{ text: "rich: return native official SDK text/data/raw/url" }]
+})
+verify!(rich.kind == :message, "#{AGENT} official SDK returned rich direct Message")
+parts = rich.message.fetch(:parts)
+verify!(parts.length == 4, "#{AGENT} direct Message contains four native Part variants")
+verify!(parts[0][:text].include?("#{AGENT.capitalize}: rich"), "rich text Part preserved")
+verify!(parts[1].dig(:data, "businessId") == "#{AGENT}-123",
+        "native #{AGENT} Data Part preserves businessId")
+verify!(parts[1].dig(:data, "nested", "keepCamelCase").is_a?(Array),
+        "native Data Part preserves opaque nested camelCase keys and arrays")
+verify!(parts[2][:raw] == ["#{AGENT}-bytes"].pack("m0"),
+        "native #{AGENT} raw bytes remain base64 encoded")
+verify!(parts[3][:url] == "https://files.example/#{AGENT}.pdf",
+        "native URL Part preserved as an unfetched string")
+verify!(rich.message.frozen? && parts[1][:data].frozen?,
+        "rich protocol output is deeply immutable")
+
+def send_test_task(client, marker)
+  result = client.send_message(message: {
+    message_id: SecureRandom.uuid,
+    role: "ROLE_USER",
+    parts: [{ text: marker }]
+  })
+  verify!(result.kind == :task, "official SDK returns Task for #{marker}")
+  result.task
+end
+
+rich_task = send_test_task(client, "rich-task: native SDK Artifact with File/Data")
+verify!(rich_task.dig(:status, :state) == "TASK_STATE_COMPLETED",
+        "#{AGENT} rich Task reaches completed state")
+native_parts = rich_task.dig(:artifacts, 0, :parts)
+verify!(native_parts.is_a?(Array) && native_parts.size >= 3,
+        "#{AGENT} Task contains native SDK artifact text/data/raw")
+verify!(native_parts.any? { |part| part[:data].is_a?(Hash) &&
+  part[:data]["businessId"] == "#{AGENT}-task-123" },
+        "#{AGENT} Task Artifact preserves native nested Data")
+verify!(native_parts.any? { |part| part[:raw].is_a?(String) && !part[:raw].empty? },
+        "#{AGENT} Task Artifact preserves file/raw bytes in base64")
+stored = client.get_task(id: rich_task.fetch(:id), history_length: 1)
+verify!(stored.fetch(:id) == rich_task.fetch(:id),
+        "#{AGENT} GetTask loads persistent task from SDK Task Store")
+verify!(stored.dig(:artifacts, 0, :parts).is_a?(Array),
+        "#{AGENT} GetTask roundtrips native Artifact Parts")
+verify!(stored.fetch(:status).fetch(:state) == "TASK_STATE_COMPLETED",
+        "#{AGENT} GetTask preserves terminal state")
+
+waiting = send_test_task(client, "input-required: pause and await human")
+verify!(waiting.dig(:status, :state) == "TASK_STATE_INPUT_REQUIRED",
+        "#{AGENT} SDK retains nonterminal INPUT_REQUIRED state")
+waiting_stored = client.get_task(id: waiting.fetch(:id))
+verify!(waiting_stored.dig(:status, :state) == "TASK_STATE_INPUT_REQUIRED",
+        "#{AGENT} GetTask preserves parked state")
+
+# A rejected SDK operation is a capability *verification gap*, not PASS.
+# -31401/-31403 are auth failures (not evidence of unsupported ListTasks).
+# Other SDK codes remain explicitly unverified; no unexpected Rails
+# exception or malformed response is swallowed.
+def remote_capability_gap(error)
+  case error.code
+  when -31401 then "AUTH_REQUIRED(code=-31401)"
+  when -31403 then "FORBIDDEN(code=-31403)"
+  when -32601, -32004 then "UNSUPPORTED(code=#{error.code})"
+  else "REMOTE_ERROR_UNVERIFIED(code=#{error.code})"
+  end
+end
+
+capabilities = {}
+begin
+  canceled = client.cancel_task(id: waiting.fetch(:id))
+  verify!(canceled.dig(:status, :state) == "TASK_STATE_CANCELED",
+          "#{AGENT} CancelTask transitions parked Task to CANCELED")
+  verify!(client.get_task(id: waiting.fetch(:id)).dig(:status, :state) ==
+          "TASK_STATE_CANCELED", "#{AGENT} GetTask observes canceled state")
+  capabilities[:cancel_task] = "PASS"
+rescue A2A::Rails::Client::RemoteError => error
+  capabilities[:cancel_task] = remote_capability_gap(error)
+  puts "CAPABILITY-GAP: #{AGENT} SDK CancelTask #{capabilities.fetch(:cancel_task)}"
+end
+
+begin
+  first_page = client.list_tasks(page_size: 1, include_artifacts: false)
+  verify!(first_page.tasks.size == 1, "#{AGENT} SDK ListTasks honors page_size=1")
+  verify!(first_page.next_page_token.is_a?(String),
+          "#{AGENT} ListTasks cursor has a valid string type")
+  if first_page.next_page_token.empty?
+    # We have already created two Tasks above; a single-task first page with
+    # no cursor is not a valid demonstration of pagination.
+    raise "FAIL: #{AGENT} ListTasks no cursor despite multiple SDK tasks"
+  end
+  second_page = client.list_tasks(page_size: 1, page_token: first_page.next_page_token)
+  verify!(second_page.tasks.size >= 1 &&
+          first_page.tasks.first.fetch(:id) != second_page.tasks.first.fetch(:id),
+          "#{AGENT} ListTasks returns a distinct cursor page")
+  capabilities[:list_tasks] = "PASS"
+rescue A2A::Rails::Client::RemoteError => error
+  capabilities[:list_tasks] = remote_capability_gap(error)
+  puts "CAPABILITY-GAP: #{AGENT} SDK ListTasks #{capabilities.fetch(:list_tasks)}"
+end
+
+begin
+  client.get_task(id: "not-found-native-#{SecureRandom.uuid}")
+  raise "FAIL: #{AGENT} SDK returned Task for nonexistent ID"
+rescue A2A::Rails::Client::RemoteError => error
+  verify!(error.code.is_a?(Integer) && error.cause.nil?,
+          "#{AGENT} SDK remote missing-task error is typed and sanitized")
+  capabilities[:get_missing_task] = "PASS"
+end
+puts "STEP 29-5n SDK CAPABILITIES #{AGENT.upcase}: #{capabilities.inspect}"
+
 verify!(policy.resolved_urls.include?("#{BASE}/.well-known/agent-card.json"),
         "Client fetched official Agent Card from pinned local HTTPS socket")
 verify!(policy.resolved_urls.include?("#{BASE}#{RPC_PATH}"),
