@@ -132,6 +132,8 @@ module A2A
           raise InvalidResponseError.new(:invalid_task, operation: operation)
         end
 
+        validate_remote_protocol_keys!(value, operation)
+        validate_remote_protocol_keys!(value["status"], operation)
         status_message = value["status"]["message"]
         validate_remote_message!(status_message, operation) unless status_message.nil?
 
@@ -161,6 +163,7 @@ module A2A
             !message["parts"].empty?
           raise InvalidResponseError.new(:invalid_message, operation: operation)
         end
+        validate_remote_protocol_keys!(message, operation)
         message["parts"].each { |part| validate_remote_part!(part, operation) }
       end
 
@@ -169,6 +172,7 @@ module A2A
             artifact["parts"].is_a?(Array) && !artifact["parts"].empty?
           raise InvalidResponseError.new(:invalid_artifact, operation: operation)
         end
+        validate_remote_protocol_keys!(artifact, operation)
         artifact["parts"].each { |part| validate_remote_part!(part, operation) }
       end
 
@@ -177,10 +181,22 @@ module A2A
         unless part.is_a?(Hash) && kinds.count { |key| part.key?(key) } == 1
           raise InvalidResponseError.new(:invalid_message_part, operation: operation)
         end
+        validate_remote_protocol_keys!(part, operation)
         type = kinds.find { |key| part.key?(key) }
         valid_value = type == "data" ? part[type].is_a?(Hash) : part[type].is_a?(String)
         unless valid_value
           raise InvalidResponseError.new(:invalid_message_part, operation: operation)
+        end
+      end
+
+      def validate_remote_protocol_keys!(object, operation)
+        # Reject duplicate canonical/snake aliases in protocol structures.
+        # This is deliberately NOT recursive: custom metadata/data/extension
+        # keys remain opaque, even when they resemble protocol field names.
+        Codec::REVERSE.each do |wire_key, ruby_key|
+          next unless object.key?(wire_key) && object.key?(ruby_key)
+
+          raise InvalidResponseError.new(:ambiguous_protocol_key, operation: operation)
         end
       end
 
