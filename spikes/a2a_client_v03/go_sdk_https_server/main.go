@@ -18,6 +18,32 @@ import (
 
 const rpcPath = "/go/agent/jsonrpc"
 
+// Test-only authentication through the official a2asrv CallInterceptor API.
+// The SDK's *default* Task Store uses CallContext.User.Name as its owner;
+// ListTasks intentionally returns -31401 when no authenticated user is set.
+// No authentication bypass or modified JSON-RPC/Task Store handler is used.
+type testBearerInterceptor struct {
+    a2asrv.PassthroughCallInterceptor
+}
+
+func (testBearerInterceptor) Before(ctx context.Context, callCtx *a2asrv.CallContext, _ *a2asrv.Request) (context.Context, any, error) {
+    values, ok := callCtx.ServiceParams().Get("authorization")
+    if !ok || len(values) != 1 {
+        return ctx, nil, a2a.ErrUnauthenticated
+    }
+    var user string
+    switch values[0] {
+    case "Bearer go-test-tenant-a-token":
+        user = "go-test-tenant-a"
+    case "Bearer go-test-tenant-b-token":
+        user = "go-test-tenant-b"
+    default:
+        return ctx, nil, a2a.ErrUnauthenticated
+    }
+    callCtx.User = a2asrv.NewAuthenticatedUser(user, nil)
+    return ctx, nil, nil
+}
+
 type echoExecutor struct {}
 
 func (e *echoExecutor) Execute(_ context.Context, ec *a2asrv.ExecutorContext) iter.Seq2[a2a.Event, error] {
@@ -92,13 +118,25 @@ func main() {
             a2a.NewAgentInterface(endpoint, a2a.TransportProtocolJSONRPC),
         },
         Capabilities: a2a.AgentCapabilities{Streaming: false},
+        SecuritySchemes: a2a.NamedSecuritySchemes{
+            "interopBearer": a2a.HTTPAuthSecurityScheme{
+                Scheme: "Bearer", BearerFormat: "opaque",
+                Description: "Test-only scoped bearer for official SDK interop",
+            },
+        },
+        SecurityRequirements: a2a.SecurityRequirementsOptions{
+            a2a.SecurityRequirements{"interopBearer": a2a.SecuritySchemeScopes{}},
+        },
         DefaultInputModes: []string{"text/plain"},
         DefaultOutputModes: []string{"text/plain"},
         Skills: []a2a.AgentSkill{
             {ID: "go_echo", Name: "Go Echo", Description: "Return a direct A2A Message", Tags: []string{"echo", "interop"}},
         },
     }
-    handler := a2asrv.NewHandler(&echoExecutor{})
+    // The official default InMemory Task Store uses
+    // a2asrv.NewTaskStoreAuthenticator() to scope tasks by CallContext.User.
+    handler := a2asrv.NewHandler(&echoExecutor{},
+        a2asrv.WithCallInterceptors(testBearerInterceptor{}))
     mux := http.NewServeMux()
     mux.Handle(a2asrv.WellKnownAgentCardPath, a2asrv.NewStaticAgentCardHandler(card))
     mux.Handle(rpcPath, a2asrv.NewJSONRPCHandler(handler))
