@@ -7,6 +7,13 @@
 > and [Step 29-5k release-gate audit](step-29-5k-client-release-gates-audit.md).
 > **Stable RubyGems 0.2.0 unchanged. v0.3.x NO-GO.**
 
+> **Historical 29-5n result:** Go `ListTasks` was AUTH_REQUIRED (-31401)
+> when using an anonymous caller. The follow-up [Step 29-5q](step-29-5q-go-authenticated-list-tasks.md)
+> adds test-only Bearer authentication through official SDK CallInterceptor
+> and owner-scoped Task Store, plus a separate real unauthenticated denial
+> check. See Step 29-5q's **final CI** for newer Go pagination evidence;
+> the table below preserves the exact older, anonymous 29-5n observation.
+
 ## Setup / independently controlled implementations
 
 | Runtime | Official SDK pinned | Server handler | TLS and exposed origin |
