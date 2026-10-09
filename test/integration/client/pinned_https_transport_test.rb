@@ -652,6 +652,57 @@ class ClientPinnedHttpsTransportTest < Minitest::Test
                   interface_url, interface_url], @policy.resolved_urls
   end
 
+  def test_side_effecting_rpc_timeout_after_post_is_ambiguous_and_preserves_ids
+    [:send_message, :cancel_task].each do |operation|
+      # The server records the full POST, then delays its reply until after
+      # the HTTP timeout. The Client cannot know whether it was executed.
+      rpc_port, rpc_requests = tls_server(body: "{}", delay: 0.5)
+      rpc_url = "https://trusted.example:#{rpc_port}/a2a"
+      card_port, card_requests = tls_server(
+        body: JSON.generate(sample_discovery_card(rpc_url))
+      )
+      card_url = "https://trusted.example:#{card_port}/.well-known/agent-card.json"
+
+      client = A2A::Rails::Client.new(
+        agent_card_url: card_url,
+        allowed_origins: [
+          "https://trusted.example:#{card_port}",
+          "https://trusted.example:#{rpc_port}"
+        ]
+      )
+      # Test-only injection, never available on the Client public initializer.
+      client.instance_variable_set(:@resolver, A2A::Rails::Client::AgentCardResolver.new(
+        agent_card_url: card_url, policy: @policy,
+        transport: transport(read_timeout: 0.08, total_timeout: 0.3)
+      ))
+
+      error = assert_raises(A2A::Rails::Client::TimeoutError) do
+        if operation == :send_message
+          client.send_message(message: {
+            message_id: "sent-once-123", role: "ROLE_USER", parts: [{ text: "hello" }]
+          })
+        else
+          client.cancel_task(id: "remote-t1")
+        end
+      end
+      assert_equal operation, error.operation
+      assert error.may_have_executed
+      assert_nil error.cause
+
+      wire = JSON.parse(rpc_requests.pop.fetch(:body))
+      assert_equal(operation == :send_message ? "SendMessage" : "CancelTask", wire.fetch("method"))
+      assert_match(/\\A[0-9a-f-]{36}\\z/, wire.fetch("id"))
+      if operation == :send_message
+        assert_equal "sent-once-123", wire.dig("params", "message", "messageId")
+      else
+        assert_equal "remote-t1", wire.dig("params", "id")
+      end
+      assert_equal 1, rpc_requests.size + 1
+      assert_equal "GET", card_requests.pop.fetch(:method)
+      assert_empty card_requests
+    end
+  end
+
   def test_real_https_agent_card_redirect_does_not_get_followed
     port, requests = tls_server(status: "302 Found",
       headers: { "Location" => "https://other.example/a2a" })
