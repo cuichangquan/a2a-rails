@@ -1,5 +1,7 @@
 # Step 29-5c — Public HTTPS egress and negative security gates
 
+> **Historical plan / status superseded:** The "NOT TESTED" public-DNS/CA language and the final decision below describe the status when Step 29-5c was originally authored. Step 29-5e has **subsequently PASSed** the real, original public-CA/DNS HTTPS path via ordinary Client constructor to an **IAM-private** Cloud Run Agent. Step 29-5g–j added local negative regression coverage. See the current [Step 29-5k release-gate reconciliation](step-29-5k-client-release-gates-audit.md). A **separate public/no-auth scenario is NOT RUN**; v0.3.x remains **NO-GO**. Historical checklist below is retained for auditability.
+
 Status: **OPEN / NO-GO**. Parent: [#90](https://github.com/cuichangquan/a2a-rails/issues/90). The stable published gem remains **0.2.0**; this document does not approve a new release.
 
 ## Evidence already established
