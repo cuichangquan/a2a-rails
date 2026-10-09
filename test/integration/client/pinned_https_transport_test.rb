@@ -556,7 +556,7 @@ class ClientPinnedHttpsTransportTest < Minitest::Test
     original_logger = ActiveJob::Base.logger
     ActiveJob::Base.logger = ActiveSupport::TaggedLogging.new(ActiveSupport::Logger.new(sink))
     notifications = Queue.new
-    subscription = ActiveSupport::Notifications.subscribe(/\\.active_job\\z/) do |name, _start, _finish, _unique_id, payload|
+    subscription = ActiveSupport::Notifications.subscribe("perform.active_job") do |name, _start, _finish, _unique_id, payload|
       notifications << [name, payload.dup]
     end
 
