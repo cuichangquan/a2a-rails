@@ -41,6 +41,36 @@ SDK server implementations, and Python additionally tests completed
 Task, Artifact and GetTask round trips. Production policy, IP blocklists,
 and TLS verification are unchanged.
 
+## Step 29-5n advanced interoperability matrix
+
+The same **independent official** Python (`a2a-sdk==1.2.2`) and Go
+(`a2a-go/v2@v2.6.0`) servers now supply richer, SDK-created protocol
+responses to the unmodified Rails Client API (with **only** the existing
+test-only local TLS policy/CA injection). The probe validates:
+
+- Rich direct Message with SDK-generated **text + structured Data + raw File +
+  URL File** Parts; preserved nested camelCase Data keys, base64 File data,
+  immutable output and **no fetching** of returned URLs.
+- Native Task containing SDK-generated Artifact **text/Data/raw** Parts, Task
+  completion, stored Task/GetTask roundtrip.
+- `TASK_STATE_INPUT_REQUIRED` returned by the server and subsequently
+  retrieved by GetTask. CancelTask should transition the parked Task to
+  CANCELED, and GetTask must reflect the transition **when supported**.
+- ListTasks `page_size: 1` and `nextPageToken` fetching a **distinct second
+  page**, **when supported**.
+- Nonexistent GetTask must be a **typed, sanitized remote JSON-RPC error**.
+
+**Reporting rule:** only `PASS` means the end-to-end SDK operation truly
+worked. An SDK-generated error on CancelTask or ListTasks is shown as
+`CAPABILITY-GAP: UNSUPPORTED(code=N)`; it is never silently reclassified
+as success. A wrong response shape, unsupported Rails transformation, missing
+pagination cursor despite multiple Tasks, invalid security behavior, or other
+unexpected exception **fails CI**. The test does not monkey-patch SDK server
+handlers or replace their responses with synthetic JSON.
+
+The [SDK capability/evidence matrix](step-29-5n-official-sdk-advanced-matrix.md)
+summarizes precise results and unresolved items.
+
 ## Still not demonstrated
 
 - No public egress URL with unmodified DNS and unmodified Client
