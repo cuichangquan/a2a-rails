@@ -266,7 +266,6 @@ if AGENT == "go"
   # The Go SDK's default Task Store applies *its own* owner scoping.
   # Do not replace it with a permissive test store or fixed identity.
   tenant_a_tasks = [rich_task.fetch(:id), waiting.fetch(:id)]
-  tenant_b_tasks = [other_task.fetch(:id)]
   a_page = client.list_tasks(page_size: 1)
   a_next = client.list_tasks(page_size: 1, page_token: a_page.next_page_token)
   verify!(a_page.tasks.size == 1 && a_next.tasks.size == 1 &&
@@ -285,8 +284,8 @@ if AGENT == "go"
       caller.get_task(id: foreign_id)
       raise "FAIL: Go SDK let another tenant read a foreign Task"
     rescue A2A::Rails::Client::RemoteError => error
-      verify!(error.code.is_a?(Integer) && error.cause.nil? && error.code != -31401,
-              "Go SDK masks cross-owner GetTask as sanitized remote not-found")
+      verify!(error.code == -32001 && error.cause.nil?,
+              "Go SDK masks cross-owner GetTask as sanitized -32001 not-found")
     end
   end
 
