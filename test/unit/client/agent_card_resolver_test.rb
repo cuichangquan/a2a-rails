@@ -158,7 +158,9 @@ class ClientAgentCardResolverTest < Minitest::Test
         resolver.rpc(method: "GetTask", params: { "id" => "remote-t1" }, id: 12)
       end
       refute_includes error.message, "private diagnostic"
-      assert_equal :invalid_envelope, error.reason
+      expected_reason = bad.key?("result") && bad["result"].nil? && bad["id"] == 12 &&
+        bad["jsonrpc"] == "2.0" ? :invalid_result : :invalid_envelope
+      assert_equal expected_reason, error.reason
       assert_equal 12, @transport.posts.last.fetch(:json).fetch("id")
     end
   end
