@@ -32,7 +32,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Source-hardening tests cover DNS/SSRF, TLS/auth/log privacy, gzip and
   malformed/chunked/truncated HTTP, JSON nesting, ambiguous remote
   SendMessage/CancelTask timeout and nested response validation.
-- **Go SDK follow-up:** Step 29-5q verified authenticated Go ListTasks pagination with two scoped test users and isolated Task visibility; anonymous callers still receive `-31401`.\n- **Open review items:** exact versioned v0.3.x candidate tests and
+- **Go SDK follow-up:** Step 29-5q verified authenticated Go ListTasks pagination with two scoped test users and isolated Task visibility; anonymous callers still receive `-31401`.
+- **Open review items:** exact versioned v0.3.x candidate tests and
   candidate Gem SHA256, installed-host verification, an independent security
   reviewer, and final explicit publication/public-test scope decisions.
 - Publishing a Gem and approving open-public **production deployment**
