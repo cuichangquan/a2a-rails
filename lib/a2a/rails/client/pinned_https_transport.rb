@@ -160,6 +160,13 @@ module A2A
                   raise ResponseTooLarge, :response_too_large if payload.bytesize + chunk.bytesize > @max_response_bytes
                   payload << chunk
                 end
+
+                # Net::HTTP can return successfully on a prematurely closed
+                # Content-Length body. A valid JSON prefix must not make that
+                # truncated HTTP response look like a complete A2A reply.
+                if content_length && payload.bytesize != content_length.to_i
+                  raise InvalidResponse, :invalid_content_length
+                end
               end
             end
 
