@@ -166,9 +166,19 @@ waiting_stored = client.get_task(id: waiting.fetch(:id))
 verify!(waiting_stored.dig(:status, :state) == "TASK_STATE_INPUT_REQUIRED",
         "#{AGENT} GetTask preserves parked state")
 
-# Treat unimplemented SDK operations as explicit *capability gaps*, not PASS.
-# Typed RemoteError is the only acknowledged unsupported outcome. A malformed
-# reply or an unexpected Rails exception must still fail this CI probe.
+# A rejected SDK operation is a capability *verification gap*, not PASS.
+# -31401/-31403 are auth failures (not evidence of unsupported ListTasks).
+# Other SDK codes remain explicitly unverified; no unexpected Rails
+# exception or malformed response is swallowed.
+def remote_capability_gap(error)
+  case error.code
+  when -31401 then "AUTH_REQUIRED(code=-31401)"
+  when -31403 then "FORBIDDEN(code=-31403)"
+  when -32601, -32004 then "UNSUPPORTED(code=#{error.code})"
+  else "REMOTE_ERROR_UNVERIFIED(code=#{error.code})"
+  end
+end
+
 capabilities = {}
 begin
   canceled = client.cancel_task(id: waiting.fetch(:id))
@@ -178,8 +188,8 @@ begin
           "TASK_STATE_CANCELED", "#{AGENT} GetTask observes canceled state")
   capabilities[:cancel_task] = "PASS"
 rescue A2A::Rails::Client::RemoteError => error
-  capabilities[:cancel_task] = "UNSUPPORTED(code=#{error.code})"
-  puts "CAPABILITY-GAP: #{AGENT} SDK CancelTask not supported: code=#{error.code}"
+  capabilities[:cancel_task] = remote_capability_gap(error)
+  puts "CAPABILITY-GAP: #{AGENT} SDK CancelTask #{capabilities.fetch(:cancel_task)}"
 end
 
 begin
@@ -198,8 +208,8 @@ begin
           "#{AGENT} ListTasks returns a distinct cursor page")
   capabilities[:list_tasks] = "PASS"
 rescue A2A::Rails::Client::RemoteError => error
-  capabilities[:list_tasks] = "UNSUPPORTED(code=#{error.code})"
-  puts "CAPABILITY-GAP: #{AGENT} SDK ListTasks not supported: code=#{error.code}"
+  capabilities[:list_tasks] = remote_capability_gap(error)
+  puts "CAPABILITY-GAP: #{AGENT} SDK ListTasks #{capabilities.fetch(:list_tasks)}"
 end
 
 begin
