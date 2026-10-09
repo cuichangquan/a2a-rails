@@ -2,9 +2,20 @@
 
 require_relative "../../test_helper"
 require "json"
+require "active_job"
 
 class ClientPublicApiTest < Minitest::Test
   Client = A2A::Rails::Client
+
+  # The job is run by several worker Threads with perform_now. It exercises
+  # real ActiveJob execution callbacks but not a queue adapter/serialization.
+  class ConcurrentClientJob < ActiveJob::Base
+    def perform(client, message_id)
+      client.send_message(message: {
+        message_id: message_id, role: "ROLE_USER", parts: [{ text: "job payload" }]
+      })
+    end
+  end
 
   class FakeResolver
     attr_accessor :reply, :failure, :card
@@ -26,8 +37,8 @@ class ClientPublicApiTest < Minitest::Test
     end
 
     def rpc(method:, params:, id:)
-      raise failure if failure
       @calls << { method: method, params: params, id: id }
+      raise failure if failure
       reply
     end
   end
@@ -95,6 +106,29 @@ class ClientPublicApiTest < Minitest::Test
     assert_equal ["text/plain"], @resolver.calls.last.dig(:params, "configuration", "acceptedOutputModes")
   end
 
+  def test_active_job_concurrent_perform_now_preserves_message_and_rpc_ids
+    @resolver.reply = fixture("direct-message")
+    ready = Queue.new
+    go = Queue.new
+    workers = 6.times.map do |index|
+      Thread.new do
+        ready << true
+        go.pop
+        ConcurrentClientJob.perform_now(@client, "job-message-#{index}")
+      end
+    end
+    6.times { ready.pop }
+    6.times { go << true }
+    results = workers.map(&:value)
+
+    assert results.all? { |result| result.kind == :message }
+    assert_equal 6, @resolver.calls.length
+    assert_equal (0...6).map { |index| "job-message-#{index}" }.sort,
+      @resolver.calls.map { |call| call.dig(:params, "message", "messageId") }.sort
+    assert_equal 6, @resolver.calls.map { |call| call.fetch(:id) }.uniq.length
+    assert @resolver.calls.all? { |call| call[:method] == "SendMessage" }
+  end
+
   def test_nonterminal_states_remain_visible
     @resolver.reply = fixture("task-input-required")
     result = @client.send_message(message: user_message)
@@ -148,6 +182,24 @@ class ClientPublicApiTest < Minitest::Test
     end
   end
 
+  def test_rejects_malformed_oneof_from_direct_remote_message
+    [
+      [{ "text" => "ok", "data" => { "secret" => "remote" } }],
+      [{ "text" => "ok", "url" => "https://untrusted.example/file" }],
+      [{ "mediaType" => "text/plain" }],
+      ["malformed"],
+      []
+    ].each do |invalid_parts|
+      @resolver.reply = fixture("direct-message")
+      @resolver.reply.fetch("message")["parts"] = invalid_parts
+      error = assert_raises(Client::InvalidResponseError) do
+        @client.send_message(message: user_message)
+      end
+      assert_includes [:invalid_message, :invalid_message_part], error.reason
+      refute_includes error.message, "secret"
+    end
+  end
+
   def test_message_requires_id_role_and_part_oneof
     [
       { role: "ROLE_USER", parts: [{ text: "ok" }] },
@@ -184,6 +236,34 @@ class ClientPublicApiTest < Minitest::Test
     refute e.may_have_executed
     e = assert_raises(Client::TimeoutError) { @client.cancel_task(id: "t1") }
     assert e.may_have_executed
+  end
+
+  def test_timeout_does_not_retry_side_effecting_or_read_operations
+    {
+      send_message: { method: "SendMessage", may_have_executed: true },
+      cancel_task: { method: "CancelTask", may_have_executed: true },
+      get_task: { method: "GetTask", may_have_executed: false },
+      list_tasks: { method: "ListTasks", may_have_executed: false }
+    }.each do |operation, expected|
+      @resolver.calls.clear
+      @resolver.failure = Client::PinnedHttpsTransport::DeadlineExceeded.new(:timeout)
+      error = assert_raises(Client::TimeoutError) do
+        case operation
+        when :send_message then @client.send_message(message: user_message)
+        when :cancel_task then @client.cancel_task(id: "remote-task-id")
+        when :get_task then @client.get_task(id: "remote-task-id")
+        when :list_tasks then @client.list_tasks
+        end
+      end
+      assert_equal operation, error.operation
+      assert_equal expected.fetch(:may_have_executed), error.may_have_executed
+      assert_nil error.cause
+      assert_equal expected.fetch(:method), @resolver.calls.fetch(0).fetch(:method)
+      assert_equal 1, @resolver.calls.length
+      if operation == :send_message
+        assert_equal "m-123", @resolver.calls.fetch(0).dig(:params, "message", "messageId")
+      end
+    end
   end
 
   def test_remote_error_is_typed_and_code_retained_without_original_message

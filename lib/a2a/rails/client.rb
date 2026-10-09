@@ -139,6 +139,10 @@ module A2A
             text?(value["role"]) && value["parts"].is_a?(Array) && !value["parts"].empty?
           raise InvalidResponseError.new(:invalid_message, operation: operation)
         end
+        unless value["parts"].all? { |part| part.is_a?(Hash) &&
+            %w[text raw url data].count { |key| part.key?(key) } == 1 }
+          raise InvalidResponseError.new(:invalid_message_part, operation: operation)
+        end
         Codec.decode(value)
       end
 
