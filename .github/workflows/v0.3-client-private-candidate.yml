@@ -15,7 +15,7 @@ on:
       - "docs/release/**"
       - "CHANGELOG.md"
   push:
-    branches: [main]
+    branches: [main, candidate/v0.3.0-rc1]
     paths:
       - ".github/workflows/v0.3-client-private-candidate.yml"
       - "a2a-rails.gemspec"
@@ -33,8 +33,10 @@ on:
 permissions:
   contents: read
 
-# Verification artifact ONLY. Building and uploading CI artifacts does not
-# authorize RubyGems publication, tagging or changing source VERSION on main.
+# Verification artifact ONLY. candidate/v0.3.0-rc1 must have a real
+# source VERSION=0.3.0.rc1 and is built with *zero* staging edits.
+# Main and legacy PR rehearsal still stage a version from 0.2.0 without
+# changing main. Neither path authorizes tagging or RubyGems publication.
 env:
   RC_VERSION: "0.3.0.rc1"
   RC_FILENAME: "a2a-rails-0.3.0.rc1.gem"
@@ -49,21 +51,41 @@ jobs:
       - uses: ruby/setup-ruby@v1
         with:
           ruby-version: "3.4.10"
-      - name: Snapshot source and build one private RC without altering checkout
+      - name: Build from immutable checkout, with no staging delta for genuine RC1 source
         shell: bash
         run: |
           set -euo pipefail
-          test "$(ruby -Ilib -ra2a/rails/version -e 'print A2A::Rails::VERSION')" = "0.2.0"
           source_sha="$(git rev-parse HEAD)"
+          source_version="$(ruby -Ilib -ra2a/rails/version -e 'print A2A::Rails::VERSION')"
           mkdir -p "$RUNNER_TEMP/rc-source" "$RUNNER_TEMP/rc-package"
           git archive "$source_sha" | tar -xf - -C "$RUNNER_TEMP/rc-source"
-          ruby - "$RUNNER_TEMP/rc-source/lib/a2a/rails/version.rb" <<'RUBY'
+
+          if test "$GITHUB_REF" = "refs/heads/candidate/v0.3.0-rc1"; then
+            test "$source_version" = "$RC_VERSION" || {
+              echo "Frozen candidate branch must contain an actual RC1 VERSION"; exit 1;
+            }
+          fi
+
+          case "$source_version" in
+            0.2.0)
+              # Backward-compatible Step 29-5r main/PR rehearsal, NOT frozen source.
+              ruby - "$RUNNER_TEMP/rc-source/lib/a2a/rails/version.rb" <<'RUBY'
           path = ARGV.fetch(0)
           original = File.read(path)
           before = 'VERSION = "0.2.0"'
-          abort "unexpected source VERSION" unless original.scan(before).length == 1
+          abort "unexpected staging VERSION" unless original.scan(before).length == 1
           File.write(path, original.sub(before, 'VERSION = "0.3.0.rc1"'))
           RUBY
+              printf '%s\n' 'CI rehearsal: only staged VERSION changed 0.2.0 -> 0.3.0.rc1'                 > "$RUNNER_TEMP/rc-package/STAGING_DELTA"
+              ;;
+            0.3.0.rc1)
+              # Real source candidate branch: ZERO package-input modifications.
+              printf '%s\n' 'NONE: packaged directly from immutable source SHA with VERSION=0.3.0.rc1'                 > "$RUNNER_TEMP/rc-package/STAGING_DELTA"
+              ;;
+            *)
+              echo "Unsupported source VERSION: $source_version"; exit 1;
+              ;;
+          esac
           (
             cd "$RUNNER_TEMP/rc-source"
             gem build a2a-rails.gemspec --output "$RUNNER_TEMP/rc-package/$RC_FILENAME"
@@ -93,13 +115,13 @@ jobs:
             abort "wrong version within package" unless
               File.read(File.join(dir, "lib/a2a/rails/version.rb")).include?('VERSION = "0.3.0.rc1"')
           end
-          puts "PASS: packaged original source Client/Server bytes, isolated rc1 VERSION only"
+          puts "PASS: packaged Client/Server source bytes and rc1 metadata match expected input"
           RUBY
           (
             cd "$RUNNER_TEMP/rc-package"
             sha256sum "$RC_FILENAME" > SHA256SUMS
             printf '%s\n' "$source_sha" > SOURCE_COMMIT
-            printf '%s\n' 'Only lib/a2a/rails/version.rb was changed inside the CI staging copy.' > STAGING_DELTA
+            test -s STAGING_DELTA
             cat SHA256SUMS
             cat SOURCE_COMMIT
           )
@@ -181,27 +203,13 @@ jobs:
 
   installed-postgres:
     needs: build-once
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
         rails: ["~> 8.0.0", "~> 8.1.0"]
         inflection: ["default", "acronym"]
-    services:
-      postgres:
-        image: public.ecr.aws/docker/library/postgres:16
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: a2a_rails_test
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U postgres -d a2a_rails_test"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 10
     env:
       TARGET_RAILS: ${{ matrix.rails }}
       A2A_TEST_INFLECTION: ${{ matrix.inflection }}
@@ -215,6 +223,19 @@ jobs:
       BUNDLE_RETRY: "3"
     steps:
       - uses: actions/checkout@v4
+      - name: Start preinstalled PostgreSQL 16 on Ubuntu 24.04 runner
+        shell: bash
+        run: |
+          set -euo pipefail
+          pg_config --version
+          pg_config --version | grep -Eq '^PostgreSQL 16[.]'
+          sudo systemctl start postgresql.service
+          sudo -u postgres psql -v ON_ERROR_STOP=1 -c "ALTER USER postgres WITH PASSWORD 'postgres'"
+          if ! sudo -u postgres psql -tAc "SELECT 1 FROM pg_database WHERE datname='a2a_rails_test'" | grep -qx 1; then
+            sudo -u postgres createdb a2a_rails_test
+          fi
+          PGPASSWORD=postgres psql --host=127.0.0.1 --username=postgres --dbname=a2a_rails_test -v ON_ERROR_STOP=1 -c 'SELECT 1'
+          pg_isready -h 127.0.0.1 -U postgres -d a2a_rails_test
       - uses: ruby/setup-ruby@v1
         with:
           ruby-version: "3.4.10"

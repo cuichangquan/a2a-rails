@@ -173,27 +173,13 @@ jobs:
 
   installed-artifact-clean-postgres:
     needs: build-candidate
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 25
     strategy:
       fail-fast: false
       matrix:
         rails: ["~> 8.0.0", "~> 8.1.0"]
         inflection: ["default", "acronym"]
-    services:
-      postgres:
-        image: public.ecr.aws/docker/library/postgres:16
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: a2a_rails_test
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U postgres -d a2a_rails_test"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 10
     env:
       TARGET_RAILS: ${{ matrix.rails }}
       A2A_TEST_INFLECTION: ${{ matrix.inflection }}
@@ -207,6 +193,19 @@ jobs:
       A2A_RAILS_SOURCE_ROOT: ${{ github.workspace }}
     steps:
       - uses: actions/checkout@v4
+      - name: Start preinstalled PostgreSQL 16 on Ubuntu 24.04 runner
+        shell: bash
+        run: |
+          set -euo pipefail
+          pg_config --version
+          pg_config --version | grep -Eq '^PostgreSQL 16[.]'
+          sudo systemctl start postgresql.service
+          sudo -u postgres psql -v ON_ERROR_STOP=1 -c "ALTER USER postgres WITH PASSWORD 'postgres'"
+          if ! sudo -u postgres psql -tAc "SELECT 1 FROM pg_database WHERE datname='a2a_rails_test'" | grep -qx 1; then
+            sudo -u postgres createdb a2a_rails_test
+          fi
+          PGPASSWORD=postgres psql --host=127.0.0.1 --username=postgres --dbname=a2a_rails_test -v ON_ERROR_STOP=1 -c 'SELECT 1'
+          pg_isready -h 127.0.0.1 -U postgres -d a2a_rails_test
       - uses: ruby/setup-ruby@v1
         with:
           ruby-version: "3.4.10"
