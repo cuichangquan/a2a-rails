@@ -1,5 +1,17 @@
 # Step 29-5e — Temporary public Cloud Run test: operator readiness / NO-GO checklist
 
+> **2026-10-10 release-scope change:** the historical term "public/no-auth
+> release gate" in this runbook is **no longer an automatic Gem release
+> prerequisite**. It now refers to an *optional separate deployment/security
+> experiment* under [Issue #11](https://github.com/cuichangquan/a2a-rails/issues/11).
+> See [Step 29-5t decision](../release/step-29-5t-release-vs-public-deployment-scope.md).
+> The experiment remains **NOT APPROVED / NOT RUN**; keep Cloud Run
+> IAM-private. The positive **unmodified Client + public DNS/CA HTTPS**
+> test against an **IAM-private** server remains accepted as scoped
+> *outbound Client interoperability* evidence. The original historical
+> operations checklist below remains for reference; it is **not**
+> an instruction or permission to execute it.
+
 > **Public/no-auth release gate remains NOT RUN.** The owner-approved, IAM-private
 > real GCE outbound Client interoperability smoke **PASSed** on 2026-10-09,
 > and the named temporary VM/NAT/firewall resources were subsequently
