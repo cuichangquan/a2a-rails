@@ -23,6 +23,9 @@ class ClientOutboundPolicyTest < Minitest::Test
     assert_equal ["8.8.8.8"], target.addresses
     assert_predicate target, :frozen?
     assert_predicate target.addresses, :frozen?
+    assert_predicate target.addresses.first, :frozen?
+    assert_raises(FrozenError) { target.addresses.first.replace("169.254.169.254") }
+    assert_equal ["8.8.8.8"], target.addresses
   end
 
   def test_valid_explicit_nondefault_port_requires_exact_allowlist
@@ -164,6 +167,23 @@ class ClientOutboundPolicyTest < Minitest::Test
     assert_rejected(:invalid_dns_address) { policy(records: ["not-an-ip"]).resolve!("https://trusted.example/a2a") }
     assert_rejected(:dns_failure) do
       policy { |_host| raise Resolv::ResolvError }.resolve!("https://trusted.example/a2a")
+    end
+  end
+
+  def test_rejects_nonliteral_dns_answers_including_cidr_ranges
+    # IPAddr accepts 8.8.8.8/24 and normalizes it to 8.8.8.0;
+    # resolver output must represent one host address, not a subnet.
+    [nil, 123, Object.new, "8.8.8.8/24", "8.8.8.8/32",
+     "2600:1900:4240:200::/64"].each do |answer|
+      assert_rejected(:invalid_dns_address) do
+        policy(records: ["8.8.8.8", answer]).resolve!("https://trusted.example/a2a")
+      end
+    end
+  end
+
+  def test_rejects_cidr_answer_even_if_followed_by_a_valid_address
+    assert_rejected(:invalid_dns_address) do
+      policy(records: ["8.8.8.8/24", "8.8.4.4"]).resolve!("https://trusted.example/a2a")
     end
   end
 
