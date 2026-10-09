@@ -4,6 +4,44 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] — outbound Client v0.3.x proposal (NO-GO)
+
+> **Not released, tagged or published.** This entry describes source changes merged
+> **after** the published stable `0.2.0`. The gemspec/source `VERSION`
+> still reads `0.2.0`, so it is **not** a versioned 0.3.x release
+> candidate. See [Step 29-5p security readiness NO-GO](docs/release/v0.3.x-client-pre-release-security-review.md)
+> and open [Issue #90](https://github.com/cuichangquan/a2a-rails/issues/90).
+
+### Proposed added capabilities (on main, unreleased)
+
+- Outbound Rails `A2A::Rails::Client` for strict HTTPS Agent Card
+  discovery and A2A v1.0 JSON-RPC `SendMessage`, `GetTask`, `ListTasks`,
+  `CancelTask`, with separate Card/RPC credential callbacks, immutable
+  plain-Ruby results, direct Message or Task output and Client-only Rails mode.
+- Explicit approved origin and public-IPv4 pinned socket policy, ordinary
+  hostname/SNI/CA verification, zero automatic transport retries, bounded
+  timeouts/request-response sizes and safe error categories. Host secrets,
+  tenant authorization and recovery are **not** implemented automatically.
+- Structural validation of Message, nested Task/Artifact and File/Data Parts.
+  Native official Python and Go SDK local HTTPS interoperability, plus
+  genuine Solid Queue/Sidekiq separately executing outbound Client workers
+  on Rails 8.0/8.1, all tracked with scoped test limitations.
+
+### Security and compatibility notes
+
+- Source-hardening tests cover DNS/SSRF, TLS/auth/log privacy, gzip and
+  malformed/chunked/truncated HTTP, JSON nesting, ambiguous remote
+  SendMessage/CancelTask timeout and nested response validation.
+- **Open review items:** authenticated Go SDK ListTasks pagination
+  (`-31401` is an authentication refusal, **not** an unsupported method
+  or PASS), exact v0.3.x candidate Gem SHA256 and installed-host
+  verification, an independent security reviewer, and final explicit
+  publication/controlled public-test scope decisions.
+- Publishing a Gem and approving open-public **production deployment**
+  are distinct; a host must provide credential issuer verification,
+  business authorization, rate/concurrency and operational limits.
+  No release approval is implied by any CI PASS.
+
 ## [0.2.0] - 2026-10-08 (published stable release)
 
 > **Published in Step 27 after explicit approval.** [GitHub Release](https://github.com/cuichangquan/a2a-rails/releases/tag/v0.2.0) and [RubyGems 0.2.0](https://rubygems.org/gems/a2a-rails/versions/0.2.0) contain the exact verified artifact, with no rebuild. See the [publication record](docs/release/v0.2.0-publication-record.md) for its SHA256 and public-download verification. The immutable `0.2.0.rc2` pre-release **does not include the subsequent fixes** below.

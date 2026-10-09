@@ -1,6 +1,6 @@
 # Step 29-2 — Outbound Rails Client Public API Contract (v0.3 proposal)
 
-> **Status: REVIEW CONTRACT ONLY — not implemented or released.** (2026-10-08)
+> **Historical design baseline (2026-10-08):** the text below was drafted before the public Client implementation. The outbound Client APIs are **now implemented on main but remain unreleased**; the published RubyGems 0.2.0 does **not** contain this post-release Client. Later implementation details supersede individual proposals. For current GO/NO-GO and precise gaps see [Step 29-5p](../release/v0.3.x-client-pre-release-security-review.md). **v0.3.x NO-GO.**
 >
 > Depends on the [Step 29 design PR #76](https://github.com/cuichangquan/a2a-rails/pull/76) and the successfully run [Step 29-1 SDK spike PR #77](https://github.com/cuichangquan/a2a-rails/pull/77) ([real GitHub Actions](https://github.com/cuichangquan/a2a-rails/actions/runs/37746771841)).
 > Tracking: [Issue #75](https://github.com/cuichangquan/a2a-rails/issues/75).
