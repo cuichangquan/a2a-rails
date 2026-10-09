@@ -227,6 +227,66 @@ class ClientPinnedHttpsTransportTest < Minitest::Test
     assert_equal "/a2a", requests.pop.fetch(:path)
   end
 
+  def test_declared_oversized_content_length_is_rejected_before_payload
+    port, requests = tls_server(body: "{}", headers: { "Content-Length" => "1048577" })
+    error = assert_raises(Transport::ResponseTooLarge) do
+      transport(max_response_bytes: 1024 * 1024).get_json(
+        url: "https://trusted.example:#{port}/card"
+      )
+    end
+    assert_equal :response_too_large, error.reason
+    assert_equal "/card", requests.pop.fetch(:path)
+  end
+
+  def test_chunked_response_is_bounded_without_content_length
+    body = JSON.generate({ "payload" => "x" * 8192 })
+    chunked = "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\n" \
+              "Transfer-Encoding: chunked\r\nConnection: close\r\n\r\n" \
+              "#{body.bytesize.to_s(16)}\r\n#{body}\r\n0\r\n\r\n"
+    port, requests = tls_server(raw_response: chunked)
+    error = assert_raises(Transport::ResponseTooLarge) do
+      transport(max_response_bytes: 1024).get_json(
+        url: "https://trusted.example:#{port}/card"
+      )
+    end
+    assert_equal :response_too_large, error.reason
+    assert_equal "/card", requests.pop.fetch(:path)
+  end
+
+  def test_rejects_gzip_even_when_json_would_be_valid
+    port, requests = tls_server(
+      body: '{"ok":true}', headers: { "Content-Encoding" => "gzip" }
+    )
+    error = assert_raises(Transport::InvalidResponse) do
+      transport.get_json(url: "https://trusted.example:#{port}/card")
+    end
+    assert_equal :unsupported_content_encoding, error.reason
+    assert_equal "identity", requests.pop.fetch(:headers).fetch("accept-encoding")
+  end
+
+  def test_deeply_nested_valid_json_is_rejected_at_parse_limit
+    value = { "ok" => true }
+    14.times { value = { "nested" => value } }
+    port, requests = tls_server(body: JSON.generate(value))
+    error = assert_raises(Transport::InvalidResponse) do
+      transport(max_json_nesting: 6).get_json(
+        url: "https://trusted.example:#{port}/card"
+      )
+    end
+    assert_equal :invalid_json, error.reason
+    assert_nil error.cause
+    assert_equal "/card", requests.pop.fetch(:path)
+  end
+
+  def test_empty_success_body_is_not_accepted_as_json
+    port, requests = tls_server(status: "204 No Content", body: "")
+    error = assert_raises(Transport::InvalidResponse) do
+      transport.get_json(url: "https://trusted.example:#{port}/card")
+    end
+    assert_equal :invalid_json, error.reason
+    assert_equal "/card", requests.pop.fetch(:path)
+  end
+
   def test_real_https_untrusted_certificate_is_rejected
     port, requests = tls_server(body: '{}')
     error = assert_raises(Transport::Error) do
@@ -381,6 +441,18 @@ class ClientPinnedHttpsTransportTest < Minitest::Test
       assert_equal session.fetch(:expected), req.fetch(:headers).fetch("authorization")
       assert_equal "/echo", req.fetch(:path)
     end
+  end
+
+  def test_read_timeout_when_headers_arrive_but_body_never_completes
+    port, requests = tls_server(body: '{"ok":true}', body_delay: 0.5)
+    error = assert_raises(Transport::DeadlineExceeded) do
+      transport(read_timeout: 0.08, total_timeout: 0.2).get_json(
+        url: "https://trusted.example:#{port}/card"
+      )
+    end
+    assert_equal :timeout, error.reason
+    assert_nil error.cause
+    assert_equal "/card", requests.pop.fetch(:path)
   end
 
   def test_real_https_total_timeout_on_slow_response
@@ -643,7 +715,8 @@ class ClientPinnedHttpsTransportTest < Minitest::Test
   end
 
   def tls_server(status: "200 OK", body: "{}", headers: {}, delay: 0,
-                 cert: @certificate, key: @private_key)
+                 cert: @certificate, key: @private_key, raw_response: nil,
+                 body_delay: 0)
     socket = TCPServer.new("127.0.0.1", 0)
     port = socket.addr[1]
     @servers << socket
@@ -673,9 +746,19 @@ class ClientPinnedHttpsTransportTest < Minitest::Test
           sleep(delay) if delay.positive?
           response_headers = { "Content-Type" => "application/json",
                                "Connection" => "close", "Content-Length" => body.bytesize.to_s }.merge(headers)
-          peer.write "HTTP/1.1 #{status}\r\n" +
-            response_headers.map { |name, value| "#{name}: #{value}\r\n" }.join +
-            "\r\n" + body
+          if raw_response
+            peer.write raw_response
+          elsif body_delay.positive?
+            peer.write "HTTP/1.1 #{status}\r\n" +
+              response_headers.map { |name, value| "#{name}: #{value}\r\n" }.join +
+              "\r\n"
+            sleep(body_delay)
+            peer.write body
+          else
+            peer.write "HTTP/1.1 #{status}\r\n" +
+              response_headers.map { |name, value| "#{name}: #{value}\r\n" }.join +
+              "\r\n" + body
+          end
         end
       rescue OpenSSL::SSL::SSLError, IOError, Errno::EPIPE, Errno::ECONNRESET
         # Expected for certificate rejection, early body caps and test cleanup.
