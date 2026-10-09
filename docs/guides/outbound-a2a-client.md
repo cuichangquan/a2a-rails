@@ -74,6 +74,40 @@ All external API exceptions are under `A2A::Rails::Client::Error`, not the inbou
 
 Request/response bodies, Authorization values and untrusted server error descriptions must never be embedded in errors/logs.
 
+## Credential scopes and host logging
+
+Outbound Client has **separate credential callbacks and exact HTTPS origins** for
+Agent Card discovery and JSON-RPC. Only bind each callback to the approved
+origin that is meant to receive it. A callback should read short-lived credentials
+when the request is made; never capture or store a bearer token as a job argument.
+The Client's per-request `Net::HTTP` transport does not enable wire debug output.
+
+**Rails and background workers are separate logging boundaries:** the Gem
+cannot control an application's `Rails.logger`, ActiveJob argument logging,
+third-party error reporters, reverse proxies, APM/tracing middleware or external
+HTTP logging. These systems can leak sensitive data **if your application supplies
+it to their log APIs**. In particular:
+
+- Queue only non-secret, serializable reference IDs. Inside each job, look up
+  authorized business data and instantiate the Client with scoped credentials.
+  **Do not enqueue** full A2A Messages/Parts, bearer tokens, credential callbacks
+  or a Client instance. Disable or filter job argument logging as appropriate.
+- Configure Rails `filter_parameters` for `authorization`, `token`,
+  `secret`, `password` and other app-specific fields. Explicit filtering is
+  still needed in APM, proxy, queue and error reporting systems; Rails parameter
+  filters alone do not govern all logs.
+- Log safe operation categories and opaque job/task IDs only. Avoid logging
+  raw Agent Cards, RPC request/response JSON, Part text/File/Data, Authorization
+  headers, untrusted error messages, exception causes or TLS wire traces.
+- `TimeoutError#may_have_executed` means a SendMessage/CancelTask may already
+  have run. Reconcile with the remote Task and application idempotency policy;
+  do **not** automatically retry an ambiguous side effect.
+
+[Step 29-5m's local log-sink checks](../testing/step-29-5m-credential-log-privacy.md)
+cover same-process ActiveJob `perform_now` logging, notifications and real
+local TLS credential separation. They are **not** a guarantee for every possible
+host logger, queued multi-process worker or production observability pipeline.
+
 ## State and release blockers
 
 Step 29-4a adds the Ruby façade, codec and DTO/error mapping. It uses the internal pinned HTTPS / Agent Card resolver from Steps 29-3a–3c. Unit tests exercise **actual public method signatures and normalized fixture examples**, not merely the old reference fixture checker.
