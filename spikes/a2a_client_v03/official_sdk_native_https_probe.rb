@@ -66,11 +66,30 @@ transport = A2A::Rails::Client::PinnedHttpsTransport.new(
   policy: policy, ca_file: CA_FILE,
   open_timeout: 2, read_timeout: 5, total_timeout: 8
 )
-resolver = A2A::Rails::Client::AgentCardResolver.new(
-  agent_card_url: "#{BASE}/.well-known/agent-card.json",
-  policy: policy, transport: transport
+# Keep Card discovery public. Only the RPC's exact approved HTTPS origin
+# receives a test-only bearer token. The normal Client constructor's DNS
+# rejection above remains unchanged; injected resolver is test-only.
+def client_with_test_rpc_token(policy:, transport:, token:)
+  options = {
+    agent_card_url: "#{BASE}/.well-known/agent-card.json",
+    allowed_origins: [BASE], open_timeout: 2, read_timeout: 5, total_timeout: 8
+  }
+  credentials = token.nil? ? {} : {
+    authorization: -> { token }, credential_origin: BASE
+  }
+  instance = A2A::Rails::Client.new(**options, **credentials)
+  resolver = A2A::Rails::Client::AgentCardResolver.new(
+    agent_card_url: options.fetch(:agent_card_url),
+    policy: policy, transport: transport, **credentials
+  )
+  instance.instance_variable_set(:@resolver, resolver)
+  instance
+end
+
+primary_go_token = AGENT == "go" ? "Bearer go-test-tenant-a-token" : nil
+client = client_with_test_rpc_token(
+  policy: policy, transport: transport, token: primary_go_token
 )
-client.instance_variable_set(:@resolver, resolver)
 
 card = client.agent_card
 verify!(card[:name] == "Official #{AGENT.capitalize} SDK Echo", "official #{AGENT} SDK Card used")
@@ -79,6 +98,13 @@ chosen = card.fetch(:supported_interfaces).find do |entry|
 end
 verify!(chosen && chosen[:url] == "#{BASE}#{RPC_PATH}",
         "unmodified Agent Card declares exact native HTTPS JSONRPC 1.0 URL")
+
+if AGENT == "go"
+  bearer = card.dig(:security_schemes, "interopBearer")
+  verify!(bearer.is_a?(Hash), "official Go Card advertises test-only bearer scheme")
+  verify!(!card.fetch(:security_requirements).empty?,
+          "official Go Card declares RPC credential requirement")
+end
 
 message_text = AGENT == "python" ? "direct: hello from Rails" : "Hello from Rails"
 direct = client.send_message(message: {
@@ -210,6 +236,61 @@ begin
 rescue A2A::Rails::Client::RemoteError => error
   capabilities[:list_tasks] = remote_capability_gap(error)
   puts "CAPABILITY-GAP: #{AGENT} SDK ListTasks #{capabilities.fetch(:list_tasks)}"
+end
+
+# Step 29-5q Go SDK: authenticate using the *official* a2asrv interceptor
+# and default owner-scoped Task Store. Negative calls are real SDK JSON-RPC,
+# never simulated error envelopes or a mocked Task Store.
+if AGENT == "go"
+  anonymous = client_with_test_rpc_token(policy: policy, transport: transport, token: nil)
+  invalid = client_with_test_rpc_token(
+    policy: policy, transport: transport, token: "Bearer invalid-go-test-token"
+  )
+  [anonymous, invalid].each do |no_access|
+    begin
+      no_access.list_tasks(page_size: 1)
+      raise "FAIL: Go SDK exposed ListTasks without valid bearer identity"
+    rescue A2A::Rails::Client::RemoteError => error
+      verify!(error.code == -31401 && error.cause.nil?,
+              "Go SDK denies missing/invalid ListTasks identity with -31401")
+    end
+  end
+
+  other = client_with_test_rpc_token(
+    policy: policy, transport: transport, token: "Bearer go-test-tenant-b-token"
+  )
+  other_task = send_test_task(other, "rich-task: tenant B separate owner")
+  verify!(other_task.dig(:status, :state) == "TASK_STATE_COMPLETED",
+          "authenticated Go tenant B can create own Task")
+
+  # The Go SDK's default Task Store applies *its own* owner scoping.
+  # Do not replace it with a permissive test store or fixed identity.
+  tenant_a_tasks = [rich_task.fetch(:id), waiting.fetch(:id)]
+  tenant_b_tasks = [other_task.fetch(:id)]
+  a_page = client.list_tasks(page_size: 1)
+  a_next = client.list_tasks(page_size: 1, page_token: a_page.next_page_token)
+  verify!(a_page.tasks.size == 1 && a_next.tasks.size == 1 &&
+          a_page.tasks.first.fetch(:id) != a_next.tasks.first.fetch(:id) &&
+          (a_page.tasks + a_next.tasks).all? { |t| tenant_a_tasks.include?(t.fetch(:id)) },
+          "Go tenant A authenticated cursor paging returns own Tasks only")
+
+  b_page = other.list_tasks(page_size: 1)
+  verify!(b_page.tasks.size == 1 &&
+          b_page.tasks.first.fetch(:id) == other_task.fetch(:id) &&
+          b_page.next_page_token.empty?,
+          "Go tenant B lists only its own Task, no A Task or cursor")
+
+  [[client, other_task.fetch(:id)], [other, rich_task.fetch(:id)]].each do |caller, foreign_id|
+    begin
+      caller.get_task(id: foreign_id)
+      raise "FAIL: Go SDK let another tenant read a foreign Task"
+    rescue A2A::Rails::Client::RemoteError => error
+      verify!(error.code.is_a?(Integer) && error.cause.nil? && error.code != -31401,
+              "Go SDK masks cross-owner GetTask as sanitized remote not-found")
+    end
+  end
+
+  puts "STEP 29-5q GO SDK AUTHENTICATED LISTTASKS: PASS (two pages, cross-owner denial)"
 end
 
 begin
