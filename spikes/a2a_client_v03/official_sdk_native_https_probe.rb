@@ -7,6 +7,17 @@
 require "a2a-rails"
 require "securerandom"
 
+if ENV["A2A_RAILS_USE_INSTALLED_GEM"] == "1"
+  expected = ENV.fetch("A2A_RAILS_EXPECTED_VERSION")
+  source_root = ENV.fetch("A2A_RAILS_SOURCE_ROOT")
+  spec = Gem.loaded_specs.fetch("a2a-rails")
+  verify_path = File.realpath(spec.full_gem_path)
+  raise "unexpected installed candidate version" unless A2A::Rails::VERSION == expected
+  raise "source checkout used instead of installed Gem" if
+    verify_path.start_with?(File.realpath(source_root) + File::SEPARATOR)
+  puts "Verified installed Client Gem: #{verify_path} (#{A2A::Rails::VERSION})"
+end
+
 AGENT = ENV.fetch("STEP29_5B_AGENT")
 raise "unsupported official agent test" unless %w[python go].include?(AGENT)
 

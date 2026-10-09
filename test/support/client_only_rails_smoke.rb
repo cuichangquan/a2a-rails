@@ -5,7 +5,18 @@
 require "logger"
 require "rack/mock"
 require "action_controller/railtie"
-require_relative "../../lib/a2a-rails"
+if ENV["A2A_RAILS_USE_INSTALLED_GEM"] == "1"
+  require "a2a-rails"
+  expected = ENV.fetch("A2A_RAILS_EXPECTED_VERSION")
+  spec = Gem.loaded_specs.fetch("a2a-rails")
+  source_root = ENV.fetch("A2A_RAILS_SOURCE_ROOT")
+  raise "wrong installed Gem VERSION" unless A2A::Rails::VERSION == expected
+  raise "Client-only boot used source checkout" if
+    File.realpath(spec.full_gem_path).start_with?(File.realpath(source_root) + File::SEPARATOR)
+  puts "Client-only Rails is loading installed Gem #{spec.full_gem_path}"
+else
+  require_relative "../../lib/a2a-rails"
+end
 
 module ClientOnlyRailsSmoke
   class Application < ::Rails::Application
