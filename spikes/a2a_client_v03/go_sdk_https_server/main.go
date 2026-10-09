@@ -45,7 +45,7 @@ func (e *echoExecutor) Execute(_ context.Context, ec *a2asrv.ExecutorContext) it
         }
 
         if strings.HasPrefix(text, "task:") || strings.HasPrefix(text, "input-required:") {
-            if !yield(a2a.NewSubmittedTask(ec, a2a.TaskStateSubmitted, ec.Message), nil) {
+            if !yield(a2a.NewSubmittedTask(ec, ec.Message), nil) {
                 return
             }
             if strings.HasPrefix(text, "input-required:") {
