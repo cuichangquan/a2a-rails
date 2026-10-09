@@ -53,6 +53,27 @@ The prior Step 29-5r rehearsal was 13/13 PASS and its SHA256 was
 For a candidate-branch run, record *that run's* artifact ID, exact Git
 commit SHA, SHA256, job results and skips in [#90](https://github.com/cuichangquan/a2a-rails/issues/90).
 
+## CI PostgreSQL image-registry outage and runner-local mitigation
+
+The first Step 29-5s prerequisites PR attempt encountered ECR Public
+`toomanyrequests` when GitHub Actions tried to pull PostgreSQL 16
+**before executing the installed-Gem database tests**. Docker Hub
+had separately throttled earlier Step 29-5p jobs. These failures are
+**infrastructure setup errors**, not database-test PASS or FAIL.
+
+The four relevant workflows now pin their DB jobs to `ubuntu-24.04`
+and use the runner's preinstalled **PostgreSQL 16** instance. Each job
+explicitly starts `postgresql.service`, sets only disposable local
+test-account credentials, creates `a2a_rails_test`, verifies TCP
+connectivity and runs the **unchanged** installed-Gem/PG tests. There
+are no Docker/ECR pulls, new GCP services or production DB access.
+Runner image installation inventory:
+https://github.com/actions/runner-images/blob/main/images/ubuntu/Ubuntu2404-Readme.md
+
+The reviewer must inspect **final-head green job logs**, not the earlier
+failed image-download jobs, and verify the intended PG major version
+and all data migrations/locking/restart cases were actually executed.
+
 ## Independent security review request — needs an actual accountable reviewer
 
 An AI-generated self-check, a clean CI run, or the single maintainer's
