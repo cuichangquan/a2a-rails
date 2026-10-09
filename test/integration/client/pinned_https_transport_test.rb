@@ -282,11 +282,12 @@ class ClientPinnedHttpsTransportTest < Minitest::Test
     # Response declares 32 bytes but closes after sending only two.
     # Never treat a syntactically valid JSON prefix as complete HTTP content.
     port, requests = tls_server(body: "{}", headers: { "Content-Length" => "32" })
-    error = assert_raises(Transport::Error) do
+    error = assert_raises(Transport::InvalidResponse) do
       transport(read_timeout: 0.2, total_timeout: 1).get_json(
         url: "https://trusted.example:#{port}/card"
       )
     end
+    assert_equal :invalid_content_length, error.reason
     assert_nil error.cause
     assert_equal "/card", requests.pop.fetch(:path)
   end
