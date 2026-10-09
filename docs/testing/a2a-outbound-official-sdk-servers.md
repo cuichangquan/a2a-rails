@@ -57,15 +57,17 @@ test-only local TLS policy/CA injection). The probe validates:
   retrieved by GetTask. CancelTask should transition the parked Task to
   CANCELED, and GetTask must reflect the transition **when supported**.
 - ListTasks `page_size: 1` and `nextPageToken` fetching a **distinct second
-  page**, **when supported**.
+  page**. Python SDK: PASS; Go SDK rejects unauthenticated listing with
+  **`-31401`**, so Go pagination remains **NOT VERIFIED**.
 - Nonexistent GetTask must be a **typed, sanitized remote JSON-RPC error**.
 
 **Reporting rule:** only `PASS` means the end-to-end SDK operation truly
-worked. An SDK-generated error on CancelTask or ListTasks is shown as
-`CAPABILITY-GAP: UNSUPPORTED(code=N)`; it is never silently reclassified
-as success. A wrong response shape, unsupported Rails transformation, missing
-pagination cursor despite multiple Tasks, invalid security behavior, or other
-unexpected exception **fails CI**. The test does not monkey-patch SDK server
+worked. An SDK-generated error on CancelTask or ListTasks is shown as a
+`CAPABILITY-GAP` with its actual error-code classification: authentication
+required (`-31401`) is **not** mislabeled as an unsupported operation.
+A wrong response shape, unsupported Rails transformation, missing pagination
+cursor despite multiple Tasks, invalid security behavior, or other unexpected
+exception **fails CI**. The test does not monkey-patch SDK server
 handlers or replace their responses with synthetic JSON.
 
 The [SDK capability/evidence matrix](step-29-5n-official-sdk-advanced-matrix.md)
