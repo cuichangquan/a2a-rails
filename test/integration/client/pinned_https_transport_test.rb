@@ -4,6 +4,8 @@ require_relative "../../test_helper"
 require_relative "../../../lib/a2a/rails/client/pinned_https_transport"
 require_relative "../../../lib/a2a/rails/client/agent_card_resolver"
 require "openssl"
+require "open3"
+require "rbconfig"
 require "socket"
 require "tempfile"
 require "timeout"
@@ -171,6 +173,23 @@ class ClientPinnedHttpsTransportTest < Minitest::Test
     assert_empty requests
   end
 
+  def test_unapproved_card_origin_does_not_evaluate_credential_provider
+    strict = Policy.new(
+      allowed_origins: ["https://trusted.example"],
+      resolver: ->(_host) { raise "unapproved hosts must not resolve" }
+    )
+    invoked = false
+    error = assert_raises(Policy::RejectedTarget) do
+      Transport.new(policy: strict).get_json(
+        url: "https://unapproved.example/agent-card",
+        authorization: -> { invoked = true; "Bearer must-not-be-evaluated" },
+        credential_origin: "https://unapproved.example"
+      )
+    end
+    assert_equal :unapproved_origin, error.reason
+    refute invoked
+  end
+
   def test_unsafe_ipv6_dns_denies_before_credential_callback
     strict = Policy.new(
       allowed_origins: ["https://trusted.example"],
@@ -217,6 +236,61 @@ class ClientPinnedHttpsTransportTest < Minitest::Test
     end
     assert_equal :connection_failed, error.reason
     assert_nil error.cause
+    assert_empty requests
+  end
+
+  def test_valid_ca_signed_certificate_with_matching_san_succeeds
+    cert, key = signed_server_certificate
+    port, requests = tls_server(body: '{"ok":true}', cert: cert, key: key)
+    response = transport.get_json(url: "https://trusted.example:#{port}/card")
+    assert_equal({ "ok" => true }, response.json)
+    assert_equal "/card", requests.pop.fetch(:path)
+  end
+
+  def test_trusted_ca_signed_certificate_with_expired_leaf_is_rejected
+    cert, key = signed_server_certificate(
+      not_before: Time.now - 7200, not_after: Time.now - 3600
+    )
+    port, requests = tls_server(body: '{}', cert: cert, key: key)
+    error = assert_raises(Transport::Error) do
+      transport.get_json(url: "https://trusted.example:#{port}/card")
+    end
+    assert_equal :connection_failed, error.reason
+    assert_nil error.cause
+    assert_empty requests
+  end
+
+  def test_trusted_ca_signed_certificate_not_yet_valid_is_rejected
+    cert, key = signed_server_certificate(
+      not_before: Time.now + 3600, not_after: Time.now + 7200
+    )
+    port, requests = tls_server(body: '{}', cert: cert, key: key)
+    error = assert_raises(Transport::Error) do
+      transport.get_json(url: "https://trusted.example:#{port}/card")
+    end
+    assert_equal :connection_failed, error.reason
+    assert_nil error.cause
+    assert_empty requests
+  end
+
+  def test_trusted_certificate_cn_cannot_override_wrong_san_or_leak_credentials
+    # Even though CN matches the configured hostname and the signing CA is
+    # trusted, SAN is authoritative and must match the original HTTPS host.
+    cert, key = signed_server_certificate(san: "other.example")
+    port, requests = tls_server(body: '{}', cert: cert, key: key)
+    callback_count = 0
+    secret = "Bearer tls-handshake-only-secret"
+    error = assert_raises(Transport::Error) do
+      transport.get_json(
+        url: "https://trusted.example:#{port}/card",
+        authorization: -> { callback_count += 1; secret },
+        credential_origin: "https://trusted.example:#{port}"
+      )
+    end
+    assert_equal :connection_failed, error.reason
+    assert_equal 1, callback_count
+    assert_nil error.cause
+    refute_includes error.message, secret
     assert_empty requests
   end
 
@@ -331,6 +405,48 @@ class ClientPinnedHttpsTransportTest < Minitest::Test
       transport.get_json(url: "https://trusted.example:#{port2}/a2a")
     end
     assert_equal :invalid_content_type, error.reason
+  end
+
+  def test_https_proxy_environment_does_not_override_the_pinned_socket
+    port, requests = tls_server(body: '{"ok":true}')
+    # A child process isolates proxy ENV mutation from concurrent Minitest
+    # workers. The proxy port is deliberately unreachable; a proxy bypass
+    # regression would fail instead of reaching our test TLS endpoint.
+    script = <<~'RUBY'
+      require "a2a/rails/client/pinned_https_transport"
+
+      policy = Object.new
+      def policy.resolve!(url)
+        uri = URI(url)
+        A2A::Rails::Client::OutboundPolicy::Target.new(
+          url: url, host: uri.host, port: uri.port,
+          origin: "https://#{uri.host}:#{uri.port}",
+          addresses: ["127.0.0.1"].freeze
+        ).freeze
+      end
+
+      response = A2A::Rails::Client::PinnedHttpsTransport.new(
+        policy: policy, ca_file: ARGV.fetch(1), total_timeout: 4
+      ).get_json(url: ARGV.fetch(0))
+      abort "unexpected JSON" unless response.json == { "ok" => true }
+    RUBY
+
+    poisoned_proxy_env = {
+      "HTTP_PROXY" => "http://127.0.0.1:1",
+      "HTTPS_PROXY" => "http://127.0.0.1:1",
+      "http_proxy" => "http://127.0.0.1:1",
+      "https_proxy" => "http://127.0.0.1:1",
+      "NO_PROXY" => "",
+      "no_proxy" => ""
+    }
+    stdout, stderr, status = Open3.capture3(
+      poisoned_proxy_env, RbConfig.ruby,
+      "-I", File.expand_path("../../../lib", __dir__),
+      "-e", script,
+      "https://trusted.example:#{port}/card", @ca_file.path
+    )
+    assert status.success?, "Proxy isolation subprocess failed: #{stdout} #{stderr}"
+    assert_equal "/card", requests.pop.fetch(:path)
   end
 
   def test_never_uses_proxy_environment
@@ -471,6 +587,38 @@ class ClientPinnedHttpsTransportTest < Minitest::Test
   def assert_error(reason)
     error = assert_raises(Transport::Error) { yield }
     assert_equal reason, error.reason
+  end
+
+  # A leaf signed by the already trusted local CA lets the negative tests
+  # isolate certificate validity / SAN errors from an untrusted CA error.
+  def signed_server_certificate(san: "trusted.example",
+                                not_before: Time.now - 60, not_after: Time.now + 3600)
+    # Different issuer/leaf subjects ensure OpenSSL builds the intended CA
+    # chain, rather than interpreting a matching CN as self-issued.
+    unless defined?(@issuer_certificate) && @issuer_certificate
+      @issuer_certificate, @issuer_private_key = self_signed_certificate("a2a-test-ca.example")
+      @ca_file.write(@issuer_certificate.to_pem)
+      @ca_file.flush
+    end
+
+    key = OpenSSL::PKey::RSA.new(2048)
+    cert = OpenSSL::X509::Certificate.new
+    cert.version = 2
+    cert.serial = rand(1_000_000) + 1
+    cert.subject = OpenSSL::X509::Name.parse("/CN=trusted.example")
+    cert.issuer = @issuer_certificate.subject
+    cert.public_key = key.public_key
+    cert.not_before = not_before
+    cert.not_after = not_after
+    extensions = OpenSSL::X509::ExtensionFactory.new
+    extensions.subject_certificate = cert
+    extensions.issuer_certificate = @issuer_certificate
+    cert.add_extension(extensions.create_extension("basicConstraints", "CA:FALSE", true))
+    cert.add_extension(extensions.create_extension("keyUsage", "digitalSignature,keyEncipherment", true))
+    cert.add_extension(extensions.create_extension("extendedKeyUsage", "serverAuth"))
+    cert.add_extension(extensions.create_extension("subjectAltName", "DNS:#{san}"))
+    cert.sign(@issuer_private_key, OpenSSL::Digest::SHA256.new)
+    [cert, key]
   end
 
   def self_signed_certificate(hostname)
