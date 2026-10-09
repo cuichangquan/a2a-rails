@@ -1,6 +1,6 @@
 # a2a-rails Roadmap
 
-> Status: updated 2026-10-10 through Step 29-5q authenticated official Go SDK cursor/tenant interoperability. Exact 0.3.x candidate, independent security review and publication approvals outstanding; v0.3.x NO-GO. These are priorities, not promised release dates or API commitments.
+> Status: updated 2026-10-10 through Step 29-5t documented separation of Gem release gates from optional public/no-auth Cloud Run deployment testing. v0.3.0.rc1 exact-source private candidate installed verification PASS; independent security reviewer sign-off and owner publication approval remain outstanding. v0.3.x NO-GO.
 >
 > **Step 21 complete:** [Issue #35](https://github.com/cuichangquan/a2a-rails/issues/35) delivered an optional durable ActiveRecord Task Store, owner-scoped SQL access, row locking, keyset pagination, retention/pruning/quota/payload maintenance, shared Store contract tests and PostgreSQL 16 durability/locking smoke. [Design](docs/design/active-record-task-store.md) · [Guide](docs/guides/active-record-task-store.md). Step 20's `0.2.0.rc1` artifact is historical only; [`0.2.0.rc2`](https://github.com/cuichangquan/a2a-rails/releases/tag/v0.2.0-rc.2) was subsequently verified and published as a **pre-release**. [Step 26](docs/release/v0.2.0-stable-readiness.md) completed the stable-release evidence, [Step 27](docs/release/v0.2.0-publication-record.md) published `0.2.0`, and Step 28 proved that the independent Rails demo runs against that public Gem. Public-production security [Issue #11](https://github.com/cuichangquan/a2a-rails/issues/11) remains open.
 
@@ -11,6 +11,12 @@
 - [x] Exact stable artifact verification and independent Rails 8 Echo HTTP smoke using the **published `0.2.0` Gem** ([Step 28 PR #2](https://github.com/cuichangquan/a2a-rails-demo/pull/2)).
 - [x] README Quick Start, JP / EN A2A overview PDFs, Zenn / Qiita articles and community submissions.
 - [ ] Open public-production approval: deployment-specific controls are still required under [Issue #11](https://github.com/cuichangquan/a2a-rails/issues/11).
+
+## Step 29-5t — Gem release vs public/no-auth Cloud Run deployment separation (2026-10-10)
+
+- **Owner scope direction:** The optional *public/no-auth Cloud Run* test is **not** a release prerequisite for distributing the outbound Rails Client Gem. Normal **unmodified Client + real public DNS/public-CA HTTPS** verification against an **IAM-private** controlled remote Agent was already evidenced in Step 29-5e; a public/anonymous Agent is a *different deployment threat model*, tracked under [public-production security #11](https://github.com/cuichangquan/a2a-rails/issues/11). [Formal decision and residual security gates](docs/release/step-29-5t-release-vs-public-deployment-scope.md).
+- **Independent security review REQUIRED:** [Review request #113](https://github.com/cuichangquan/a2a-rails/issues/113) created for the full `v0.2.0` to frozen `v0.3.0.rc1` delta (exact commit `68572fe7fd6f2f55c98ffdb463e72dd9063f53f7`, private Gem SHA256 `dfad66f8ca992646dedde306669e97b8a8ff94a13a04939d5a44b4dda7630efa`). The review must check SSRF/DNS/pinned HTTPS, auth/audience/privacy, bounded transport/Tasks, queue/idempotency and the separation rationale. **No external reviewer has signed off**.
+- **Distinct decisions:** GitHub/RubyGems **Gem release NO-GO** until review, findings disposition and *separate owner authorization*; anonymous/public-production deployment **NO-GO** without app/infra-specific controls; optional no-auth Cloud Run experiment **NOT APPROVED / NOT RUN**, requires separate explicit approval and cost/rollback plan. Keep [candidate Draft PR #112](https://github.com/cuichangquan/a2a-rails/pull/112) unmerged, IAM unchanged, and [release gate #90](https://github.com/cuichangquan/a2a-rails/issues/90) OPEN.
 
 ## Current next work — Step 29: outbound A2A Client (implementation in progress)
 
