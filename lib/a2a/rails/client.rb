@@ -131,19 +131,81 @@ module A2A
             value["status"].is_a?(Hash) && text?(value["status"]["state"])
           raise InvalidResponseError.new(:invalid_task, operation: operation)
         end
-        Codec.decode(value)
+
+        validate_remote_protocol_keys!(value, operation)
+        validate_remote_protocol_keys!(value["status"], operation)
+        status_message = value["status"]["message"]
+        validate_remote_message!(status_message, operation) unless status_message.nil?
+
+        artifacts = value["artifacts"]
+        unless artifacts.nil?
+          raise InvalidResponseError.new(:invalid_artifacts, operation: operation) unless artifacts.is_a?(Array)
+          artifacts.each { |artifact| validate_remote_artifact!(artifact, operation) }
+        end
+
+        history = value["history"]
+        unless history.nil?
+          raise InvalidResponseError.new(:invalid_history, operation: operation) unless history.is_a?(Array)
+          history.each { |message| validate_remote_message!(message, operation) }
+        end
+
+        decode_remote!(value, operation)
       end
 
       def normalize_message!(value, operation)
-        unless value.is_a?(Hash) && text?(value["messageId"]) &&
-            text?(value["role"]) && value["parts"].is_a?(Array) && !value["parts"].empty?
+        validate_remote_message!(value, operation)
+        decode_remote!(value, operation)
+      end
+
+      def validate_remote_message!(message, operation)
+        unless message.is_a?(Hash) && text?(message["messageId"]) &&
+            text?(message["role"]) && message["parts"].is_a?(Array) &&
+            !message["parts"].empty?
           raise InvalidResponseError.new(:invalid_message, operation: operation)
         end
-        unless value["parts"].all? { |part| part.is_a?(Hash) &&
-            %w[text raw url data].count { |key| part.key?(key) } == 1 }
+        validate_remote_protocol_keys!(message, operation)
+        message["parts"].each { |part| validate_remote_part!(part, operation) }
+      end
+
+      def validate_remote_artifact!(artifact, operation)
+        unless artifact.is_a?(Hash) && text?(artifact["artifactId"]) &&
+            artifact["parts"].is_a?(Array) && !artifact["parts"].empty?
+          raise InvalidResponseError.new(:invalid_artifact, operation: operation)
+        end
+        validate_remote_protocol_keys!(artifact, operation)
+        artifact["parts"].each { |part| validate_remote_part!(part, operation) }
+      end
+
+      def validate_remote_part!(part, operation)
+        kinds = %w[text raw url data]
+        unless part.is_a?(Hash) && kinds.count { |key| part.key?(key) } == 1
           raise InvalidResponseError.new(:invalid_message_part, operation: operation)
         end
+        validate_remote_protocol_keys!(part, operation)
+        type = kinds.find { |key| part.key?(key) }
+        valid_value = type == "data" ? part[type].is_a?(Hash) : part[type].is_a?(String)
+        unless valid_value
+          raise InvalidResponseError.new(:invalid_message_part, operation: operation)
+        end
+      end
+
+      def validate_remote_protocol_keys!(object, operation)
+        # Reject duplicate canonical/snake aliases in protocol structures.
+        # This is deliberately NOT recursive: custom metadata/data/extension
+        # keys remain opaque, even when they resemble protocol field names.
+        Codec::REVERSE.each do |wire_key, ruby_key|
+          next unless object.key?(wire_key) && object.key?(ruby_key)
+
+          raise InvalidResponseError.new(:ambiguous_protocol_key, operation: operation)
+        end
+      end
+
+      def decode_remote!(value, operation)
         Codec.decode(value)
+      rescue InvalidInputError => error
+        # JSON from the remote endpoint is untrusted output, not caller input.
+        # Colliding protocol keys must become a sanitized response error.
+        raise InvalidResponseError.new(error.reason, operation: operation), cause: nil
       end
 
       def validate_message!(message)

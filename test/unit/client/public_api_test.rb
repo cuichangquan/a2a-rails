@@ -174,6 +174,143 @@ class ClientPublicApiTest < Minitest::Test
     assert_raises(FrozenError) { card[:name] = "Changed" }
   end
 
+  def test_nested_task_history_status_and_artifact_parts_are_validated
+    base = fixture("task-rich-parts").fetch("task")
+    bad_parts = [
+      { "text" => "bad", "data" => { "private" => "must-not-leak" } },
+      { "url" => "https://untrusted.example/file", "raw" => "aGVsbG8=" },
+      { "data" => [] },
+      { "raw" => 17 },
+      { "url" => nil },
+      { "text" => { "nested" => true } },
+      { "mediaType" => "text/plain" },
+      "not-a-Part"
+    ]
+    bad_parts.each do |part|
+      %i[artifact status history].each do |placement|
+        task = Marshal.load(Marshal.dump(base))
+        case placement
+        when :artifact
+          task["artifacts"][0]["parts"] = [part]
+        when :status
+          task["status"]["message"] = {
+            "messageId" => "status-1", "role" => "ROLE_AGENT", "parts" => [part]
+          }
+        when :history
+          task["history"] = [
+            { "messageId" => "history-1", "role" => "ROLE_USER", "parts" => [part] }
+          ]
+        end
+        @resolver.reply = { "task" => task }
+        error = assert_raises(Client::InvalidResponseError) do
+          @client.send_message(message: user_message)
+        end
+        assert_equal :invalid_message_part, error.reason
+        assert_nil error.cause
+        refute_includes error.message, "must-not-leak"
+      end
+    end
+  end
+
+  def test_nested_task_rejects_malformed_artifacts_and_history_structures
+    base = fixture("task-rich-parts").fetch("task")
+    cases = [
+      [:invalid_artifacts, ->(task) { task["artifacts"] = {} }],
+      [:invalid_artifact, ->(task) { task["artifacts"] = [nil] }],
+      [:invalid_artifact, ->(task) { task["artifacts"] = [{ "parts" => [{ "text" => "x" }] }] }],
+      [:invalid_artifact, ->(task) { task["artifacts"] = [{ "artifactId" => "a", "parts" => [] }] }],
+      [:invalid_history, ->(task) { task["history"] = {} }],
+      [:invalid_message, ->(task) { task["history"] = [{ "role" => "ROLE_AGENT", "parts" => [{ "text" => "x" }] }] }],
+      [:invalid_message, ->(task) { task["status"]["message"] = { "messageId" => "m" } }]
+    ]
+
+    cases.each do |reason, mutate|
+      task = Marshal.load(Marshal.dump(base))
+      mutate.call(task)
+      @resolver.reply = { "task" => task }
+      error = assert_raises(Client::InvalidResponseError) do
+        @client.send_message(message: user_message)
+      end
+      assert_equal reason, error.reason
+      assert_nil error.cause
+    end
+  end
+
+  def test_nested_validation_also_applies_to_get_list_and_cancel
+    base = fixture("task-rich-parts").fetch("task")
+    base["artifacts"][0]["parts"][0]["data"] = { "unexpected" => true }
+    operations = [
+      [:get_task, -> { @client.get_task(id: "t") }],
+      [:list_tasks, -> { @client.list_tasks }],
+      [:cancel_task, -> { @client.cancel_task(id: "t") }]
+    ]
+    operations.each do |operation, perform|
+      @resolver.reply = if operation == :list_tasks
+        { "tasks" => [Marshal.load(Marshal.dump(base))], "nextPageToken" => "",
+          "pageSize" => 1, "totalSize" => 1 }
+      else
+        Marshal.load(Marshal.dump(base))
+      end
+      error = assert_raises(Client::InvalidResponseError, &perform)
+      assert_equal :invalid_message_part, error.reason
+      assert_equal operation, error.operation
+    end
+  end
+
+  def test_remote_ambiguous_protocol_keys_raise_response_error_not_input_error
+    task = fixture("task-rich-parts").fetch("task")
+    task["artifacts"][0]["artifact_id"] = "different"
+    @resolver.reply = { "task" => task }
+    error = assert_raises(Client::InvalidResponseError) do
+      @client.send_message(message: user_message)
+    end
+    assert_equal :ambiguous_protocol_key, error.reason
+    assert_nil error.cause
+
+    direct = fixture("direct-message")
+    direct["message"]["message_id"] = "different"
+    @resolver.reply = direct
+    error = assert_raises(Client::InvalidResponseError) do
+      @client.send_message(message: user_message)
+    end
+    assert_equal :ambiguous_protocol_key, error.reason
+    assert_nil error.cause
+  end
+
+  def test_nested_valid_file_data_status_history_and_opaque_extensions_remain_immutable
+    task = fixture("task-rich-parts").fetch("task")
+    task["history"] = [{
+      "messageId" => "history-1", "role" => "ROLE_USER",
+      "parts" => [{ "url" => "https://files.example/document.pdf",
+                    "mediaType" => "application/pdf" }],
+      "metadata" => { "vendorFlag" => false }
+    }]
+    task["status"]["message"] = {
+      "messageId" => "status-1", "role" => "ROLE_AGENT",
+      "parts" => [{ "text" => "completed" }]
+    }
+    task["artifacts"][0]["extensions"] = ["urn:example:media"]
+    task["artifacts"][0]["metadata"] = {
+      "customPayload" => { "messageId" => "opaque", "caseSensitive" => true }
+    }
+    task["artifacts"][0]["parts"][1]["data"]["nested"] = {
+      "messageId" => "opaque-data", "keepCamelCase" => [false, 0, nil]
+    }
+    @resolver.reply = { "task" => task }
+    result = @client.send_message(message: user_message).task
+    assert_equal "history-1", result.dig(:history, 0, :message_id)
+    assert_equal "https://files.example/document.pdf", result.dig(:history, 0, :parts, 0, :url)
+    assert_equal "status-1", result.dig(:status, :message, :message_id)
+    assert_equal "urn:example:media", result.dig(:artifacts, 0, :extensions, 0)
+    assert_equal "opaque", result.dig(:artifacts, 0, :metadata, "customPayload", "messageId")
+    assert_equal "opaque-data", result.dig(:artifacts, 0, :parts, 1, :data, "nested", "messageId")
+    assert_equal [false, 0, nil], result.dig(:artifacts, 0, :parts, 1, :data, "nested", "keepCamelCase")
+    assert_raises(FrozenError) do
+      result.dig(:artifacts, 0, :parts, 1, :data, "nested", "keepCamelCase") << "modified"
+    end
+    assert_predicate result, :frozen?
+  end
+
   def test_send_response_must_be_exactly_one_of_task_or_message
     %w[invalid-send-result-both invalid-send-result-neither].each do |name|
       @resolver.reply = fixture(name)
