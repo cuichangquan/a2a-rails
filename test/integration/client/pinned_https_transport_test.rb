@@ -11,6 +11,7 @@ require "tempfile"
 require "timeout"
 require "active_job"
 require "active_support/logger"
+require "active_support/tagged_logging"
 require "active_support/notifications"
 require "stringio"
 
@@ -553,7 +554,7 @@ class ClientPinnedHttpsTransportTest < Minitest::Test
 
     sink = StringIO.new
     original_logger = ActiveJob::Base.logger
-    ActiveJob::Base.logger = ActiveSupport::Logger.new(sink)
+    ActiveJob::Base.logger = ActiveSupport::TaggedLogging.new(ActiveSupport::Logger.new(sink))
     notifications = Queue.new
     subscription = ActiveSupport::Notifications.subscribe(/\\.active_job\\z/) do |name, _start, _finish, _unique_id, payload|
       notifications << [name, payload.dup]
@@ -604,7 +605,9 @@ class ClientPinnedHttpsTransportTest < Minitest::Test
 
     # ActiveJob logger and its actual Notification payloads must carry only
     # opaque job reference IDs, not the per-request secrets held in closures.
-    captured = sink.string + notifications.size.times.map { notifications.pop.inspect }.join
+    events = notifications.size.times.map { notifications.pop }
+    assert_operator events.count { |name, _payload| name == "perform.active_job" }, :>=, 4
+    captured = sink.string + events.map(&:inspect).join
     assert_includes captured, "PrivacyProbeJob"
     sessions.each_with_index do |session, index|
       [session.fetch(:token), session.fetch(:part),
