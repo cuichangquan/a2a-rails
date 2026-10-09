@@ -1,5 +1,15 @@
 # Step 29-5s — v0.3.0.rc1 versioned-source freeze and external security-review handoff
 
+> **Scope update, Step 29-5t (2026-10-10):** The owner chose to separate
+> the optional *public/no-auth Cloud Run test* from eligibility to publish
+> the outbound **Gem**. [Recorded decision](step-29-5t-release-vs-public-deployment-scope.md)
+> relies on the already-tested **unmodified Client → public DNS/CA HTTPS,
+> IAM-private** path and leaves all Client SSRF/TLS/auth security checks and
+> **independent sign-off** release blocking. Production/public ingress
+> approval remains separate under [Issue #11](https://github.com/cuichangquan/a2a-rails/issues/11).
+> The historical risk-review text below predates this documented policy revision;
+> no Cloud Run IAM changes or new test are authorized.
+
 > **Internal status: review preparation, NOT independent reviewer approval.**
 > Maintainer's release issue: [#90](https://github.com/cuichangquan/a2a-rails/issues/90).
 > This document and its CI are **not** authority to tag, publish to RubyGems,
