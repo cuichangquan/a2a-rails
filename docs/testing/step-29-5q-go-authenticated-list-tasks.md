@@ -24,7 +24,7 @@ No bypass of the store, fabricated ListTasks response, monkey-patched JSON-RPC h
 | Existing SDK coverage | Official SDK direct/rich Message, Artifact, GetTask, InputRequired, CancelTask, missing Task and Python original matrix remain PASS |
 | Authentication metadata | SDK-produced Card declares Bearer requirement; Card GET remains unauthenticated; RPC bearer is provided per exact origin |
 
-**Results must be read from the final CI run.** This table lists required assertions, not a claim of success before CI completes.
+**Verified:** [Step 29-5b official native HTTPS CI run #37997186725](https://github.com/cuichangquan/a2a-rails/actions/runs/37997186725) **2/2 PASS** (Python and Go). Go output includes `STEP 29-5q GO SDK AUTHENTICATED LISTTASKS: PASS (two pages, cross-owner denial)` and `STEP 29-5n SDK CAPABILITIES GO: {cancel_task: "PASS", list_tasks: "PASS", get_missing_task: "PASS"}`. Both anonymous and invalid bearer negative checks returned **`-31401`**; both directions of foreign GetTask were refused; tenant A's two cursor pages and tenant B's isolated list passed. Supporting [SDK/Gem matrix #37997186739](https://github.com/cuichangquan/a2a-rails/actions/runs/37997186739) and [Step 29-1 outgoing client spike #37997186765](https://github.com/cuichangquan/a2a-rails/actions/runs/37997186765) also PASS. These are PR-head source tests, **not** a versioned 0.3.x candidate artifact or independent security review.
 
 ## Reproduction
 
