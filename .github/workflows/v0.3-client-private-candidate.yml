@@ -115,7 +115,7 @@ jobs:
             abort "wrong version within package" unless
               File.read(File.join(dir, "lib/a2a/rails/version.rb")).include?('VERSION = "0.3.0.rc1"')
           end
-          puts "PASS: packaged original source Client/Server bytes, isolated rc1 VERSION only"
+          puts "PASS: packaged Client/Server source bytes and rc1 metadata match expected input"
           RUBY
           (
             cd "$RUNNER_TEMP/rc-package"
