@@ -697,7 +697,7 @@ class ClientPinnedHttpsTransportTest < Minitest::Test
       else
         assert_equal "remote-t1", wire.dig("params", "id")
       end
-      assert_equal 1, rpc_requests.size + 1
+      assert_empty rpc_requests
       assert_equal "GET", card_requests.pop.fetch(:method)
       assert_empty card_requests
     end
