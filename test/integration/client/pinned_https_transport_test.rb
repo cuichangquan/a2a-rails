@@ -145,6 +145,32 @@ class ClientPinnedHttpsTransportTest < Minitest::Test
     refute invoked
   end
 
+  def test_dns_rebind_after_preflight_is_rejected_before_credentials_or_socket
+    port, requests = tls_server(body: "{}")
+    url = "https://trusted.example:#{port}/card"
+    answers = [["8.8.8.8"], ["169.254.169.254"]]
+    resolver_calls = 0
+    strict = Policy.new(
+      allowed_origins: ["https://trusted.example:#{port}"],
+      resolver: ->(_host) { resolver_calls += 1; answers.shift || ["169.254.169.254"] }
+    )
+
+    # An earlier public answer does not authorize any subsequent HTTP request.
+    assert_equal ["8.8.8.8"], strict.resolve!(url).addresses
+    callback_called = false
+    error = assert_raises(Policy::RejectedTarget) do
+      Transport.new(policy: strict).get_json(
+        url: url,
+        authorization: -> { callback_called = true; "Bearer must-not-run" },
+        credential_origin: "https://trusted.example:#{port}"
+      )
+    end
+    assert_equal :blocked_ip, error.reason
+    assert_equal 2, resolver_calls
+    refute callback_called
+    assert_empty requests
+  end
+
   def test_unsafe_ipv6_dns_denies_before_credential_callback
     strict = Policy.new(
       allowed_origins: ["https://trusted.example"],
