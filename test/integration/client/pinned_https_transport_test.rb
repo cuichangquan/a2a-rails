@@ -593,23 +593,31 @@ class ClientPinnedHttpsTransportTest < Minitest::Test
   # isolate certificate validity / SAN errors from an untrusted CA error.
   def signed_server_certificate(san: "trusted.example",
                                 not_before: Time.now - 60, not_after: Time.now + 3600)
+    # Different issuer/leaf subjects ensure OpenSSL builds the intended CA
+    # chain, rather than interpreting a matching CN as self-issued.
+    unless defined?(@issuer_certificate) && @issuer_certificate
+      @issuer_certificate, @issuer_private_key = self_signed_certificate("a2a-test-ca.example")
+      @ca_file.write(@issuer_certificate.to_pem)
+      @ca_file.flush
+    end
+
     key = OpenSSL::PKey::RSA.new(2048)
     cert = OpenSSL::X509::Certificate.new
     cert.version = 2
     cert.serial = rand(1_000_000) + 1
     cert.subject = OpenSSL::X509::Name.parse("/CN=trusted.example")
-    cert.issuer = @certificate.subject
+    cert.issuer = @issuer_certificate.subject
     cert.public_key = key.public_key
     cert.not_before = not_before
     cert.not_after = not_after
     extensions = OpenSSL::X509::ExtensionFactory.new
     extensions.subject_certificate = cert
-    extensions.issuer_certificate = @certificate
+    extensions.issuer_certificate = @issuer_certificate
     cert.add_extension(extensions.create_extension("basicConstraints", "CA:FALSE", true))
     cert.add_extension(extensions.create_extension("keyUsage", "digitalSignature,keyEncipherment", true))
     cert.add_extension(extensions.create_extension("extendedKeyUsage", "serverAuth"))
     cert.add_extension(extensions.create_extension("subjectAltName", "DNS:#{san}"))
-    cert.sign(@private_key, OpenSSL::Digest::SHA256.new)
+    cert.sign(@issuer_private_key, OpenSSL::Digest::SHA256.new)
     [cert, key]
   end
 
