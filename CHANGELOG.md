@@ -4,7 +4,9 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.3.0] — Rails Server compatibility and outbound Client
+## [0.3.0] - 2026-10-10 (published stable release)
+
+> **Published after explicit maintainer GO.** [GitHub Release v0.3.0](https://github.com/cuichangquan/a2a-rails/releases/tag/v0.3.0) · [RubyGems a2a-rails 0.3.0](https://rubygems.org/gems/a2a-rails/versions/0.3.0). Immutable annotated tag targets commit `772f63fc814123f39b40bafd7403f3ef9a59788e`; the Gem SHA256 is `90a7d8d32bdd19ebc97046a3307c483cc0798b06afcd79df4931cfc5a4ead40f`. Exact final-main CI **49/49 jobs passed**. Gem uploaded without rebuilding; original RubyGems package was fetched and matched. [Step 31-6 publication record](docs/release/v0.3.0-publication-record.md).
 
 `0.3.0` advances the outbound A2A Client tested in `0.3.0.rc1` while retaining the existing Rails A2A Server default. [Release verification record](docs/release/v0.3.0-stable-candidate-record.md) and [Step 31 tracking issue](https://github.com/cuichangquan/a2a-rails/issues/120) contain the dated CI/provenance history. Consult [GitHub Releases](https://github.com/cuichangquan/a2a-rails/releases) or [RubyGems versions](https://rubygems.org/gems/a2a-rails/versions) for actual publication status; source versions and CI artifacts alone are not public releases.
 
