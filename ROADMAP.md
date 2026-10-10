@@ -14,6 +14,9 @@
 
 ## Current RC1 release and next stable work
 
+- **Step 31-2 Client security/API matrix:** [focused acceptance and risk review](docs/release/v0.3.0-client-security-api-review.md) · [Step 31 tracker #120](https://github.com/cuichangquan/a2a-rails/issues/120). Existing tests provide scoped evidence; the final stable artifact, lockfile advisory review and explicit release GO are still pending.
+
+
 - **Step 31 stable readiness:** [RC1→main inventory and first release-gate assessment](docs/release/v0.3.0-stable-readiness.md) · [issue #120](https://github.com/cuichangquan/a2a-rails/issues/120). Step 31-1 records the unchanged runtime source, nine open issues with separate deployment/audit categories, current green CI, and remaining exact stable-artifact and explicit-owner-GO gates. This is not stable publication authorization.
 
 
