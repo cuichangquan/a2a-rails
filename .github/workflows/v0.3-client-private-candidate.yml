@@ -365,3 +365,69 @@ jobs:
           if test -f "$RUNNER_TEMP/official-server.pid"; then
             kill "$(cat "$RUNNER_TEMP/official-server.pid")" 2>/dev/null || true
           fi
+
+installed-advisory:
+    needs: build-once
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        ruby: ["3.3", "3.4", "4.0"]
+        rails: ["~> 8.0.0", "~> 8.1.0"]
+    env:
+      TARGET_RAILS: ${{ matrix.rails }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ matrix.ruby }}
+      - uses: actions/download-artifact@v4
+        with:
+          name: ${{ env.RC_ARTIFACT }}
+          path: ${{ runner.temp }}/rc
+      - name: Resolve the exact candidate locally and audit RubySec advisories
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP/rc"
+          sha256sum -c SHA256SUMS
+          test "$(cat SOURCE_COMMIT)" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          gem install --no-document "./$RC_FILENAME"
+          gem install --no-document rails -v "$TARGET_RAILS"
+          mkdir -p "$RUNNER_TEMP/stable-audit" "$RUNNER_TEMP/stable-audit-evidence"
+          cat > "$RUNNER_TEMP/stable-audit/Gemfile" <<GEMFILE
+          source "https://rubygems.org"
+          gem "rails", "$TARGET_RAILS"
+          gem "a2a-rails", "= $RC_VERSION"
+          GEMFILE
+          cd "$RUNNER_TEMP/stable-audit"
+          bundle install --local
+          bundle exec ruby -rbundler -e '
+            require "rails"
+            require "a2a-rails"
+            spec = Gem.loaded_specs.fetch("a2a-rails")
+            abort "incorrect exact candidate" unless
+              A2A::Rails::VERSION == "0.3.0" && spec.version.to_s == "0.3.0"
+            abort "source checkout loaded" if File.realpath(spec.full_gem_path).start_with?(
+              File.realpath(ENV.fetch("GITHUB_WORKSPACE")) + File::SEPARATOR
+            )
+            puts "PASS installed candidate Ruby #{RUBY_VERSION} Rails #{Rails.version}"
+          ' | tee "$RUNNER_TEMP/stable-audit-evidence/installed.txt"
+          cp Gemfile.lock "$RUNNER_TEMP/stable-audit-evidence/Gemfile.lock"
+          sha256sum Gemfile.lock | tee "$RUNNER_TEMP/stable-audit-evidence/lockfile-SHA256SUMS"
+          cp "$RUNNER_TEMP/rc/SHA256SUMS" "$RUNNER_TEMP/stable-audit-evidence/candidate-SHA256SUMS"
+          cp "$RUNNER_TEMP/rc/SOURCE_COMMIT" "$RUNNER_TEMP/stable-audit-evidence/SOURCE_COMMIT"
+          gem install --no-document bundler-audit
+          bundle-audit version | tee "$RUNNER_TEMP/stable-audit-evidence/auditor-version.txt"
+          bundle-audit check --update 2>&1 | tee "$RUNNER_TEMP/stable-audit-evidence/advisories.txt"
+          echo "PASS: no matching known RubySec vulnerabilities in this resolved exact candidate host"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: stable-audit-ruby-${{ matrix.ruby }}-rails-${{ matrix.rails == '~> 8.0.0' && '8-0' || '8-1' }}
+          path: ${{ runner.temp }}/stable-audit-evidence/
+          if-no-files-found: warn
+          retention-days: 30
