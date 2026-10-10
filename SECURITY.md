@@ -16,8 +16,8 @@
 
 ## Supported versions / 対象バージョン
 
-- **Current public distribution status:** Check [RubyGems versions](https://rubygems.org/gems/a2a-rails/versions) and [GitHub Releases](https://github.com/cuichangquan/a2a-rails/releases) for versions actually published. A source VERSION or a CI artifact is **not** evidence of a public release.
-- **`0.3.0` release line:** Rails 8 A2A Server plus outbound Client with origin-scoped HTTPS. [Stable candidate verification](docs/release/v0.3.0-stable-candidate-record.md) and [Step 31 decision](https://github.com/cuichangquan/a2a-rails/issues/120) track exact source/package SHA, tests and risk acceptance.
+- **Current published stable:** [`a2a-rails 0.3.0`](https://rubygems.org/gems/a2a-rails/versions/0.3.0) (2026-10-10), [GitHub stable Release](https://github.com/cuichangquan/a2a-rails/releases/tag/v0.3.0), [immutable SHA256 and release evidence](docs/release/v0.3.0-publication-record.md). Package publication is not independent audit or permission for public/no-auth production.
+- **`0.3.0` release line:** Rails 8 A2A Server plus outbound Client with origin-scoped HTTPS. [Publication verification](docs/release/v0.3.0-publication-record.md) and [Step 31 release decision](https://github.com/cuichangquan/a2a-rails/issues/120) track the exact package identity, known limits and mitigations.
 - **Earlier published stable:** [`0.2.0`](https://rubygems.org/gems/a2a-rails/versions/0.2.0); **published prerelease:** [`0.3.0.rc1`](https://rubygems.org/gems/a2a-rails/versions/0.3.0.rc1). Their historical source and artifact verification do not certify public-production deployment.
 - Older versions may lack security hardening present in `0.2.0`. Users should prefer the latest **published stable** version appropriate to their application and review the [CHANGELOG](CHANGELOG.md) and [upgrade guide](docs/release/upgrading-v0.1.0-to-v0.2.md).
 - A precise long-term security support and patch SLA **is not promised** for this volunteer-maintained OSS Gem.

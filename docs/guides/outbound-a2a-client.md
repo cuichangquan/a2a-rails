@@ -1,12 +1,12 @@
-# Outbound Rails Client API — published v0.3.0.rc1
+# Outbound Rails Client API — stable v0.3.0
 
-> **Current status (2026-10-10):** [a2a-rails 0.3.0.rc1](https://rubygems.org/gems/a2a-rails/versions/0.3.0.rc1) is published as a **pre-release** with this Client API. The current stable Gem remains **0.2.0** (Server-first, no outbound Client). Stable `0.3.0` has **not** been approved or published. Gem distribution is **not** an approval to expose an A2A Server publicly; see [deployment #11](https://github.com/cuichangquan/a2a-rails/issues/11). [Release evidence](../release/v0.3.0-rc1-publication-record.md) · [Step 31-2 review](../release/v0.3.0-client-security-api-review.md).
+> **Released (2026-10-10):** Stable [a2a-rails 0.3.0](https://rubygems.org/gems/a2a-rails/versions/0.3.0) now ships this outbound Client API. Previous stable **0.2.0** was Server-first and did not include this Client; [0.3.0.rc1](https://rubygems.org/gems/a2a-rails/versions/0.3.0.rc1) remains a historical prerelease. Gem publication **does not authorize anonymous/public production A2A Server exposure**; see [deployment #11](https://github.com/cuichangquan/a2a-rails/issues/11). [Verified stable release and SHA256](../release/v0.3.0-publication-record.md) · [Step 31-2 scoped security review](../release/v0.3.0-client-security-api-review.md).
 >
 > Tracking: [original Client design #84](https://github.com/cuichangquan/a2a-rails/issues/84), [client umbrella #75](https://github.com/cuichangquan/a2a-rails/issues/75), [stable readiness #120](https://github.com/cuichangquan/a2a-rails/issues/120).
 
-To evaluate the prerelease, explicitly pin `gem "a2a-rails", "= 0.3.0.rc1"` in your Gemfile. For a tested standalone Client-only Rails 8 example, use [a2a-rails-client-demo](https://github.com/cuichangquan/a2a-rails-client-demo); its [Japanese Quick Start](https://github.com/cuichangquan/a2a-rails-client-demo/blob/main/docs/quickstart-ja.md) explains how to reproduce the independent TLS tests.
+To install the released stable Client, pin `gem "a2a-rails", "= 0.3.0"` in your Gemfile and test the actual host configuration. The [independent Client-only demo](https://github.com/cuichangquan/a2a-rails-client-demo) may still pin **historical RC1** until it is independently updated and re-tested; do not treat that demo's pin as the newest published stable. For a tested standalone Client-only Rails 8 example, use [a2a-rails-client-demo](https://github.com/cuichangquan/a2a-rails-client-demo); its [Japanese Quick Start](https://github.com/cuichangquan/a2a-rails-client-demo/blob/main/docs/quickstart-ja.md) explains how to reproduce the independent TLS tests.
 
-## Public Ruby interface (0.3.0.rc1)
+## Public Ruby interface (0.3.0)
 
 ```ruby
 client = A2A::Rails::Client.new(
@@ -52,7 +52,7 @@ end
 
 The host app then does **not** mount inbound `/.well-known/agent-card.json` or `/a2a`, and does not require `config.agent`. Outbound Client instances can still be constructed in services and ActiveJob. This setting is deliberately per Rails application and is not an automatically inferred mode.
 
-The separate-process [Client-only Rails HTTP boot test](../../test/integration/client_only_rails_boot_test.rb) verifies that both inbound paths return HTTP 404. The existing full Server HTTP integration suite verifies backward compatibility with the default setting. Published Gem **0.2.0 does not include this feature**; the new public Client is shipped in published **0.3.0.rc1**.
+The separate-process [Client-only Rails HTTP boot test](../../test/integration/client_only_rails_boot_test.rb) verifies that both inbound paths return HTTP 404. The existing Server HTTP suite verifies the default Server behavior. Published Gem **0.2.0 does not include this Client feature**; the public Client is shipped in **stable 0.3.0** (first introduced in prerelease 0.3.0.rc1).
 
 ## Returned values
 
@@ -114,7 +114,7 @@ host logger, queued multi-process worker or production observability pipeline.
 
 The public Client, codec and DTO/error mapping use the pinned HTTPS Agent Card resolver from Steps 29-3a–3c. Beyond public API unit contracts, the published RC1 has passed Client-only Rails boot, installed-Gem security, Ruby/Rails/PostgreSQL, independent native Python/Go SDK and isolated Rails-to-Rails TLS integration checks. See the [Step 31-2 evidence matrix](../release/v0.3.0-client-security-api-review.md) for what each test proves and what it **does not** prove.
 
-**Release:** `0.3.0.rc1` is **published**; stable `0.3.0` is pending a fresh exact-artifact build, compatibility/security review and explicit separate maintainer approval. Existing stable `0.2.0` is unchanged.
+**Release:** Stable `0.3.0` has been **published** with an immutable tagged source and verified Gem SHA256. [Release record](../release/v0.3.0-publication-record.md) covers the exact-package provenance, Ruby/Rails/PG/SDK checks and known risks. The previous stable `0.2.0` remains available unchanged.
 
 **Limitations:** outbound HTTPS target sockets are pinned to approved public **IPv4**; IPv6-only destinations, SSE, push notifications, gRPC, polling/orchestration and automatic retries are unsupported. A timeout during `SendMessage` or `CancelTask` may follow a remote side effect; the host must reconcile state safely. Host security requires real credential issuer checks, business authorization, filtering outside Gem loggers, sensible budgets and durable storage/queue configuration where necessary.
 

@@ -1,6 +1,6 @@
 # a2a-rails
 
-> **Versions and release evidence:** This source contains the `0.3.0` code, including the outbound A2A Client. To check whether a specific version has been **published**, consult [RubyGems versions](https://rubygems.org/gems/a2a-rails/versions) and [GitHub Releases](https://github.com/cuichangquan/a2a-rails/releases). The [Step 31 candidate record](docs/release/v0.3.0-stable-candidate-record.md) tracks the prepublication build/hash; successful CI is not permission to expose a production Agent publicly.
+> **Latest stable release (2026-10-10): [a2a-rails v0.3.0](https://github.com/cuichangquan/a2a-rails/releases/tag/v0.3.0) is now published on [RubyGems](https://rubygems.org/gems/a2a-rails/versions/0.3.0).** It adds the outbound Rails A2A Client and optional Client-only mode while preserving the existing Server default. [Official publication & SHA256 record](docs/release/v0.3.0-publication-record.md). **Gem publication is not approval to run an anonymous/public production Agent; deployment #11 remains separate.**
 <img src="docs/assets/a2a-rails-infographics.png">
 <br/>
 <br/>
@@ -8,16 +8,17 @@
 
 Rails-native integration for exposing Rails applications as A2A v1.0 agents.
 
- > **v0.3.0.rc1 prerelease history (2026-10-10):** `0.3.0.rc1` is published on [RubyGems](https://rubygems.org/gems/a2a-rails/versions/0.3.0.rc1) and as a [GitHub Pre-release](https://github.com/cuichangquan/a2a-rails/releases/tag/v0.3.0-rc1). It adds the outbound Rails Client and Client-only mode. Install with `gem install a2a-rails -v 0.3.0.rc1`, or pin `gem "a2a-rails", "0.3.0.rc1"` in your Gemfile. Stable `0.2.0` remains available. RC1 is not stable `0.3.0`, an independent audit, or public-production approval; see the [publication record](docs/release/v0.3.0-rc1-publication-record.md) and [Client guide](docs/guides/outbound-a2a-client.md).
+ > **Historical v0.3.0.rc1 pre-release (2026-10-10):** `0.3.0.rc1` is published on [RubyGems](https://rubygems.org/gems/a2a-rails/versions/0.3.0.rc1) and as a [GitHub Pre-release](https://github.com/cuichangquan/a2a-rails/releases/tag/v0.3.0-rc1). It adds the outbound Rails Client and Client-only mode. Install with `gem install a2a-rails -v 0.3.0.rc1`, or pin `gem "a2a-rails", "0.3.0.rc1"` in your Gemfile. Stable `0.2.0` remains available. RC1 is not stable `0.3.0`, an independent audit, or public-production approval; see the [publication record](docs/release/v0.3.0-rc1-publication-record.md) and [Client guide](docs/guides/outbound-a2a-client.md).
 
 > **Release status (2026-10-08):** **`0.2.0` is published as a stable release** on [RubyGems](https://rubygems.org/gems/a2a-rails/versions/0.2.0) and [GitHub](https://github.com/cuichangquan/a2a-rails/releases/tag/v0.2.0). It includes the Rails/Zeitwerk and migration-generator fixes after rc2. The public Gem matches the verified artifact byte-for-byte; see the [publication record](docs/release/v0.2.0-publication-record.md).
 
 - RubyGems: https://rubygems.org/gems/a2a-rails
+- **Current stable `0.3.0`:** [GitHub Release](https://github.com/cuichangquan/a2a-rails/releases/tag/v0.3.0) · [RubyGems](https://rubygems.org/gems/a2a-rails/versions/0.3.0) · [exact public SHA256 and provenance](docs/release/v0.3.0-publication-record.md)
 - Published version list: https://rubygems.org/gems/a2a-rails/versions
 - Earlier stable release `0.2.0`: https://github.com/cuichangquan/a2a-rails/releases/tag/v0.2.0
 - Previous stable release: https://github.com/cuichangquan/a2a-rails/releases/tag/v0.1.0
 - Changelog: [CHANGELOG.md](CHANGELOG.md)
-- Release record: [v0.2.0 publication record](docs/release/v0.2.0-publication-record.md)
+- Release record: [v0.3.0 publication record](docs/release/v0.3.0-publication-record.md) · [historical v0.2.0 publication record](docs/release/v0.2.0-publication-record.md)
 - **Security policy / 脆弱性報告:** [SECURITY.md](SECURITY.md) — confidential vulnerability reporting, current assurance boundaries and production responsibilities.
 - **v0.3.x prerelease policy:** [Risk-based release gates](docs/release/step-29-5u-risk-based-oss-release-policy.md) — independently commissioned external audit is **recommended but optional**, not a known vulnerability or RubyGems requirement. Technical security checks, no known unresolved Critical/High findings, exact Gem provenance and explicit maintainer release approval remain mandatory; [optional community review #113](https://github.com/cuichangquan/a2a-rails/issues/113). **Check the published-version list for the current stable version; package publication and public-production deployment are separate decisions.**
 - **Release evidence & upgrading:** [Step 31 release-readiness record](docs/release/v0.3.0-stable-readiness.md) · [RC1 feedback snapshot](docs/release/v0.3.0-rc1-feedback-and-upgrade-readiness.md) · [v0.2.0 → v0.3.0 upgrade guide](docs/release/upgrading-v0.2.0-to-v0.3.md) · [v0.1.0 → v0.2.0 guide](docs/release/upgrading-v0.1.0-to-v0.2.md). Check [RubyGems](https://rubygems.org/gems/a2a-rails/versions) for availability. Gem distribution does **not** authorize public Agent exposure.
@@ -41,7 +42,7 @@ Run a complete standalone Rails Agent using the **published RubyGems `a2a-rails 
 
 **[a2a-rails-client-demo — standalone Rails 8 Client](https://github.com/cuichangquan/a2a-rails-client-demo)**
 
-Independent Rails application using **published RubyGems `a2a-rails = 0.3.0.rc1`** with `server_enabled = false`. Demonstrates Agent Card discovery, SendMessage **Task or direct Message**, GetTask and ListTasks with exact HTTPS origin allowlisting. [Client-only CI PASS](https://github.com/cuichangquan/a2a-rails-client-demo/actions/runs/38048228531) and [independent Rails-to-Rails pinned-TLS CI PASS](https://github.com/cuichangquan/a2a-rails-client-demo/actions/runs/38048228488): the published RC1 Client calls an independently installed **published 0.2.0 Server** over real TLS using a **loopback-only test bridge and test-only pinned policy override**, including actual Echo business logic. This is **not** a public-DNS/public-CA, no-injection or production deployment test. The existing Server demo and shipped security policy remain unchanged; see [Step 30 #117](https://github.com/cuichangquan/a2a-rails/issues/117).
+Independent Rails application **currently tested against published RubyGems `a2a-rails = 0.3.0.rc1`** (prerelease; the Gem's new stable is `0.3.0`; update the demo pin only after its own integration tests) with `server_enabled = false`. Demonstrates Agent Card discovery, SendMessage **Task or direct Message**, GetTask and ListTasks with exact HTTPS origin allowlisting. [Client-only CI PASS](https://github.com/cuichangquan/a2a-rails-client-demo/actions/runs/38048228531) and [independent Rails-to-Rails pinned-TLS CI PASS](https://github.com/cuichangquan/a2a-rails-client-demo/actions/runs/38048228488): the published RC1 Client calls an independently installed **published 0.2.0 Server** over real TLS using a **loopback-only test bridge and test-only pinned policy override**, including actual Echo business logic. This is **not** a public-DNS/public-CA, no-injection or production deployment test. The existing Server demo and shipped security policy remain unchanged; see [Step 30 #117](https://github.com/cuichangquan/a2a-rails/issues/117).
 
 
 ## What is a2a-rails?
@@ -91,7 +92,13 @@ The original v0.1.0 baseline was verified against:
 
 ## Installation
 
-Add the Gem to an existing Rails application:
+Install the released stable version explicitly in a controlled host:
+
+```bash
+gem install a2a-rails -v 0.3.0
+```
+
+Or add the Gem to an existing Rails application:
 
 ```bash
 bundle add a2a-rails

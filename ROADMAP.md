@@ -1,8 +1,14 @@
 # a2a-rails Roadmap
 
-> Release verification status was reviewed on 2026-10-10: `0.3.0.rc1` is published; `0.3.0` has an exact-artifact, source-verified stable candidate. Check [RubyGems](https://rubygems.org/gems/a2a-rails/versions) for current publication state. [Step 31 release decision](https://github.com/cuichangquan/a2a-rails/issues/120) records the final maintainer GO; independent audit is optional (#113), while public-production deployment remains separate (#11).
+> **2026-10-10: stable `v0.3.0` published**, after maintainer GO: [GitHub Release](https://github.com/cuichangquan/a2a-rails/releases/tag/v0.3.0) · [RubyGems](https://rubygems.org/gems/a2a-rails/versions/0.3.0) · [immutable release and SHA256 record](docs/release/v0.3.0-publication-record.md). The Step 31 exact-tagged-main CI passed 49/49 jobs. Independent audit remains optional (#113), while public-production deployment remains separately restricted (#11).
 >
 > **Step 21 complete:** [Issue #35](https://github.com/cuichangquan/a2a-rails/issues/35) delivered an optional durable ActiveRecord Task Store, owner-scoped SQL access, row locking, keyset pagination, retention/pruning/quota/payload maintenance, shared Store contract tests and PostgreSQL 16 durability/locking smoke. [Design](docs/design/active-record-task-store.md) · [Guide](docs/guides/active-record-task-store.md). Step 20's `0.2.0.rc1` artifact is historical only; [`0.2.0.rc2`](https://github.com/cuichangquan/a2a-rails/releases/tag/v0.2.0-rc.2) was subsequently verified and published as a **pre-release**. [Step 26](docs/release/v0.2.0-stable-readiness.md) completed the stable-release evidence, [Step 27](docs/release/v0.2.0-publication-record.md) published `0.2.0`, and Step 28 proved that the independent Rails demo runs against that public Gem. Public-production security [Issue #11](https://github.com/cuichangquan/a2a-rails/issues/11) remains open.
+
+## Current stable — v0.3.0 (published 2026-10-10)
+
+- [x] v0.3.0 published as stable [GitHub Release](https://github.com/cuichangquan/a2a-rails/releases/tag/v0.3.0) and [RubyGems](https://rubygems.org/gems/a2a-rails/versions/0.3.0); exact Gem SHA256 and final-main CI verification in [Step 31-6 record](docs/release/v0.3.0-publication-record.md).
+- [x] Outbound A2A Client and Client-only Rails mode; Ruby/Rails/PG16, native Python/Go, Sidekiq/Solid Queue, installed Gem security tests. [Migration guide](docs/release/upgrading-v0.2.0-to-v0.3.md).
+- [ ] Public production Agent deployment is not approved by publication. Follow [Issue #11](https://github.com/cuichangquan/a2a-rails/issues/11).
 
 ## Earlier stable baseline — v0.2.0 (released)
 
@@ -14,7 +20,7 @@
 
 ## v0.3.0 release verification and historical RC1 record
 
-- **Step 31-5 exact candidate evidence:** [20-job single-Gem audit/interoperability suite and independent 7-job packaged/PG checks](docs/release/v0.3.0-stable-candidate-record.md) succeeded for a reviewed candidate, with all CI evidence retained in [Issue #120](https://github.com/cuichangquan/a2a-rails/issues/120). Any source/metadata change requires a new source and SHA256 proof; published Gem release requires a separate owner GO, and public deployment is separate.
+- **Historical Step 31-5 exact candidate evidence (superseded by published stable):** [20-job single-Gem audit/interoperability suite and independent 7-job packaged/PG checks](docs/release/v0.3.0-stable-candidate-record.md) succeeded for a reviewed candidate, with all CI evidence retained in [Issue #120](https://github.com/cuichangquan/a2a-rails/issues/120). Any source/metadata change requires a new source and SHA256 proof; published Gem release requires a separate owner GO, and public deployment is separate.
 
 
 - **Step 31-4 feedback/upgrade documentation:** [Dated RC1 user feedback assessment](docs/release/v0.3.0-rc1-feedback-and-upgrade-readiness.md) · [v0.2.0 → planned v0.3.0 migration guide](docs/release/upgrading-v0.2.0-to-v0.3.md) · [Issue #120](https://github.com/cuichangquan/a2a-rails/issues/120). No verified external RC1-specific public reports were found in examined channels; adopter confidence remains **UNKNOWN** pending follow-up. The public release status must be checked on RubyGems.
