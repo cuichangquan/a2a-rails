@@ -22,6 +22,10 @@
 - Older versions may lack security hardening present in `0.2.0`. Users should prefer the latest **published stable** version appropriate to their application and review the [CHANGELOG](CHANGELOG.md) and [upgrade guide](docs/release/upgrading-v0.1.0-to-v0.2.md).
 - A precise long-term security support and patch SLA **is not promised** for this volunteer-maintained OSS Gem.
 
+## Candidate dependency advisory note / 候補版の依存関係検証
+
+The unpublished 0.3.0 candidate's first fresh Rails-host RubySec audit found known advisories in some resolved `json` and `net-imap` versions (see the [candidate record](docs/release/v0.3.0-stable-candidate-record.md)). `json` is a direct runtime dependency; the candidate is changing its minimum to `2.19.9`. `net-imap` comes from a full Rails host/mail installation, not a direct a2a-rails runtime dependency, and must be patched by the **host application's actual Gemfile.lock**. These initial failures must not be treated as a clean audit or silently ignored. Any final new candidate and dependency graphs still require separate verification and owner GO.
+
 ## Security guarantees and limits / 保証範囲と制約
 
 The Gem includes automated security regressions and documented transport/authentication boundaries, but **has not been independently security-audited or certified**. The [optional independent review invitation #113](https://github.com/cuichangquan/a2a-rails/issues/113) is **not an identified vulnerability, not proof of an active incident, and not a mandatory Gem-release blocker**.
