@@ -4,6 +4,18 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] — preparation for stable 0.3.0 (NOT published)
+
+> **Planning only (2026-10-10):** The latest published prerelease is `0.3.0.rc1`, and the latest published **stable** Gem is `0.2.0`. **No stable `0.3.0` has been built, tagged, approved or pushed.** Do not copy the RC1 tag/SHA256 into a future stable publication record.
+
+### Documentation and release preparation
+
+- Added [v0.2.0 → planned v0.3.0 upgrade guide](docs/release/upgrading-v0.2.0-to-v0.3.md) with separate existing-Server vs Client-only paths, exact origin-scoped credentials, Task/direct Message handling, timeout/idempotency boundaries and no mandatory database migration for adding the Client.
+- Recorded a [dated public RC1 feedback snapshot](docs/release/v0.3.0-rc1-feedback-and-upgrade-readiness.md) and a [safe bug-report template](.github/ISSUE_TEMPLATE/rc1-feedback.md). No externally verified RC1-specific public regression was found in the checked channels; **external adoption compatibility is UNKNOWN**, not proven by the absence of reports.
+- Added [published RC1 dependency advisory CI](.github/workflows/v0.3-rc1-dependency-audit.yml) for Ruby 3.3/3.4/4.0 × Rails 8.0/8.1; 6/6 resolved hosts found no RubySec matching advisories **as of 2026-10-10**, not a future stable-Gem guarantee.
+
+**Before creating any stable `[0.3.0]` section:** complete the final version/feature freeze, fresh build-once artifact + SHA256, installed-Gem and dependency tests, README/upgrade review, final bug/advisory recheck, written residual-risk decision and the **maintainer's separate explicit release GO**. Do not treat this unversioned section as a published release note.
+
 ## [0.3.0.rc1] - 2026-10-10 (published pre-release)
 
 > **Published after explicit owner GO:** [RubyGems RC1](https://rubygems.org/gems/a2a-rails/versions/0.3.0.rc1) and [GitHub Pre-release](https://github.com/cuichangquan/a2a-rails/releases/tag/v0.3.0-rc1), from source `664a201e6df9173e1656bb5f25b503821c0be2b5`, using the same build-once Gem. SHA256: `e5b184e615f9f59c3db770d150b96e847fa5df83ca152e274ae55c656b68feda`. See the [publication record](docs/release/v0.3.0-rc1-publication-record.md). Stable `0.3.0` is not released.

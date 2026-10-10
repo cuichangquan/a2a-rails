@@ -13,6 +13,8 @@
 - [ ] Open public-production approval: deployment-specific controls are still required under [Issue #11](https://github.com/cuichangquan/a2a-rails/issues/11).
 
 ## Current RC1 release and next stable work
+
+- **Step 31-4 feedback/upgrade documentation:** [Dated RC1 user feedback assessment](docs/release/v0.3.0-rc1-feedback-and-upgrade-readiness.md) · [v0.2.0 → planned v0.3.0 migration guide](docs/release/upgrading-v0.2.0-to-v0.3.md) · [Issue #120](https://github.com/cuichangquan/a2a-rails/issues/120). No verified external RC1-specific public reports were found in examined channels; adopter confidence remains **UNKNOWN** pending any future feedback and the maintainer's explicit risk decision. Stable version/tag/artifact still absent.
 - **Step 31-3 interoperability/advisory evidence:** [RC1 evidence and lockfile-level RubySec scan](docs/release/v0.3.0-interop-advisory-evidence.md) · [separate audit CI](.github/workflows/v0.3-rc1-dependency-audit.yml). TCK continues to report one fixture-related failure; an advisory database result is not a complete security certification.
 
 
@@ -24,7 +26,8 @@
 
 - [x] `0.3.0.rc1` published on RubyGems and GitHub as a Pre-release; tag `v0.3.0-rc1` pins `664a201e6df9173e1656bb5f25b503821c0be2b5`.
 - [x] Same installed Gem passed Ruby 3.3/3.4/4.0 × Rails 8.0/8.1, PostgreSQL 16 and native official Python/Go SDK tests; public RubyGems bytes and installed Client/Server security smoke verified.
-- [ ] Collect RC adopter feedback and assess compatibility/bug reports before a separately approved stable `0.3.0` release.
+- [x] Capture the **currently available public RC1 feedback snapshot** and classify maintenance issues vs external regressions; see [Step 31-4 dated evidence](docs/release/v0.3.0-rc1-feedback-and-upgrade-readiness.md). No independent RC1-specific public bug reports **observed**, but short same-day sampling does not establish adoption or absence of defects.
+- [ ] At final release GO, **recheck new feedback and explicitly decide whether the short adoption window is acceptable**, or defer release for additional field experience.
 - [ ] Keep optional independent security review #113 open; assess credible findings and fix any Critical/High issue before a subsequent release.
 - [ ] Maintain deployment-specific authentication, authorization, logging, durability and idempotency review under #11. Publication does not approve anonymous public Cloud Run exposure.
 

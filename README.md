@@ -17,8 +17,8 @@ Rails-native integration for exposing Rails applications as A2A v1.0 agents.
 - Release record: [v0.2.0 publication record](docs/release/v0.2.0-publication-record.md)
 - **Security policy / 脆弱性報告:** [SECURITY.md](SECURITY.md) — confidential vulnerability reporting, current assurance boundaries and production responsibilities.
 - **v0.3.x prerelease policy:** [Risk-based release gates](docs/release/step-29-5u-risk-based-oss-release-policy.md) — independently commissioned external audit is **recommended but optional**, not a known vulnerability or RubyGems requirement. Technical security checks, no known unresolved Critical/High findings, exact Gem provenance and explicit maintainer release approval remain mandatory; [optional community review #113](https://github.com/cuichangquan/a2a-rails/issues/113). **RC1 is published; stable 0.3.0 remains unreleased.**
-- **Release readiness:** [current release/deployment checklist](docs/release/security-hardening-release-checklist.md) · [v0.1.0 → v0.2.0 upgrade guide](docs/release/upgrading-v0.1.0-to-v0.2.md). The old rc1 record is historical evidence only.
-- **Roadmap / 次にやること:** [ROADMAP.md](ROADMAP.md) — [Step 26 / Issue #62](https://github.com/cuichangquan/a2a-rails/issues/62) records the `0.2.0` stable release gates; [production Issue #11](https://github.com/cuichangquan/a2a-rails/issues/11) remains open. See [stable-readiness record](docs/release/v0.2.0-stable-readiness.md).
+- **Release readiness & upgrading:** [Step 31 stable-readiness tracker](docs/release/v0.3.0-stable-readiness.md) · [RC1 feedback snapshot](docs/release/v0.3.0-rc1-feedback-and-upgrade-readiness.md) · [v0.2.0 → planned v0.3.0 upgrade guide](docs/release/upgrading-v0.2.0-to-v0.3.md) · [v0.1.0 → v0.2.0 upgrade guide](docs/release/upgrading-v0.1.0-to-v0.2.md). **Stable 0.3.0 is not published.** Release and public deployment require separate approval.
+- **Roadmap / 次にやること:** [ROADMAP.md](ROADMAP.md) · [Step 31 / Issue #120](https://github.com/cuichangquan/a2a-rails/issues/120) for planned stable `0.3.0` evaluation. [Issue #11](https://github.com/cuichangquan/a2a-rails/issues/11) still governs public-production deployment; the [historical `0.2.0` release record](docs/release/v0.2.0-stable-readiness.md) is separate.
 - **Official A2A TCK results:** [Pinned JSON-RPC MUST report and reproduction](docs/testing/official-a2a-tck.md) — after Step 17-4: **63 passed / 1 failed / 171 skipped / 30 deselected** (pytest). The remaining `CORE-SEND-003` mismatch is tracked [upstream in #202](https://github.com/a2aproject/a2a-tck/issues/202). The TCK workflow is informational, **not** an A2A conformance certificate.
 
 - [A2Aの全体像（日本語・A4 1枚PDF）](docs/guides/a2a-protocol-overview-ja.pdf) — 登場人物・依頼の流れ・主要用語・MCPとの違いをまとめた学習資料。
@@ -71,7 +71,7 @@ The Gem provides:
 v0.1 is intentionally **server-first** and **non-streaming**.
 
 > [!WARNING]
-> **Security / production use:** v0.1.0 does not provide built-in authentication or per-caller Task authorization. Do not expose `POST /a2a` to untrusted clients. Before public deployment, protect the endpoint at your application's or network's security boundary. Security hardening is tracked in [Issue #11](https://github.com/cuichangquan/a2a-rails/issues/11).
+> **Versioned security note:** The original **v0.1.0** did not implement per-caller Task authorization. Published stable **0.2.0** (and prerelease **0.3.0.rc1**) include a host-owned authentication hook, principal-scoped Task operations and fail-closed non-development/test behavior. **Neither version supplies your identity provider or business authorization, and publication does not approve an anonymously exposed production endpoint.** See [SECURITY.md](SECURITY.md), [authentication guide](docs/guides/authentication.md) and [deployment #11](https://github.com/cuichangquan/a2a-rails/issues/11).
 
 ## Requirements
 
@@ -530,6 +530,10 @@ Known warning-enabled output from upstream `agent2agent 2.0.0` can include circu
 ## Release Documents
 
 - [CHANGELOG](CHANGELOG.md)
+- [Current 0.3.0 stable readiness (NOT released)](docs/release/v0.3.0-stable-readiness.md)
+- [Step 31-4 RC1 feedback evidence and risks](docs/release/v0.3.0-rc1-feedback-and-upgrade-readiness.md)
+- [Upgrading from v0.2.0 to planned v0.3.0](docs/release/upgrading-v0.2.0-to-v0.3.md)
+- [RC1 feedback / bug report template](https://github.com/cuichangquan/a2a-rails/issues/new?template=rc1-feedback.md)
 - [v0.1.0 Release Notes](docs/release/v0.1.0.md)
 - [v0.1.0 Release Checklist](docs/release/v0.1.0-checklist.md)
 - [v0.1.0 Release Record](docs/release/v0.1.0-record.md)
