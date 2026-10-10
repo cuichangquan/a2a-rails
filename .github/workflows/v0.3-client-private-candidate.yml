@@ -1,4 +1,4 @@
-name: Step 29-5r private v0.3.0.rc1 exact-installed-candidate
+name: Step 31-5 private stable 0.3.0 exact-installed candidate
 
 on:
   pull_request:
@@ -8,39 +8,43 @@ on:
       - "lib/**"
       - "app/**"
       - "config/**"
-      - "test/support/client_only_rails_smoke.rb"
-      - "test/support/production_security_http_smoke.rb"
+      - "test/support/**"
       - "spikes/clean_host_postgres/**"
       - "spikes/a2a_client_v03/**"
       - "docs/release/**"
       - "CHANGELOG.md"
+      - "README.md"
+      - "ROADMAP.md"
+      - "SECURITY.md"
   push:
-    branches: [main, candidate/v0.3.0-rc1]
+    branches: [main]
+    # Candidate branches are validated through pull_request only, to avoid
+    # spending CI capacity twice on push and pull_request of the same SHA.
     paths:
       - ".github/workflows/v0.3-client-private-candidate.yml"
       - "a2a-rails.gemspec"
       - "lib/**"
       - "app/**"
       - "config/**"
-      - "test/support/client_only_rails_smoke.rb"
-      - "test/support/production_security_http_smoke.rb"
+      - "test/support/**"
       - "spikes/clean_host_postgres/**"
       - "spikes/a2a_client_v03/**"
       - "docs/release/**"
       - "CHANGELOG.md"
+      - "README.md"
+      - "ROADMAP.md"
+      - "SECURITY.md"
   workflow_dispatch:
 
 permissions:
   contents: read
 
-# Verification artifact ONLY. candidate/v0.3.0-rc1 must have a real
-# source VERSION=0.3.0.rc1 and is built with *zero* staging edits.
-# Main and legacy PR rehearsal still stage a version from 0.2.0 without
-# changing main. Neither path authorizes tagging or RubyGems publication.
+# PRE-PUBLICATION CI artifact ONLY. No Gem push/tag/Release.
+# Check out PR head commit (not synthetic merge); archive once, build once.
 env:
-  RC_VERSION: "0.3.0.rc1"
-  RC_FILENAME: "a2a-rails-0.3.0.rc1.gem"
-  RC_ARTIFACT: "a2a-rails-0.3.0.rc1-private-ci-only"
+  RC_VERSION: "0.3.0"
+  RC_FILENAME: "a2a-rails-0.3.0.gem"
+  RC_ARTIFACT: "a2a-rails-0.3.0-stable-candidate-ci-only"
 
 jobs:
   build-once:
@@ -48,10 +52,12 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - uses: ruby/setup-ruby@v1
         with:
           ruby-version: "3.4.10"
-      - name: Build from immutable checkout, with no staging delta for genuine RC1 source
+      - name: Build from immutable checkout, with no staging delta for genuine stable candidate source
         shell: bash
         run: |
           set -euo pipefail
@@ -60,32 +66,13 @@ jobs:
           mkdir -p "$RUNNER_TEMP/rc-source" "$RUNNER_TEMP/rc-package"
           git archive "$source_sha" | tar -xf - -C "$RUNNER_TEMP/rc-source"
 
-          if test "$GITHUB_REF" = "refs/heads/candidate/v0.3.0-rc1"; then
-            test "$source_version" = "$RC_VERSION" || {
-              echo "Frozen candidate branch must contain an actual RC1 VERSION"; exit 1;
-            }
-          fi
-
-          case "$source_version" in
-            0.2.0)
-              # Backward-compatible Step 29-5r main/PR rehearsal, NOT frozen source.
-              ruby - "$RUNNER_TEMP/rc-source/lib/a2a/rails/version.rb" <<'RUBY'
-          path = ARGV.fetch(0)
-          original = File.read(path)
-          before = 'VERSION = "0.2.0"'
-          abort "unexpected staging VERSION" unless original.scan(before).length == 1
-          File.write(path, original.sub(before, 'VERSION = "0.3.0.rc1"'))
-          RUBY
-              printf '%s\n' 'CI rehearsal: only staged VERSION changed 0.2.0 -> 0.3.0.rc1'                 > "$RUNNER_TEMP/rc-package/STAGING_DELTA"
-              ;;
-            0.3.0.rc1)
-              # Real source candidate branch: ZERO package-input modifications.
-              printf '%s\n' 'NONE: packaged directly from immutable source SHA with VERSION=0.3.0.rc1'                 > "$RUNNER_TEMP/rc-package/STAGING_DELTA"
-              ;;
-            *)
-              echo "Unsupported source VERSION: $source_version"; exit 1;
-              ;;
-          esac
+          test "$source_version" = "$RC_VERSION" || {
+            echo "Candidate must contain actual stable VERSION=$RC_VERSION"; exit 1;
+          }
+          test "$source_sha" = "${{ github.event.pull_request.head.sha || github.sha }}" || {
+            echo "Unexpected source SHA (synthetic PR merge disallowed)"; exit 1;
+          }
+          echo "NONE: exact source, no staging edit" > "$RUNNER_TEMP/rc-package/STAGING_DELTA"
           (
             cd "$RUNNER_TEMP/rc-source"
             gem build a2a-rails.gemspec --output "$RUNNER_TEMP/rc-package/$RC_FILENAME"
@@ -94,28 +81,37 @@ jobs:
           ruby -rrubygems/package -rdigest -rtmpdir - "$RUNNER_TEMP/rc-package/$RC_FILENAME" <<'RUBY'
           path = ARGV.fetch(0)
           spec = Gem::Package.new(path).spec
-          abort "not an RC Gem" unless spec.name == "a2a-rails" &&
-            spec.version.to_s == "0.3.0.rc1" &&
+          abort "not an exact stable candidate Gem" unless spec.name == "a2a-rails" &&
+            spec.version.to_s == "0.3.0" &&
             spec.required_ruby_version.satisfied_by?(Gem::Version.new("3.3.0"))
           Dir.mktmpdir do |dir|
             Gem::Package.new(path).extract_files(dir)
-            %w[
+            mandatory = %w[
+              lib/a2a/rails/version.rb
               lib/a2a/rails/client.rb
               lib/a2a/rails/client/agent_card_resolver.rb
               lib/a2a/rails/client/outbound_policy.rb
               lib/a2a/rails/client/pinned_https_transport.rb
               lib/a2a/rails/engine.rb
-            ].each do |relative|
+              README.md
+              CHANGELOG.md
+            ]
+            abort "missing packaged essentials" unless (mandatory - spec.files).empty?
+            abort "empty Gem file manifest" if spec.files.empty?
+            spec.files.each do |relative|
+              abort "unexpected file in Gem: #{relative}" unless
+                relative.match?(%r{\A(?:lib/|app/|config/|README\.md\z|CHANGELOG\.md\z|LICENSE\z)})
               origin = File.join(ENV.fetch("GITHUB_WORKSPACE"), relative)
               packaged = File.join(dir, relative)
-              abort "missing or differing packaged Client file: #{relative}" unless
-                File.file?(packaged) &&
+              abort "missing or differing packaged source: #{relative}" unless
+                File.file?(origin) && File.file?(packaged) &&
                 Digest::SHA256.file(origin).hexdigest == Digest::SHA256.file(packaged).hexdigest
             end
+            puts "PASS exact matching packaged files: #{spec.files.size}"
             abort "wrong version within package" unless
-              File.read(File.join(dir, "lib/a2a/rails/version.rb")).include?('VERSION = "0.3.0.rc1"')
+              File.read(File.join(dir, "lib/a2a/rails/version.rb")).include?('VERSION = "0.3.0"')
           end
-          puts "PASS: packaged Client/Server source bytes and rc1 metadata match expected input"
+          puts "PASS: packaged Client/Server source bytes and stable-candidate metadata match expected input"
           RUBY
           (
             cd "$RUNNER_TEMP/rc-package"
@@ -130,12 +126,12 @@ jobs:
         with:
           name: ${{ env.RC_ARTIFACT }}
           path: |
-            ${{ runner.temp }}/rc-package/a2a-rails-0.3.0.rc1.gem
+            ${{ runner.temp }}/rc-package/a2a-rails-0.3.0.gem
             ${{ runner.temp }}/rc-package/SHA256SUMS
             ${{ runner.temp }}/rc-package/SOURCE_COMMIT
             ${{ runner.temp }}/rc-package/STAGING_DELTA
           if-no-files-found: error
-          retention-days: 14
+          retention-days: 30
 
   installed-client:
     needs: build-once
@@ -148,13 +144,15 @@ jobs:
         rails: ["~> 8.0.0", "~> 8.1.0"]
     env:
       TARGET_RAILS: ${{ matrix.rails }}
-      A2A_RAILS_EXPECTED_VERSION: "0.3.0.rc1"
+      A2A_RAILS_EXPECTED_VERSION: "0.3.0"
       A2A_RAILS_USE_INSTALLED_GEM: "1"
       A2A_RAILS_SOURCE_ROOT: ${{ github.workspace }}
       RAILS_ENV: production
       RACK_ENV: production
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - uses: ruby/setup-ruby@v1
         with:
           ruby-version: ${{ matrix.ruby }}
@@ -168,7 +166,7 @@ jobs:
           set -euo pipefail
           cd "$RUNNER_TEMP/rc"
           sha256sum -c SHA256SUMS
-          test "$(cat SOURCE_COMMIT)" = "$GITHUB_SHA"
+          test "$(cat SOURCE_COMMIT)" = "${{ github.event.pull_request.head.sha || github.sha }}"
           gem install --no-document "./$RC_FILENAME"
           gem install --no-document rails -v "$TARGET_RAILS"
           mkdir -p "$RUNNER_TEMP/clean-client-host"
@@ -213,7 +211,7 @@ jobs:
     env:
       TARGET_RAILS: ${{ matrix.rails }}
       A2A_TEST_INFLECTION: ${{ matrix.inflection }}
-      A2A_RAILS_EXPECTED_VERSION: "0.3.0.rc1"
+      A2A_RAILS_EXPECTED_VERSION: "0.3.0"
       A2A_RAILS_SOURCE_ROOT: ${{ github.workspace }}
       DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/a2a_rails_test
       RAILS_ENV: production
@@ -223,6 +221,8 @@ jobs:
       BUNDLE_RETRY: "3"
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - name: Start preinstalled PostgreSQL 16 on Ubuntu 24.04 runner
         shell: bash
         run: |
@@ -249,14 +249,14 @@ jobs:
           set -euo pipefail
           cd "$RUNNER_TEMP/rc"
           sha256sum -c SHA256SUMS
-          test "$(cat SOURCE_COMMIT)" = "$GITHUB_SHA"
+          test "$(cat SOURCE_COMMIT)" = "${{ github.event.pull_request.head.sha || github.sha }}"
           echo "CANDIDATE_GEM_SHA256=$(sha256sum "$RC_FILENAME" | cut -d ' ' -f 1)" >> "$GITHUB_ENV"
           gem install --no-document "./$RC_FILENAME"
           gem install --no-document rails -v "$TARGET_RAILS"
           pg_config --version
       - name: Verify installed RC clean Rails/PostgreSQL migration, restart, race and prune
         env:
-          CANDIDATE_GEM_FILE: ${{ runner.temp }}/rc/a2a-rails-0.3.0.rc1.gem
+          CANDIDATE_GEM_FILE: ${{ runner.temp }}/rc/a2a-rails-0.3.0.gem
         run: ruby spikes/clean_host_postgres/smoke.rb
 
   installed-official-sdk:
@@ -271,12 +271,14 @@ jobs:
       STEP29_5B_AGENT: ${{ matrix.agent }}
       AGENT_HOST: ${{ matrix.agent }}-agent.test
       AGENT_PORT: ${{ matrix.agent == 'python' && '3444' || '3445' }}
-      A2A_RAILS_EXPECTED_VERSION: "0.3.0.rc1"
+      A2A_RAILS_EXPECTED_VERSION: "0.3.0"
       A2A_RAILS_USE_INSTALLED_GEM: "1"
       A2A_RAILS_SOURCE_ROOT: ${{ github.workspace }}
       PYTHONUNBUFFERED: "1"
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - uses: ruby/setup-ruby@v1
         with:
           ruby-version: "3.4.10"
@@ -299,14 +301,14 @@ jobs:
           set -euo pipefail
           cd "$RUNNER_TEMP/rc"
           sha256sum -c SHA256SUMS
-          test "$(cat SOURCE_COMMIT)" = "$GITHUB_SHA"
+          test "$(cat SOURCE_COMMIT)" = "${{ github.event.pull_request.head.sha || github.sha }}"
           gem install --no-document "./$RC_FILENAME"
           gem install --no-document rails -v "~> 8.1.0"
           mkdir -p "$RUNNER_TEMP/isolated-interop-host"
           cat > "$RUNNER_TEMP/isolated-interop-host/Gemfile" <<GEMFILE
           source "https://rubygems.org"
           gem "rails", "~> 8.1.0"
-          gem "a2a-rails", "= 0.3.0.rc1"
+          gem "a2a-rails", "= 0.3.0"
           GEMFILE
           BUNDLE_GEMFILE="$RUNNER_TEMP/isolated-interop-host/Gemfile" bundle install --local
           BUNDLE_GEMFILE="$RUNNER_TEMP/isolated-interop-host/Gemfile" bundle exec ruby -e '
@@ -378,3 +380,190 @@ jobs:
           if test -f "$RUNNER_TEMP/official-server.pid"; then
             kill "$(cat "$RUNNER_TEMP/official-server.pid")" 2>/dev/null || true
           fi
+
+  installed-advisory:
+    needs: build-once
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        ruby: ["3.3", "3.4", "4.0"]
+        rails: ["~> 8.0.0", "~> 8.1.0"]
+    env:
+      TARGET_RAILS: ${{ matrix.rails }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ matrix.ruby }}
+      - uses: actions/download-artifact@v4
+        with:
+          name: ${{ env.RC_ARTIFACT }}
+          path: ${{ runner.temp }}/rc
+      - name: Resolve the exact candidate locally and audit RubySec advisories
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP/rc"
+          sha256sum -c SHA256SUMS
+          test "$(cat SOURCE_COMMIT)" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          gem install --no-document "./$RC_FILENAME"
+          gem install --no-document rails -v "$TARGET_RAILS"
+          # Rails meta-Gem brings mail/net-imap in; keep this independently audited
+          # host on a patched net-imap version without imposing mail on the Gem.
+          gem install --no-document net-imap -v "~> 0.5.15"
+          mkdir -p "$RUNNER_TEMP/stable-audit" "$RUNNER_TEMP/stable-audit-evidence"
+          cat > "$RUNNER_TEMP/stable-audit/Gemfile" <<GEMFILE
+          source "https://rubygems.org"
+          gem "rails", "$TARGET_RAILS"
+          gem "net-imap", "~> 0.5.15"
+          gem "a2a-rails", "= $RC_VERSION"
+          GEMFILE
+          cd "$RUNNER_TEMP/stable-audit"
+          bundle install --local
+          bundle exec ruby -rbundler -e '
+            require "rails"
+            require "a2a-rails"
+            spec = Gem.loaded_specs.fetch("a2a-rails")
+            abort "incorrect exact candidate" unless
+              A2A::Rails::VERSION == "0.3.0" && spec.version.to_s == "0.3.0"
+            abort "source checkout loaded" if File.realpath(spec.full_gem_path).start_with?(
+              File.realpath(ENV.fetch("GITHUB_WORKSPACE")) + File::SEPARATOR
+            )
+            puts "PASS installed candidate Ruby #{RUBY_VERSION} Rails #{Rails.version}"
+          ' | tee "$RUNNER_TEMP/stable-audit-evidence/installed.txt"
+          cp Gemfile.lock "$RUNNER_TEMP/stable-audit-evidence/Gemfile.lock"
+          sha256sum Gemfile.lock | tee "$RUNNER_TEMP/stable-audit-evidence/lockfile-SHA256SUMS"
+          cp "$RUNNER_TEMP/rc/SHA256SUMS" "$RUNNER_TEMP/stable-audit-evidence/candidate-SHA256SUMS"
+          cp "$RUNNER_TEMP/rc/SOURCE_COMMIT" "$RUNNER_TEMP/stable-audit-evidence/SOURCE_COMMIT"
+          gem install --no-document bundler-audit
+          bundle-audit version | tee "$RUNNER_TEMP/stable-audit-evidence/auditor-version.txt"
+          bundle-audit check --update 2>&1 | tee "$RUNNER_TEMP/stable-audit-evidence/advisories.txt"
+          echo "PASS: no matching known RubySec vulnerabilities in this resolved exact candidate host"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: stable-audit-ruby-${{ matrix.ruby }}-rails-${{ matrix.rails == '~> 8.0.0' && '8-0' || '8-1' }}
+          path: ${{ runner.temp }}/stable-audit-evidence/
+          if-no-files-found: warn
+          retention-days: 30
+
+  installed-rails-echo:
+    needs: build-once
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      RAILS_ENV: test
+      RACK_ENV: test
+      RAILS_MAX_THREADS: "1"
+      WEB_CONCURRENCY: "0"
+      STEP29_5_DEMO_TLS_BASE: https://echo-agent.test:3443
+      A2A_RAILS_SOURCE_ROOT: ${{ github.workspace }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.4.10"
+      - uses: actions/download-artifact@v4
+        with:
+          name: ${{ env.RC_ARTIFACT }}
+          path: ${{ runner.temp }}/rc
+      - name: Install exactly the frozen 0.3.0 Gem into independent Client bundle
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP/rc"
+          sha256sum -c SHA256SUMS
+          test "$(cat SOURCE_COMMIT)" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          gem install --no-document "./$RC_FILENAME"
+          gem install --no-document rails -v "~> 8.1.0"
+          mkdir -p "$RUNNER_TEMP/stable-client-host"
+          cat > "$RUNNER_TEMP/stable-client-host/Gemfile" <<GEMFILE
+          source "https://rubygems.org"
+          gem "rails", "~> 8.1.0"
+          gem "a2a-rails", "= 0.3.0"
+          GEMFILE
+          BUNDLE_GEMFILE="$RUNNER_TEMP/stable-client-host/Gemfile" bundle install --local
+      - name: Independently install pinned published 0.2.0 Rails Echo Server
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone -q https://github.com/cuichangquan/a2a-rails-demo.git "$RUNNER_TEMP/a2a-rails-demo"
+          git -C "$RUNNER_TEMP/a2a-rails-demo" checkout -q --detach 7cb002a63d6cc976b1562ee45e8a260771d7ef1d
+          test "$(git -C "$RUNNER_TEMP/a2a-rails-demo" rev-parse HEAD)" = "7cb002a63d6cc976b1562ee45e8a260771d7ef1d"
+          BUNDLE_GEMFILE="$RUNNER_TEMP/a2a-rails-demo/Gemfile" bundle install --jobs 4 --retry 3
+          BUNDLE_GEMFILE="$RUNNER_TEMP/a2a-rails-demo/Gemfile" bundle exec ruby -rbundler -e '
+            require "a2a-rails"
+            spec = Gem.loaded_specs.fetch("a2a-rails")
+            source = Bundler.load.specs.find { |s| s.name == "a2a-rails" }.source
+            abort "Server not published stable 0.2.0" unless
+              spec.version.to_s == "0.2.0" && source.is_a?(Bundler::Source::Rubygems)
+            puts "PASS independent Server uses published RubyGems 0.2.0"
+          '
+      - name: Start Rails Server listening on loopback HTTP only
+        shell: bash
+        run: |
+          set -euo pipefail
+          (
+            cd "$RUNNER_TEMP/a2a-rails-demo"
+            BUNDLE_GEMFILE="$RUNNER_TEMP/a2a-rails-demo/Gemfile" bundle exec rails server -b 127.0.0.1 -p 3000
+          ) > "$RUNNER_TEMP/stable-server.log" 2>&1 &
+          echo "$!" > "$RUNNER_TEMP/stable-server.pid"
+          for n in $(seq 1 60); do
+            if curl --noproxy '*' -fsS http://127.0.0.1:3000/.well-known/agent-card.json > /dev/null 2>&1; then
+              echo "PASS published Server loopback Card"
+              exit 0
+            fi
+            sleep 1
+          done
+          tail -n 45 "$RUNNER_TEMP/stable-server.log"
+          exit 1
+      - name: Start local test-only TLS bridge with ephemeral verified certificate
+        shell: bash
+        run: |
+          set -euo pipefail
+          openssl req -x509 -nodes -newkey rsa:2048 -sha256 -days 1 \
+            -keyout "$RUNNER_TEMP/stable-tls.key" -out "$RUNNER_TEMP/stable-tls.crt" \
+            -subj "/CN=echo-agent.test" -addext "subjectAltName=DNS:echo-agent.test" >/dev/null 2>&1
+          echo "STEP29_5_DEMO_TLS_CA=$RUNNER_TEMP/stable-tls.crt" >> "$GITHUB_ENV"
+          python3 spikes/a2a_client_v03/independent_demo_https_bridge.py \
+            --certificate "$RUNNER_TEMP/stable-tls.crt" --key "$RUNNER_TEMP/stable-tls.key" \
+            --port 3443 > "$RUNNER_TEMP/stable-tls-bridge.log" 2>&1 &
+          echo "$!" > "$RUNNER_TEMP/stable-tls-bridge.pid"
+          for n in $(seq 1 50); do
+            if curl --noproxy '*' -fsS --cacert "$RUNNER_TEMP/stable-tls.crt" \
+              --resolve echo-agent.test:3443:127.0.0.1 \
+              https://echo-agent.test:3443/.well-known/agent-card.json > "$RUNNER_TEMP/stable-card.json" 2>/dev/null; then
+              echo "PASS temporary TLS bridge Card"
+              exit 0
+            fi
+            sleep 1
+          done
+          tail -n 45 "$RUNNER_TEMP/stable-tls-bridge.log"
+          exit 1
+      - name: Call published 0.2.0 Rails Server from exact installed 0.3.0 Client over TLS
+        shell: bash
+        run: |
+          set -euo pipefail
+          BUNDLE_GEMFILE="$RUNNER_TEMP/stable-client-host/Gemfile" bundle exec ruby \
+            "$GITHUB_WORKSPACE/test/support/step31_stable_candidate_echo.rb"
+      - name: Limited logs on failure
+        if: failure()
+        shell: bash
+        run: |
+          tail -n 35 "$RUNNER_TEMP/stable-server.log" 2>/dev/null || true
+          tail -n 25 "$RUNNER_TEMP/stable-tls-bridge.log" 2>/dev/null || true
+      - name: Stop test-only processes
+        if: always()
+        shell: bash
+        run: |
+          for name in stable-tls-bridge stable-server; do
+            if test -f "$RUNNER_TEMP/$name.pid"; then
+              kill "$(cat "$RUNNER_TEMP/$name.pid")" 2>/dev/null || true
+            fi
+          done

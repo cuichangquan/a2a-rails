@@ -1,10 +1,10 @@
-# v0.2.0 → v0.3.0 upgrade guide (stable release preparation / 正式版準備)
+# v0.2.0 → v0.3.0 upgrade guide / アップグレード手順
 
-> **2026-10-10 status:** Stable `a2a-rails 0.3.0` is **not released**. This is a review-ready guide for the planned stable version, based on **published prerelease `0.3.0.rc1`** and current main. It is **not** installation or deployment approval. Do not use unqualified `bundle update` to imply a stable `0.3.0` Gem exists. [Step 31 readiness](v0.3.0-stable-readiness.md) · [Step 31-4 feedback](v0.3.0-rc1-feedback-and-upgrade-readiness.md).
+> **Availability and production caution:** Verify the exact version is actually listed on [RubyGems](https://rubygems.org/gems/a2a-rails/versions) before installing it. This guide describes the `0.3.0` source API and the previous `0.3.0.rc1` prerelease; a source commit or CI artifact does **not** create a public release. The host application must perform its own auth, network and lockfile security checks before real use. [Release evidence](v0.3.0-stable-readiness.md) · [RC1 feedback snapshot](v0.3.0-rc1-feedback-and-upgrade-readiness.md).
 
 ## What changes from published stable 0.2.0?
 
-| Area | Existing 0.2.0 | Published 0.3.0.rc1 / planned 0.3.0 |
+| Area | Existing 0.2.0 | v0.3.0 (introduced in prerelease RC1) |
 | --- | --- | --- |
 | Rails A2A Server | Default-enabled Engine, Agent/Skill, Task/direct Message, auth, optional AR Store and ActiveJob | **Retained**; `server_enabled=true` remains the default |
 | Outbound A2A Client | Not shipped | New `A2A::Rails::Client`: Agent Card discovery; A2A v1.0 JSON-RPC SendMessage, GetTask, ListTasks, CancelTask |
@@ -29,7 +29,7 @@ bundle exec ruby -ra2a-rails -e 'puts A2A::Rails::VERSION'
 # Expected: 0.3.0.rc1
 ```
 
-Stable 0.2.0 continues to be the default choice for users not adopting prerelease Client functionality. **Once stable `0.3.0` actually ships and passes its fresh artifact verification**, deliberately replace the Gemfile pin with `gem "a2a-rails", "= 0.3.0"` and re-run the application's CI and security tests. The stable version must not be installed or advertised as currently available.
+Applications not adopting the new Client can retain a tested `0.2.0` pin. **If RubyGems lists stable `0.3.0`**, deliberately replace the Gemfile pin with `gem "a2a-rails", "= 0.3.0"` and rerun the application's CI and security checks. If it is not yet listed, keep the approved stable version or deliberately test prerelease `0.3.0.rc1` only.
 
 ## 2. Existing Server applications: no Client configuration required
 
@@ -107,6 +107,14 @@ The Client does **not** automatically retry ambiguous `SendMessage`/`CancelTask`
 - **Not supported:** IPv6-only Agent targets, streaming/SSE, push notifications and gRPC. A2A v1.0 JSON-RPC only.
 - `MemoryStore` remains process-local by default; opt in to `ActiveRecordStore` for durable distributed Server Task state, and select a durable queue where appropriate.
 - Public/no-auth production operation is **separately NO-GO by default**, per [Issue #11](https://github.com/cuichangquan/a2a-rails/issues/11). Publishing the Gem does not approve a host's exposure.
+
+## Dependency advisory differences from RC1
+
+The `0.3.0` line raises `json` (a2a-rails's direct runtime dependency) to **`>= 2.19.9, < 3`**, following RubySec advisories for earlier JSON versions discovered during exact host testing. **Before upgrading**, ensure your Ruby, Rails and existing Bundler lockfile can resolve this range. Do not bypass the bound to make an old application boot.
+
+A full `gem "rails"` installation also installs `net-imap` through mail features. Initial independent Rails-host security checks found vulnerable `net-imap 0.4.25`; the audited Rails test host selected patched `net-imap ~>0.5.15`. This is **not a new a2a-rails Gem dependency**: production users must update/audit **their own application's** `net-imap` and lockfile, not assume a RubyGem version bump repairs unrelated Rails/mail advisories.
+
+See [candidate security finding details](v0.3.0-stable-candidate-record.md). The first failed candidate checks remain public as provenance; later successful remediated CI results are recorded under [Step 31 #120](https://github.com/cuichangquan/a2a-rails/issues/120). The consuming application's dependency graph still requires its own advisory review.
 
 ## 6. Regression checks before any version upgrade
 

@@ -1,10 +1,10 @@
 # a2a-rails Roadmap
 
-> Status: updated 2026-10-10. `0.3.0.rc1` is published after explicit owner GO and exact-artifact verification; stable `0.3.0` is not released. See the [RC1 publication record](docs/release/v0.3.0-rc1-publication-record.md). Independent external review remains optional (#113), and public-production deployment is a separate decision (#11).
+> Release verification status was reviewed on 2026-10-10: `0.3.0.rc1` is published; `0.3.0` has an exact-artifact, source-verified stable candidate. Check [RubyGems](https://rubygems.org/gems/a2a-rails/versions) for current publication state. [Step 31 release decision](https://github.com/cuichangquan/a2a-rails/issues/120) records the final maintainer GO; independent audit is optional (#113), while public-production deployment remains separate (#11).
 >
 > **Step 21 complete:** [Issue #35](https://github.com/cuichangquan/a2a-rails/issues/35) delivered an optional durable ActiveRecord Task Store, owner-scoped SQL access, row locking, keyset pagination, retention/pruning/quota/payload maintenance, shared Store contract tests and PostgreSQL 16 durability/locking smoke. [Design](docs/design/active-record-task-store.md) · [Guide](docs/guides/active-record-task-store.md). Step 20's `0.2.0.rc1` artifact is historical only; [`0.2.0.rc2`](https://github.com/cuichangquan/a2a-rails/releases/tag/v0.2.0-rc.2) was subsequently verified and published as a **pre-release**. [Step 26](docs/release/v0.2.0-stable-readiness.md) completed the stable-release evidence, [Step 27](docs/release/v0.2.0-publication-record.md) published `0.2.0`, and Step 28 proved that the independent Rails demo runs against that public Gem. Public-production security [Issue #11](https://github.com/cuichangquan/a2a-rails/issues/11) remains open.
 
-## Current stable baseline — v0.2.0 (released)
+## Earlier stable baseline — v0.2.0 (released)
 
 - [x] [RubyGems + GitHub Release `0.2.0` published](docs/release/v0.2.0-publication-record.md); public package SHA256 verified.
 - [x] A2A v1.0 JSON-RPC integration, Agent Card, Rails generators, synchronous Task lifecycle and opt-in ActiveRecordStore / ActiveJob execution.
@@ -12,9 +12,12 @@
 - [x] README Quick Start, JP / EN A2A overview PDFs, Zenn / Qiita articles and community submissions.
 - [ ] Open public-production approval: deployment-specific controls are still required under [Issue #11](https://github.com/cuichangquan/a2a-rails/issues/11).
 
-## Current RC1 release and next stable work
+## v0.3.0 release verification and historical RC1 record
 
-- **Step 31-4 feedback/upgrade documentation:** [Dated RC1 user feedback assessment](docs/release/v0.3.0-rc1-feedback-and-upgrade-readiness.md) · [v0.2.0 → planned v0.3.0 migration guide](docs/release/upgrading-v0.2.0-to-v0.3.md) · [Issue #120](https://github.com/cuichangquan/a2a-rails/issues/120). No verified external RC1-specific public reports were found in examined channels; adopter confidence remains **UNKNOWN** pending any future feedback and the maintainer's explicit risk decision. Stable version/tag/artifact still absent.
+- **Step 31-5 exact candidate evidence:** [20-job single-Gem audit/interoperability suite and independent 7-job packaged/PG checks](docs/release/v0.3.0-stable-candidate-record.md) succeeded for a reviewed candidate, with all CI evidence retained in [Issue #120](https://github.com/cuichangquan/a2a-rails/issues/120). Any source/metadata change requires a new source and SHA256 proof; published Gem release requires a separate owner GO, and public deployment is separate.
+
+
+- **Step 31-4 feedback/upgrade documentation:** [Dated RC1 user feedback assessment](docs/release/v0.3.0-rc1-feedback-and-upgrade-readiness.md) · [v0.2.0 → planned v0.3.0 migration guide](docs/release/upgrading-v0.2.0-to-v0.3.md) · [Issue #120](https://github.com/cuichangquan/a2a-rails/issues/120). No verified external RC1-specific public reports were found in examined channels; adopter confidence remains **UNKNOWN** pending follow-up. The public release status must be checked on RubyGems.
 - **Step 31-3 interoperability/advisory evidence:** [RC1 evidence and lockfile-level RubySec scan](docs/release/v0.3.0-interop-advisory-evidence.md) · [separate audit CI](.github/workflows/v0.3-rc1-dependency-audit.yml). TCK continues to report one fixture-related failure; an advisory database result is not a complete security certification.
 
 

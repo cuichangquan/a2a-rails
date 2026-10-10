@@ -4,21 +4,32 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased] — preparation for stable 0.3.0 (NOT published)
+## [0.3.0] — Rails Server compatibility and outbound Client
 
-> **Planning only (2026-10-10):** The latest published prerelease is `0.3.0.rc1`, and the latest published **stable** Gem is `0.2.0`. **No stable `0.3.0` has been built, tagged, approved or pushed.** Do not copy the RC1 tag/SHA256 into a future stable publication record.
+`0.3.0` advances the outbound A2A Client tested in `0.3.0.rc1` while retaining the existing Rails A2A Server default. [Release verification record](docs/release/v0.3.0-stable-candidate-record.md) and [Step 31 tracking issue](https://github.com/cuichangquan/a2a-rails/issues/120) contain the dated CI/provenance history. Consult [GitHub Releases](https://github.com/cuichangquan/a2a-rails/releases) or [RubyGems versions](https://rubygems.org/gems/a2a-rails/versions) for actual publication status; source versions and CI artifacts alone are not public releases.
 
-### Documentation and release preparation
+### Added and retained behavior
 
-- Added [v0.2.0 → planned v0.3.0 upgrade guide](docs/release/upgrading-v0.2.0-to-v0.3.md) with separate existing-Server vs Client-only paths, exact origin-scoped credentials, Task/direct Message handling, timeout/idempotency boundaries and no mandatory database migration for adding the Client.
-- Recorded a [dated public RC1 feedback snapshot](docs/release/v0.3.0-rc1-feedback-and-upgrade-readiness.md) and a [safe bug-report template](.github/ISSUE_TEMPLATE/rc1-feedback.md). No externally verified RC1-specific public regression was found in the checked channels; **external adoption compatibility is UNKNOWN**, not proven by the absence of reports.
-- Added [published RC1 dependency advisory CI](.github/workflows/v0.3-rc1-dependency-audit.yml) for Ruby 3.3/3.4/4.0 × Rails 8.0/8.1; 6/6 resolved hosts found no RubySec matching advisories **as of 2026-10-10**, not a future stable-Gem guarantee.
+- Outbound `A2A::Rails::Client` for secure HTTPS Agent Card discovery and A2A v1.0 JSON-RPC `SendMessage`, `GetTask`, `ListTasks`, and `CancelTask`; immutable Ruby DTOs preserve Task, direct Message, rich Parts, cursors and protocol errors.
+- Client-only Rails hosts can set `config.server_enabled = false`. Existing Server applications keep `server_enabled = true` by default and retain the authenticated Task Store, ActiveRecord and ActiveJob behavior shipped in `0.2.0`.
+- Public outbound Client has exact HTTPS-origin allowlisting, DNS and pinned public-IPv4 socket checks, peer/hostname/SNI certificate verification, Card/RPC credential separation, bounded HTTP and parsing, and no automatic side-effect retries.
 
-**Before creating any stable `[0.3.0]` section:** complete the final version/feature freeze, fresh build-once artifact + SHA256, installed-Gem and dependency tests, README/upgrade review, final bug/advisory recheck, written residual-risk decision and the **maintainer's separate explicit release GO**. Do not treat this unversioned section as a published release note.
+### Dependency security and compatibility
+
+- The direct `json` dependency now requires **`>= 2.19.9, < 3`** after an early `0.3.0` candidate audit caught vulnerable older resolved versions. Ruby 3.3/3.4/4.0 and Rails 8.0/8.1 host compatibility is exercised in CI.
+- A full Rails host can independently resolve an affected `net-imap` release via its mail stack. The six-host candidate audit selects patched `net-imap ~> 0.5.15`; `net-imap` is **not** a direct dependency of this Gem. **Consumers must update/audit their own Gemfile.lock**.
+- The final candidate's six audited host lockfiles had no matching advisories in RubySec at the time of the 2026-10-10 check; this is **not** a guarantee about future advisories, other lockfiles, host Ruby/OS or independently audited security.
+- Existing local test-only TLS adapters are not supported production Client bypasses. No streaming/SSE, push, gRPC, IPv6-only outgoing hosts, generic retries/polling, OAuth issuer or universal production identity/tenant configuration is included.
+
+### Documentation and evidence
+
+- [Upgrade guide from v0.2.0](docs/release/upgrading-v0.2.0-to-v0.3.md), [RC1 feedback snapshot](docs/release/v0.3.0-rc1-feedback-and-upgrade-readiness.md), [candidate provenance](docs/release/v0.3.0-stable-candidate-record.md) and [confidential security reporting](SECURITY.md).
+- Official pinned A2A TCK baseline remains **63 passed / 1 known upstream-fixture failure / 171 skipped / 30 deselected**; green informational workflow does not establish full A2A certification.
+- Gem publication and exposing a public/no-auth A2A Server are **separate decisions**. Deployment requires host IdP, business authorization, rate limits, durable workers/storage and safe logging per [Issue #11](https://github.com/cuichangquan/a2a-rails/issues/11).
 
 ## [0.3.0.rc1] - 2026-10-10 (published pre-release)
 
-> **Published after explicit owner GO:** [RubyGems RC1](https://rubygems.org/gems/a2a-rails/versions/0.3.0.rc1) and [GitHub Pre-release](https://github.com/cuichangquan/a2a-rails/releases/tag/v0.3.0-rc1), from source `664a201e6df9173e1656bb5f25b503821c0be2b5`, using the same build-once Gem. SHA256: `e5b184e615f9f59c3db770d150b96e847fa5df83ca152e274ae55c656b68feda`. See the [publication record](docs/release/v0.3.0-rc1-publication-record.md). Stable `0.3.0` is not released.
+> **Published after explicit owner GO:** [RubyGems RC1](https://rubygems.org/gems/a2a-rails/versions/0.3.0.rc1) and [GitHub Pre-release](https://github.com/cuichangquan/a2a-rails/releases/tag/v0.3.0-rc1), from source `664a201e6df9173e1656bb5f25b503821c0be2b5`, using the same build-once Gem. SHA256: `e5b184e615f9f59c3db770d150b96e847fa5df83ca152e274ae55c656b68feda`. See the [publication record](docs/release/v0.3.0-rc1-publication-record.md). At the time of the `0.3.0.rc1` pre-release announcement, stable `0.3.0` was not yet released.
 
 > **Pre-release candidate, not a stable-production security certification.**
 > This candidate contains the previously unreleased outbound Client changes

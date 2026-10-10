@@ -1,4 +1,6 @@
 # a2a-rails
+
+> **Versions and release evidence:** This source contains the `0.3.0` code, including the outbound A2A Client. To check whether a specific version has been **published**, consult [RubyGems versions](https://rubygems.org/gems/a2a-rails/versions) and [GitHub Releases](https://github.com/cuichangquan/a2a-rails/releases). The [Step 31 candidate record](docs/release/v0.3.0-stable-candidate-record.md) tracks the prepublication build/hash; successful CI is not permission to expose a production Agent publicly.
 <img src="docs/assets/a2a-rails-infographics.png">
 <br/>
 <br/>
@@ -6,19 +8,20 @@
 
 Rails-native integration for exposing Rails applications as A2A v1.0 agents.
 
-> **New pre-release (2026-10-10):** `0.3.0.rc1` is published on [RubyGems](https://rubygems.org/gems/a2a-rails/versions/0.3.0.rc1) and as a [GitHub Pre-release](https://github.com/cuichangquan/a2a-rails/releases/tag/v0.3.0-rc1). It adds the outbound Rails Client and Client-only mode. Install with `gem install a2a-rails -v 0.3.0.rc1`, or pin `gem "a2a-rails", "0.3.0.rc1"` in your Gemfile. Stable `0.2.0` remains available. RC1 is not stable `0.3.0`, an independent audit, or public-production approval; see the [publication record](docs/release/v0.3.0-rc1-publication-record.md) and [Client guide](docs/guides/outbound-a2a-client.md).
+ > **v0.3.0.rc1 prerelease history (2026-10-10):** `0.3.0.rc1` is published on [RubyGems](https://rubygems.org/gems/a2a-rails/versions/0.3.0.rc1) and as a [GitHub Pre-release](https://github.com/cuichangquan/a2a-rails/releases/tag/v0.3.0-rc1). It adds the outbound Rails Client and Client-only mode. Install with `gem install a2a-rails -v 0.3.0.rc1`, or pin `gem "a2a-rails", "0.3.0.rc1"` in your Gemfile. Stable `0.2.0` remains available. RC1 is not stable `0.3.0`, an independent audit, or public-production approval; see the [publication record](docs/release/v0.3.0-rc1-publication-record.md) and [Client guide](docs/guides/outbound-a2a-client.md).
 
 > **Release status (2026-10-08):** **`0.2.0` is published as a stable release** on [RubyGems](https://rubygems.org/gems/a2a-rails/versions/0.2.0) and [GitHub](https://github.com/cuichangquan/a2a-rails/releases/tag/v0.2.0). It includes the Rails/Zeitwerk and migration-generator fixes after rc2. The public Gem matches the verified artifact byte-for-byte; see the [publication record](docs/release/v0.2.0-publication-record.md).
 
 - RubyGems: https://rubygems.org/gems/a2a-rails
-- Published stable release: https://github.com/cuichangquan/a2a-rails/releases/tag/v0.2.0
+- Published version list: https://rubygems.org/gems/a2a-rails/versions
+- Earlier stable release `0.2.0`: https://github.com/cuichangquan/a2a-rails/releases/tag/v0.2.0
 - Previous stable release: https://github.com/cuichangquan/a2a-rails/releases/tag/v0.1.0
 - Changelog: [CHANGELOG.md](CHANGELOG.md)
 - Release record: [v0.2.0 publication record](docs/release/v0.2.0-publication-record.md)
 - **Security policy / 脆弱性報告:** [SECURITY.md](SECURITY.md) — confidential vulnerability reporting, current assurance boundaries and production responsibilities.
-- **v0.3.x prerelease policy:** [Risk-based release gates](docs/release/step-29-5u-risk-based-oss-release-policy.md) — independently commissioned external audit is **recommended but optional**, not a known vulnerability or RubyGems requirement. Technical security checks, no known unresolved Critical/High findings, exact Gem provenance and explicit maintainer release approval remain mandatory; [optional community review #113](https://github.com/cuichangquan/a2a-rails/issues/113). **RC1 is published; stable 0.3.0 remains unreleased.**
-- **Release readiness & upgrading:** [Step 31 stable-readiness tracker](docs/release/v0.3.0-stable-readiness.md) · [RC1 feedback snapshot](docs/release/v0.3.0-rc1-feedback-and-upgrade-readiness.md) · [v0.2.0 → planned v0.3.0 upgrade guide](docs/release/upgrading-v0.2.0-to-v0.3.md) · [v0.1.0 → v0.2.0 upgrade guide](docs/release/upgrading-v0.1.0-to-v0.2.md). **Stable 0.3.0 is not published.** Release and public deployment require separate approval.
-- **Roadmap / 次にやること:** [ROADMAP.md](ROADMAP.md) · [Step 31 / Issue #120](https://github.com/cuichangquan/a2a-rails/issues/120) for planned stable `0.3.0` evaluation. [Issue #11](https://github.com/cuichangquan/a2a-rails/issues/11) still governs public-production deployment; the [historical `0.2.0` release record](docs/release/v0.2.0-stable-readiness.md) is separate.
+- **v0.3.x prerelease policy:** [Risk-based release gates](docs/release/step-29-5u-risk-based-oss-release-policy.md) — independently commissioned external audit is **recommended but optional**, not a known vulnerability or RubyGems requirement. Technical security checks, no known unresolved Critical/High findings, exact Gem provenance and explicit maintainer release approval remain mandatory; [optional community review #113](https://github.com/cuichangquan/a2a-rails/issues/113). **Check the published-version list for the current stable version; package publication and public-production deployment are separate decisions.**
+- **Release evidence & upgrading:** [Step 31 release-readiness record](docs/release/v0.3.0-stable-readiness.md) · [RC1 feedback snapshot](docs/release/v0.3.0-rc1-feedback-and-upgrade-readiness.md) · [v0.2.0 → v0.3.0 upgrade guide](docs/release/upgrading-v0.2.0-to-v0.3.md) · [v0.1.0 → v0.2.0 guide](docs/release/upgrading-v0.1.0-to-v0.2.md). Check [RubyGems](https://rubygems.org/gems/a2a-rails/versions) for availability. Gem distribution does **not** authorize public Agent exposure.
+- **Roadmap / 次にやること:** [ROADMAP.md](ROADMAP.md) · [Step 31 / Issue #120](https://github.com/cuichangquan/a2a-rails/issues/120) for the `0.3.0` release-evaluation and publication decisions. [Issue #11](https://github.com/cuichangquan/a2a-rails/issues/11) still governs public-production deployment; the [historical `0.2.0` release record](docs/release/v0.2.0-stable-readiness.md) is separate.
 - **Official A2A TCK results:** [Pinned JSON-RPC MUST report and reproduction](docs/testing/official-a2a-tck.md) — after Step 17-4: **63 passed / 1 failed / 171 skipped / 30 deselected** (pytest). The remaining `CORE-SEND-003` mismatch is tracked [upstream in #202](https://github.com/a2aproject/a2a-tck/issues/202). The TCK workflow is informational, **not** an A2A conformance certificate.
 
 - [A2Aの全体像（日本語・A4 1枚PDF）](docs/guides/a2a-protocol-overview-ja.pdf) — 登場人物・依頼の流れ・主要用語・MCPとの違いをまとめた学習資料。
@@ -66,12 +69,13 @@ The Gem provides:
 - SDK-independent Handler inputs;
 - a process-local MemoryStore by default, plus an optional durable ActiveRecordStore in `0.2.0`;
 - Rails generators for initial setup;
-- an internal Protocol Adapter boundary around the upstream SDK.
+- an internal Protocol Adapter boundary around the upstream SDK;
+- **in 0.3.x**, a Rails outbound `A2A::Rails::Client` with strict HTTPS Agent Card discovery, A2A v1.0 JSON-RPC communication and optional Client-only mode.
 
 v0.1 is intentionally **server-first** and **non-streaming**.
 
 > [!WARNING]
-> **Versioned security note:** The original **v0.1.0** did not implement per-caller Task authorization. Published stable **0.2.0** (and prerelease **0.3.0.rc1**) include a host-owned authentication hook, principal-scoped Task operations and fail-closed non-development/test behavior. **Neither version supplies your identity provider or business authorization, and publication does not approve an anonymously exposed production endpoint.** See [SECURITY.md](SECURITY.md), [authentication guide](docs/guides/authentication.md) and [deployment #11](https://github.com/cuichangquan/a2a-rails/issues/11).
+> **Versioned security note:** The original **v0.1.0** did not implement per-caller Task authorization. **0.2.0 and the subsequent 0.3.x line** include a host-owned authentication hook, principal-scoped Task operations and fail-closed non-development/test behavior. **Neither version supplies your identity provider or business authorization, and publication does not approve an anonymously exposed production endpoint.** See [SECURITY.md](SECURITY.md), [authentication guide](docs/guides/authentication.md) and [deployment #11](https://github.com/cuichangquan/a2a-rails/issues/11).
 
 ## Requirements
 

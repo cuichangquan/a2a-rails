@@ -31,7 +31,9 @@ Gem::Specification.new do |spec|
   spec.add_dependency "agent2agent", "~> 2.0.0"
   spec.add_dependency "actionpack", ">= 8.0", "< 8.2"
   spec.add_dependency "activejob", ">= 8.0", "< 8.2"
-  spec.add_dependency "json", "< 3"
+  # Block known vulnerable JSON 2.x releases in the new stable line.
+  # RubySec 2026-10-10 GHSA-x2f5-4prf-w687 fixed in 2.19.9.
+  spec.add_dependency "json", ">= 2.19.9", "< 3"
   spec.add_dependency "rack", ">= 3.0", "< 4"
   spec.add_dependency "railties", ">= 8.0", "< 8.2"
 
