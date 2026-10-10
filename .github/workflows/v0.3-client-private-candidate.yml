@@ -75,24 +75,33 @@ jobs:
           ruby -rrubygems/package -rdigest -rtmpdir - "$RUNNER_TEMP/rc-package/$RC_FILENAME" <<'RUBY'
           path = ARGV.fetch(0)
           spec = Gem::Package.new(path).spec
-          abort "not an RC Gem" unless spec.name == "a2a-rails" &&
+          abort "not an exact stable candidate Gem" unless spec.name == "a2a-rails" &&
             spec.version.to_s == "0.3.0" &&
             spec.required_ruby_version.satisfied_by?(Gem::Version.new("3.3.0"))
           Dir.mktmpdir do |dir|
             Gem::Package.new(path).extract_files(dir)
-            %w[
+            mandatory = %w[
+              lib/a2a/rails/version.rb
               lib/a2a/rails/client.rb
               lib/a2a/rails/client/agent_card_resolver.rb
               lib/a2a/rails/client/outbound_policy.rb
               lib/a2a/rails/client/pinned_https_transport.rb
               lib/a2a/rails/engine.rb
-            ].each do |relative|
+              README.md
+              CHANGELOG.md
+            ]
+            abort "missing packaged essentials" unless (mandatory - spec.files).empty?
+            abort "empty Gem file manifest" if spec.files.empty?
+            spec.files.each do |relative|
+              abort "unexpected file in Gem: #{relative}" unless
+                relative.match?(%r{\A(?:lib/|app/|config/|README\.md\z|CHANGELOG\.md\z|LICENSE\z)})
               origin = File.join(ENV.fetch("GITHUB_WORKSPACE"), relative)
               packaged = File.join(dir, relative)
-              abort "missing or differing packaged Client file: #{relative}" unless
-                File.file?(packaged) &&
+              abort "missing or differing packaged source: #{relative}" unless
+                File.file?(origin) && File.file?(packaged) &&
                 Digest::SHA256.file(origin).hexdigest == Digest::SHA256.file(packaged).hexdigest
             end
+            puts "PASS exact matching packaged files: #{spec.files.size}"
             abort "wrong version within package" unless
               File.read(File.join(dir, "lib/a2a/rails/version.rb")).include?('VERSION = "0.3.0"')
           end
@@ -116,7 +125,7 @@ jobs:
             ${{ runner.temp }}/rc-package/SOURCE_COMMIT
             ${{ runner.temp }}/rc-package/STAGING_DELTA
           if-no-files-found: error
-          retention-days: 14
+          retention-days: 30
 
   installed-client:
     needs: build-once
