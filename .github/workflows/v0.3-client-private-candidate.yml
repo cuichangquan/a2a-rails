@@ -431,3 +431,120 @@ installed-advisory:
           path: ${{ runner.temp }}/stable-audit-evidence/
           if-no-files-found: warn
           retention-days: 30
+
+installed-rails-echo:
+    needs: build-once
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      RAILS_ENV: test
+      RACK_ENV: test
+      RAILS_MAX_THREADS: "1"
+      WEB_CONCURRENCY: "0"
+      STEP29_5_DEMO_TLS_BASE: https://echo-agent.test:3443
+      A2A_RAILS_SOURCE_ROOT: ${{ github.workspace }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.4.10"
+      - uses: actions/download-artifact@v4
+        with:
+          name: ${{ env.RC_ARTIFACT }}
+          path: ${{ runner.temp }}/rc
+      - name: Install exactly the frozen 0.3.0 Gem into independent Client bundle
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP/rc"
+          sha256sum -c SHA256SUMS
+          test "$(cat SOURCE_COMMIT)" = "${{ github.event.pull_request.head.sha || github.sha }}"
+          gem install --no-document "./$RC_FILENAME"
+          gem install --no-document rails -v "~> 8.1.0"
+          mkdir -p "$RUNNER_TEMP/stable-client-host"
+          cat > "$RUNNER_TEMP/stable-client-host/Gemfile" <<GEMFILE
+          source "https://rubygems.org"
+          gem "rails", "~> 8.1.0"
+          gem "a2a-rails", "= 0.3.0"
+          GEMFILE
+          BUNDLE_GEMFILE="$RUNNER_TEMP/stable-client-host/Gemfile" bundle install --local
+      - name: Independently install pinned published 0.2.0 Rails Echo Server
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone -q https://github.com/cuichangquan/a2a-rails-demo.git "$RUNNER_TEMP/a2a-rails-demo"
+          git -C "$RUNNER_TEMP/a2a-rails-demo" checkout -q --detach 7cb002a63d6cc976b1562ee45e8a260771d7ef1d
+          test "$(git -C "$RUNNER_TEMP/a2a-rails-demo" rev-parse HEAD)" = "7cb002a63d6cc976b1562ee45e8a260771d7ef1d"
+          BUNDLE_GEMFILE="$RUNNER_TEMP/a2a-rails-demo/Gemfile" bundle install --jobs 4 --retry 3
+          BUNDLE_GEMFILE="$RUNNER_TEMP/a2a-rails-demo/Gemfile" bundle exec ruby -rbundler -e '
+            require "a2a-rails"
+            spec = Gem.loaded_specs.fetch("a2a-rails")
+            source = Bundler.load.specs.find { |s| s.name == "a2a-rails" }.source
+            abort "Server not published stable 0.2.0" unless
+              spec.version.to_s == "0.2.0" && source.is_a?(Bundler::Source::Rubygems)
+            puts "PASS independent Server uses published RubyGems 0.2.0"
+          '
+      - name: Start Rails Server listening on loopback HTTP only
+        shell: bash
+        run: |
+          set -euo pipefail
+          (
+            cd "$RUNNER_TEMP/a2a-rails-demo"
+            BUNDLE_GEMFILE="$RUNNER_TEMP/a2a-rails-demo/Gemfile" bundle exec rails server -b 127.0.0.1 -p 3000
+          ) > "$RUNNER_TEMP/stable-server.log" 2>&1 &
+          echo "$!" > "$RUNNER_TEMP/stable-server.pid"
+          for n in $(seq 1 60); do
+            if curl --noproxy '*' -fsS http://127.0.0.1:3000/.well-known/agent-card.json > /dev/null 2>&1; then
+              echo "PASS published Server loopback Card"
+              exit 0
+            fi
+            sleep 1
+          done
+          tail -n 45 "$RUNNER_TEMP/stable-server.log"
+          exit 1
+      - name: Start local test-only TLS bridge with ephemeral verified certificate
+        shell: bash
+        run: |
+          set -euo pipefail
+          openssl req -x509 -nodes -newkey rsa:2048 -sha256 -days 1 \
+            -keyout "$RUNNER_TEMP/stable-tls.key" -out "$RUNNER_TEMP/stable-tls.crt" \
+            -subj "/CN=echo-agent.test" -addext "subjectAltName=DNS:echo-agent.test" >/dev/null 2>&1
+          echo "STEP29_5_DEMO_TLS_CA=$RUNNER_TEMP/stable-tls.crt" >> "$GITHUB_ENV"
+          python3 spikes/a2a_client_v03/independent_demo_https_bridge.py \
+            --certificate "$RUNNER_TEMP/stable-tls.crt" --key "$RUNNER_TEMP/stable-tls.key" \
+            --port 3443 > "$RUNNER_TEMP/stable-tls-bridge.log" 2>&1 &
+          echo "$!" > "$RUNNER_TEMP/stable-tls-bridge.pid"
+          for n in $(seq 1 50); do
+            if curl --noproxy '*' -fsS --cacert "$RUNNER_TEMP/stable-tls.crt" \
+              --resolve echo-agent.test:3443:127.0.0.1 \
+              https://echo-agent.test:3443/.well-known/agent-card.json > "$RUNNER_TEMP/stable-card.json" 2>/dev/null; then
+              echo "PASS temporary TLS bridge Card"
+              exit 0
+            fi
+            sleep 1
+          done
+          tail -n 45 "$RUNNER_TEMP/stable-tls-bridge.log"
+          exit 1
+      - name: Call published 0.2.0 Rails Server from exact installed 0.3.0 Client over TLS
+        shell: bash
+        run: |
+          set -euo pipefail
+          BUNDLE_GEMFILE="$RUNNER_TEMP/stable-client-host/Gemfile" bundle exec ruby \
+            "$GITHUB_WORKSPACE/test/support/step31_stable_candidate_echo.rb"
+      - name: Limited logs on failure
+        if: failure()
+        shell: bash
+        run: |
+          tail -n 35 "$RUNNER_TEMP/stable-server.log" 2>/dev/null || true
+          tail -n 25 "$RUNNER_TEMP/stable-tls-bridge.log" 2>/dev/null || true
+      - name: Stop test-only processes
+        if: always()
+        shell: bash
+        run: |
+          for name in stable-tls-bridge stable-server; do
+            if test -f "$RUNNER_TEMP/$name.pid"; then
+              kill "$(cat "$RUNNER_TEMP/$name.pid")" 2>/dev/null || true
+            fi
+          done
