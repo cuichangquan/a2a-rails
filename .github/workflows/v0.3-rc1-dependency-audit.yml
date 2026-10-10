@@ -1,0 +1,86 @@
+name: Step 31-3 published RC1 dependency advisory audit
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/v0.3-rc1-dependency-audit.yml"
+      - "docs/release/v0.3.0-interop-advisory-evidence.md"
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/v0.3-rc1-dependency-audit.yml"
+      - "docs/release/v0.3.0-interop-advisory-evidence.md"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Audit the actually resolved, freshly installed published RC1 dependency
+# graphs, not the repository's uncommitted Gemfile.lock or an imaginary
+# frozen 0.3.0 stable build. Fail on detected advisories and preserve evidence.
+jobs:
+  audit-published-rc1:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        ruby: ["3.3", "3.4", "4.0"]
+        rails: ["~> 8.0.0", "~> 8.1.0"]
+    env:
+      TARGET_RAILS: ${{ matrix.rails }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ matrix.ruby }}
+          bundler-cache: false
+
+      - name: Resolve/install independent Rails host with exact published RC1
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/step31-audit-host" "$RUNNER_TEMP/step31-audit-evidence"
+          cat > "$RUNNER_TEMP/step31-audit-host/Gemfile" <<GEMFILE
+          source "https://rubygems.org"
+          gem "rails", "$TARGET_RAILS"
+          gem "a2a-rails", "= 0.3.0.rc1"
+          GEMFILE
+          (
+            cd "$RUNNER_TEMP/step31-audit-host"
+            bundle install --jobs 4 --retry 3
+            bundle exec ruby -rbundler -e '
+              require "a2a-rails"
+              require "rails"
+              spec = Gem.loaded_specs.fetch("a2a-rails")
+              dependency = Bundler.load.specs.find { |s| s.name == "a2a-rails" }
+              abort "wrong published RC1 Gem" unless
+                spec.version.to_s == "0.3.0.rc1" &&
+                A2A::Rails::VERSION == "0.3.0.rc1" &&
+                dependency.source.is_a?(Bundler::Source::Rubygems)
+              puts "PASS: published Gem 0.3.0.rc1, Rails #{Rails.version}, Ruby #{RUBY_VERSION}"
+            ' | tee "$RUNNER_TEMP/step31-audit-evidence/resolution.txt"
+            cp Gemfile.lock "$RUNNER_TEMP/step31-audit-evidence/Gemfile.lock"
+          )
+          sha256sum "$RUNNER_TEMP/step31-audit-evidence/Gemfile.lock" | tee "$RUNNER_TEMP/step31-audit-evidence/lockfile-sha256.txt"
+
+      - name: Update RubySec advisory DB and fail on known vulnerable versions
+        shell: bash
+        run: |
+          set -euo pipefail
+          gem install --no-document bundler-audit
+          cd "$RUNNER_TEMP/step31-audit-host"
+          bundle-audit version | tee "$RUNNER_TEMP/step31-audit-evidence/auditor-version.txt"
+          # pipefail preserves the nonzero exit code if advisories are found.
+          bundle-audit check --update 2>&1 | tee "$RUNNER_TEMP/step31-audit-evidence/audit.txt"
+          echo "PASS: current RubySec advisory DB reported no vulnerable Gems for this exact resolved host"
+
+      - name: Upload reproducible lockfile and redacted-free advisory evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: step31-rc1-audit-ruby-${{ matrix.ruby }}-rails-${{ matrix.rails == '~> 8.0.0' && '8-0' || '8-1' }}
+          path: ${{ runner.temp }}/step31-audit-evidence/
+          if-no-files-found: warn
+          retention-days: 14
