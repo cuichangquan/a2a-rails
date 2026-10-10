@@ -1,6 +1,6 @@
 # v0.2.0 → v0.3.0 upgrade guide / アップグレード手順
 
-> **Availability and production caution:** Verify the exact version is actually listed on [RubyGems](https://rubygems.org/gems/a2a-rails/versions) before installing it. This guide describes the `0.3.0` source API and the previous `0.3.0.rc1` prerelease; a source commit or CI artifact does **not** create a public release. The host application must perform its own auth, network and lockfile security checks before real use. [Release evidence](v0.3.0-stable-readiness.md) · [RC1 feedback snapshot](v0.3.0-rc1-feedback-and-upgrade-readiness.md).
+> **Stable 0.3.0 is published (2026-10-10):** [RubyGems](https://rubygems.org/gems/a2a-rails/versions/0.3.0) · [GitHub Release](https://github.com/cuichangquan/a2a-rails/releases/tag/v0.3.0) · [exact Gem SHA256 and provenance](v0.3.0-publication-record.md). The host application must still perform its own business authorization, credential, network and dependency-lockfile security checks before production. [RC1 feedback snapshot](v0.3.0-rc1-feedback-and-upgrade-readiness.md).
 
 ## What changes from published stable 0.2.0?
 
