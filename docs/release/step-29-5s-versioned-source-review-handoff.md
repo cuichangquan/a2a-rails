@@ -1,11 +1,22 @@
 # Step 29-5s — v0.3.0.rc1 versioned-source freeze and external security-review handoff
 
-> **Scope update, Step 29-5t (2026-10-10):** The owner chose to separate
+> **CURRENT RELEASE POLICY (Step 29-5u, 2026-10-10):** [Risk-based OSS release policy](step-29-5u-risk-based-oss-release-policy.md)
+> **supersedes** the historical rule below that required independent human
+> security sign-off for Gem publication. Independent external review is
+> **recommended but optional** under [Issue #113](https://github.com/cuichangquan/a2a-rails/issues/113);
+> it is not a known vulnerability and its absence alone is not a release blocker.
+> Mandatory: reviewed security/compatibility tests, exact package SHA/provenance,
+> no known unresolved Critical/High issues, explicit maintainer GO.
+> This document remains a useful **optional reviewer checklist**, not an
+> authorization to release. The public/no-auth Cloud Run scope separation
+> remains in place and production exposure is **NO-GO by default**.
+>
+> **Scope update, Step 29-5t (2026-10-10; historical):** The owner chose to separate
 > the optional *public/no-auth Cloud Run test* from eligibility to publish
 > the outbound **Gem**. [Recorded decision](step-29-5t-release-vs-public-deployment-scope.md)
 > relies on the already-tested **unmodified Client → public DNS/CA HTTPS,
 > IAM-private** path and leaves all Client SSRF/TLS/auth security checks and
-> **independent sign-off** release blocking. Production/public ingress
+> **independent sign-off** release blocking **at that time**, but Step 29-5u now makes it optional. Production/public ingress
 > approval remains separate under [Issue #11](https://github.com/cuichangquan/a2a-rails/issues/11).
 > The historical risk-review text below predates this documented policy revision;
 > no Cloud Run IAM changes or new test are authorized.
@@ -23,7 +34,7 @@
   from the validated `main` source **after this CI/reviewer-kit PR merges**.
   The *candidate branch's* `lib/a2a/rails/version.rb` must declare
   `VERSION = "0.3.0.rc1"`. The candidate is **not** merged to `main`
-  and **not** tagged/published before the independent/owner approval gate.
+  and **not** tagged/published before the mandatory technical checks and explicit owner approval.
   The exact reviewed commit SHA, not the movable branch name, identifies
   the candidate.
 
@@ -84,11 +95,11 @@ The reviewer must inspect **final-head green job logs**, not the earlier
 failed image-download jobs, and verify the intended PG major version
 and all data migrations/locking/restart cases were actually executed.
 
-## Independent security review request — needs an actual accountable reviewer
+## Optional independent security review — community contributions welcomed
 
 An AI-generated self-check, a clean CI run, or the single maintainer's
-self-approval **is not** an independent security review. Assign a qualified
-person or team **not responsible for implementing this candidate**.
+self-approval **is not** an independent security review. If such an optional
+review is requested, invite a qualified person or team **not responsible for implementing this candidate**.
 They must explicitly inspect the frozen **commit SHA** and the exact
 candidate package hash; any code change requires re-freezing and
 re-reviewing a new source SHA/artifact.
@@ -107,7 +118,7 @@ re-reviewing a new source SHA/artifact.
 
 ### Reviewer's sign-off format
 
-The **independent reviewer** should leave a signed/attributed review note,
+Any **volunteer independent reviewer** should leave an attributed review note,
 preferably on Issue #90 or a dedicated review PR, with:
 
 - Reviewer identity/affiliation, role and independence from candidate changes.
@@ -122,12 +133,12 @@ preferably on Issue #90 or a dedicated review PR, with:
 - Decision: `APPROVE` or `REQUEST_CHANGES` **for that exact reviewed SHA**;
   a clean CI run alone never counts as approval.
 - Separate **owner authorization** for tag, GitHub Release and RubyGems
-  publication only *after* the review and acceptance list is complete.
+  publication only *after* mandatory technical checks and an explicit owner GO.
 
 ## Status and hard stops
 
-The next independent-review appointment and sign-off are **not performed**
-by this preparation. No public/no-auth Cloud Run experiment was authorized,
+The optional independent-review appointment and sign-off are **not performed**
+by this preparation and are **not required** for Gem publication under Step 29-5u. No public/no-auth Cloud Run experiment was authorized,
 and no GCP cost cap was guaranteed. The preceding Step 29-5q/5r source,
 native SDK, worker, installed Gem and PostgreSQL CI are positive
 evidence **within their documented bounds**, not blanket production security
@@ -135,4 +146,4 @@ certification. Any critical or high unresolved finding keeps the candidate
 **NO-GO**. Do not close #90 until an accountable release decision.
 
 **Review branch != published RC; built private Gem != RubyGems push;
-maintainer + assistant review != independent approval.**
+maintainer + assistant review != independent audit; optional audit != identified vulnerability.**
