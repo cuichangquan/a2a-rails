@@ -34,6 +34,13 @@ Run a complete standalone Rails Agent using the **published RubyGems `a2a-rails 
 - [Demo GitHub Actions smoke](https://github.com/cuichangquan/a2a-rails-demo/actions/workflows/smoke.yml) — independent Rails 8.1.0 / Ruby 3.4.10 HTTP smoke **16/16 checks passed** against published Gem `0.2.0` ([Step 28 Demo PR #2, merged](https://github.com/cuichangquan/a2a-rails-demo/pull/2), [passing PR CI](https://github.com/cuichangquan/a2a-rails-demo/actions/runs/37736426834)). The CI also confirms `A2A::Rails::VERSION == "0.2.0"`, RubyGems as the dependency source, and the demo's production-startup refusal.
 - **Local-only development/test** demo: no trusted verifier or durable Task store, **not** an internet-facing production template. See [production security](docs/guides/production-security.md).
 
+### Outbound Client-only Rails Demo / 外部A2A Agentを呼び出すサンプル
+
+**[a2a-rails-client-demo — standalone Rails 8 Client](https://github.com/cuichangquan/a2a-rails-client-demo)**
+
+Independent Rails application using **published RubyGems `a2a-rails = 0.3.0.rc1`** with `server_enabled = false`. Demonstrates Agent Card discovery, SendMessage **Task or direct Message**, GetTask and ListTasks with exact HTTPS origin allowlisting. [Offline GitHub Actions tests passed](https://github.com/cuichangquan/a2a-rails-client-demo/actions/runs/38047415734), including installed Gem provenance, no inbound routes and a production-boot guard. **Independent remote Client↔Server HTTPS E2E remains pending**; CI currently uses stubbed Client results, not an internet-facing Agent. See [Step 30 #117](https://github.com/cuichangquan/a2a-rails/issues/117) for next steps.
+
+
 ## What is a2a-rails?
 
 `a2a-rails` lets a Rails application expose an A2A-compatible Agent without making application code depend directly on SDK-specific request and response objects.
