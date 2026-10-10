@@ -4,9 +4,9 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased] — preparation for stable 0.3.0 (NOT published)
+## [0.3.0] — frozen stable candidate source (NOT published)
 
-> **Planning only (2026-10-10):** The latest published prerelease is `0.3.0.rc1`, and the latest published **stable** Gem is `0.2.0`. **No stable `0.3.0` has been built, tagged, approved or pushed.** Do not copy the RC1 tag/SHA256 into a future stable publication record.
+> **Candidate source only (2026-10-10):** This branch sets `A2A::Rails::VERSION = "0.3.0"` for the new **unpublished** stable-candidate verification. Published RubyGems stable remains `0.2.0`; published prerelease is `0.3.0.rc1`. A passing CI artifact is not a GitHub Release or RubyGems publication; exact candidate SOURCE_COMMIT/SHA256 and owner GO will be recorded separately. **Do not reuse RC1 bytes or SHA256.**
 
 ### Documentation and release preparation
 
@@ -14,7 +14,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Recorded a [dated public RC1 feedback snapshot](docs/release/v0.3.0-rc1-feedback-and-upgrade-readiness.md) and a [safe bug-report template](.github/ISSUE_TEMPLATE/rc1-feedback.md). No externally verified RC1-specific public regression was found in the checked channels; **external adoption compatibility is UNKNOWN**, not proven by the absence of reports.
 - Added [published RC1 dependency advisory CI](.github/workflows/v0.3-rc1-dependency-audit.yml) for Ruby 3.3/3.4/4.0 × Rails 8.0/8.1; 6/6 resolved hosts found no RubySec matching advisories **as of 2026-10-10**, not a future stable-Gem guarantee.
 
-**Before creating any stable `[0.3.0]` section:** complete the final version/feature freeze, fresh build-once artifact + SHA256, installed-Gem and dependency tests, README/upgrade review, final bug/advisory recheck, written residual-risk decision and the **maintainer's separate explicit release GO**. Do not treat this unversioned section as a published release note.
+**Before marking this candidate section as published:** complete the final version/feature freeze, fresh build-once artifact + SHA256, installed-Gem and dependency tests, README/upgrade review, final bug/advisory recheck, written residual-risk decision and the **maintainer's separate explicit release GO**. Do not treat this unversioned section as a published release note.
 
 ## [0.3.0.rc1] - 2026-10-10 (published pre-release)
 
