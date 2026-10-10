@@ -33,9 +33,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   malformed/chunked/truncated HTTP, JSON nesting, ambiguous remote
   SendMessage/CancelTask timeout and nested response validation.
 - **Go SDK follow-up:** Step 29-5q verified authenticated Go ListTasks pagination with two scoped test users and isolated Task visibility; anonymous callers still receive `-31401`.
-- **Open review items:** exact versioned v0.3.x candidate tests and
-  candidate Gem SHA256, installed-host verification, an independent security
-  reviewer, and final explicit publication/public-test scope decisions.
+- **Release/evidence status:** a separate, actually versioned `0.3.0.rc1`
+  *private* candidate was built and installed-tested across Ruby/Rails,
+  PostgreSQL and official Python/Go SDKs (13/13). The candidate remains
+  **unpublished** and its source is frozen separately from main's `0.2.0`
+  VERSION. See [Step 29-5u risk-based release policy](docs/release/step-29-5u-risk-based-oss-release-policy.md):
+  an **independent third-party security review is recommended but optional**,
+  not a release requirement or a reported vulnerability. Hard gates remain
+  technical/security tests, no known unresolved Critical/High issues, exact
+  artifact/source provenance and explicit owner GO; public-production approval
+  remains separate under #11.
 - Publishing a Gem and approving open-public **production deployment**
   are distinct; a host must provide credential issuer verification,
   business authorization, rate/concurrency and operational limits.
