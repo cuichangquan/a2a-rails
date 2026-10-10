@@ -14,6 +14,9 @@
 
 ## Current RC1 release and next stable work
 
+- **Step 31-5 stable 0.3.0 candidate (NOT published):** [source/build/hash and installed interoperability verification plan](docs/release/v0.3.0-stable-candidate-record.md), 20-job exact build-once matrix plus 7-job alternate packaged host checks; final source SHA and Gem SHA256 still require **successful PR-head CI**. Step 31-6 requires separate explicit owner publication GO; no tag, Gem push or public production permission.
+
+
 - **Step 31-4 feedback/upgrade documentation:** [Dated RC1 user feedback assessment](docs/release/v0.3.0-rc1-feedback-and-upgrade-readiness.md) · [v0.2.0 → planned v0.3.0 migration guide](docs/release/upgrading-v0.2.0-to-v0.3.md) · [Issue #120](https://github.com/cuichangquan/a2a-rails/issues/120). No verified external RC1-specific public reports were found in examined channels; adopter confidence remains **UNKNOWN** pending any future feedback and the maintainer's explicit risk decision. Stable version/tag/artifact still absent.
 - **Step 31-3 interoperability/advisory evidence:** [RC1 evidence and lockfile-level RubySec scan](docs/release/v0.3.0-interop-advisory-evidence.md) · [separate audit CI](.github/workflows/v0.3-rc1-dependency-audit.yml). TCK continues to report one fixture-related failure; an advisory database result is not a complete security certification.
 
