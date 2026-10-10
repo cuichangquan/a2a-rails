@@ -406,10 +406,14 @@ jobs:
           test "$(cat SOURCE_COMMIT)" = "${{ github.event.pull_request.head.sha || github.sha }}"
           gem install --no-document "./$RC_FILENAME"
           gem install --no-document rails -v "$TARGET_RAILS"
+          # Rails meta-Gem brings mail/net-imap in; keep this independently audited
+          # host on a patched net-imap version without imposing mail on the Gem.
+          gem install --no-document net-imap -v "~> 0.5.15"
           mkdir -p "$RUNNER_TEMP/stable-audit" "$RUNNER_TEMP/stable-audit-evidence"
           cat > "$RUNNER_TEMP/stable-audit/Gemfile" <<GEMFILE
           source "https://rubygems.org"
           gem "rails", "$TARGET_RAILS"
+          gem "net-imap", "~> 0.5.15"
           gem "a2a-rails", "= $RC_VERSION"
           GEMFILE
           cd "$RUNNER_TEMP/stable-audit"
