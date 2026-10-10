@@ -1,4 +1,4 @@
-name: RC1 exact artifact verification
+name: Step 31-5 stable 0.3.0 candidate artifact verification
 
 on:
   push:
@@ -41,6 +41,8 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
 
       - uses: ruby/setup-ruby@v1
         with:
@@ -49,35 +51,35 @@ jobs:
       - name: Build and verify exact candidate Gem
         shell: bash
         env:
-          PACKAGED_GEM_EXPECTED_VERSION: "0.3.0.rc1"
+          PACKAGED_GEM_EXPECTED_VERSION: "0.3.0"
           PACKAGED_RAILS_VERSION: "~> 8.1.0"
         run: |
           set -euo pipefail
           mkdir -p "$RUNNER_TEMP/rc"
           PACKAGED_GEM_OUTPUT_DIR="$RUNNER_TEMP/rc"             ruby test/support/packaged_gem_smoke.rb
 
-          gem_path="$RUNNER_TEMP/rc/a2a-rails-0.3.0.rc1.gem"
+          gem_path="$RUNNER_TEMP/rc/a2a-rails-0.3.0.gem"
           test -f "$gem_path"
 
           (
             cd "$RUNNER_TEMP/rc"
-            sha256sum "a2a-rails-0.3.0.rc1.gem" | tee SHA256SUMS
+            sha256sum "a2a-rails-0.3.0.gem" | tee SHA256SUMS
           )
 
           ruby -rrubygems/package -e '
             path = ARGV.fetch(0)
             spec = Gem::Package.new(path).spec
             abort "wrong name" unless spec.name == "a2a-rails"
-            abort "wrong version: #{spec.version}" unless spec.version.to_s == "0.3.0.rc1"
+            abort "wrong version: #{spec.version}" unless spec.version.to_s == "0.3.0"
             puts "Candidate package metadata: #{spec.name} #{spec.version}"
           ' "$gem_path"
 
       - name: Upload exact candidate bytes
         uses: actions/upload-artifact@v4
         with:
-          name: a2a-rails-0.3.0.rc1-candidate
+          name: a2a-rails-0.3.0-candidate
           path: |
-            ${{ runner.temp }}/rc/a2a-rails-0.3.0.rc1.gem
+            ${{ runner.temp }}/rc/a2a-rails-0.3.0.gem
             ${{ runner.temp }}/rc/SHA256SUMS
           if-no-files-found: error
           retention-days: 14
@@ -94,9 +96,11 @@ jobs:
           - "~> 8.1.0"
     env:
       TARGET_RAILS: ${{ matrix.rails }}
-      A2A_RAILS_EXPECTED_VERSION: "0.3.0.rc1"
+      A2A_RAILS_EXPECTED_VERSION: "0.3.0"
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
 
       - uses: ruby/setup-ruby@v1
         with:
@@ -105,7 +109,7 @@ jobs:
       - name: Download the exact candidate built by build-candidate
         uses: actions/download-artifact@v4
         with:
-          name: a2a-rails-0.3.0.rc1-candidate
+          name: a2a-rails-0.3.0-candidate
           path: ${{ runner.temp }}/rc
 
       - name: Verify candidate SHA256 before installation
@@ -119,7 +123,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          gem_path="$RUNNER_TEMP/rc/a2a-rails-0.3.0.rc1.gem"
+          gem_path="$RUNNER_TEMP/rc/a2a-rails-0.3.0.gem"
 
           gem install --no-document "$gem_path"
           gem install --no-document rails -v "$TARGET_RAILS"
@@ -130,7 +134,7 @@ jobs:
           source "https://rubygems.org"
 
           gem "rails", "$TARGET_RAILS"
-          gem "a2a-rails", "= 0.3.0.rc1"
+          gem "a2a-rails", "= 0.3.0"
           GEMFILE
 
           BUNDLE_GEMFILE="$host/Gemfile" bundle install --local
@@ -138,7 +142,7 @@ jobs:
           BUNDLE_GEMFILE="$host/Gemfile" bundle exec ruby -e '
             require "rails"
             require "a2a-rails"
-            abort "unexpected Gem version" unless A2A::Rails::VERSION == "0.3.0.rc1"
+            abort "unexpected Gem version" unless A2A::Rails::VERSION == "0.3.0"
             spec = Gem.loaded_specs.fetch("a2a-rails")
             source = File.realpath(ENV.fetch("GITHUB_WORKSPACE"))
             loaded = File.realpath(spec.full_gem_path)
@@ -183,7 +187,7 @@ jobs:
     env:
       TARGET_RAILS: ${{ matrix.rails }}
       A2A_TEST_INFLECTION: ${{ matrix.inflection }}
-      A2A_RAILS_EXPECTED_VERSION: "0.3.0.rc1"
+      A2A_RAILS_EXPECTED_VERSION: "0.3.0"
       DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/a2a_rails_test
       RAILS_ENV: production
       RACK_ENV: production
@@ -193,6 +197,8 @@ jobs:
       A2A_RAILS_SOURCE_ROOT: ${{ github.workspace }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - name: Start preinstalled PostgreSQL 16 on Ubuntu 24.04 runner
         shell: bash
         run: |
@@ -211,7 +217,7 @@ jobs:
           ruby-version: "3.4.10"
       - uses: actions/download-artifact@v4
         with:
-          name: a2a-rails-0.3.0.rc1-candidate
+          name: a2a-rails-0.3.0-candidate
           path: ${{ runner.temp }}/rc
       - name: Verify the same exact candidate used by release verification
         shell: bash
@@ -219,12 +225,12 @@ jobs:
           set -euo pipefail
           cd "$RUNNER_TEMP/rc"
           sha256sum -c SHA256SUMS
-          echo "CANDIDATE_GEM_SHA256=$(sha256sum a2a-rails-0.3.0.rc1.gem | cut -d ' ' -f 1)" >> "$GITHUB_ENV"
-          gem install --no-document "$RUNNER_TEMP/rc/a2a-rails-0.3.0.rc1.gem"
+          echo "CANDIDATE_GEM_SHA256=$(sha256sum a2a-rails-0.3.0.gem | cut -d ' ' -f 1)" >> "$GITHUB_ENV"
+          gem install --no-document "$RUNNER_TEMP/rc/a2a-rails-0.3.0.gem"
           gem install --no-document rails -v "$TARGET_RAILS"
           pg_config --version
       - name: Verify clean production Rails host (no patch), migration, HTTP and DB durability
         shell: bash
         env:
-          CANDIDATE_GEM_FILE: ${{ runner.temp }}/rc/a2a-rails-0.3.0.rc1.gem
+          CANDIDATE_GEM_FILE: ${{ runner.temp }}/rc/a2a-rails-0.3.0.gem
         run: ruby spikes/clean_host_postgres/smoke.rb
