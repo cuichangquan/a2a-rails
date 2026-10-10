@@ -13,6 +13,8 @@
 - [ ] Open public-production approval: deployment-specific controls are still required under [Issue #11](https://github.com/cuichangquan/a2a-rails/issues/11).
 
 ## Current RC1 release and next stable work
+- **Step 31-3 interoperability/advisory evidence:** [RC1 evidence and lockfile-level RubySec scan](docs/release/v0.3.0-interop-advisory-evidence.md) · [separate audit CI](.github/workflows/v0.3-rc1-dependency-audit.yml). TCK continues to report one fixture-related failure; an advisory database result is not a complete security certification.
+
 
 - **Step 31-2 Client security/API matrix:** [focused acceptance and risk review](docs/release/v0.3.0-client-security-api-review.md) · [Step 31 tracker #120](https://github.com/cuichangquan/a2a-rails/issues/120). Existing tests provide scoped evidence; the final stable artifact, lockfile advisory review and explicit release GO are still pending.
 
