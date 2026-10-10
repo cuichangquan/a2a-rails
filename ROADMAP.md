@@ -14,6 +14,9 @@
 
 ## Current RC1 release and next stable work
 
+- **Step 31 stable readiness:** [RC1→main inventory and first release-gate assessment](docs/release/v0.3.0-stable-readiness.md) · [issue #120](https://github.com/cuichangquan/a2a-rails/issues/120). Step 31-1 records the unchanged runtime source, nine open issues with separate deployment/audit categories, current green CI, and remaining exact stable-artifact and explicit-owner-GO gates. This is not stable publication authorization.
+
+
 - [x] `0.3.0.rc1` published on RubyGems and GitHub as a Pre-release; tag `v0.3.0-rc1` pins `664a201e6df9173e1656bb5f25b503821c0be2b5`.
 - [x] Same installed Gem passed Ruby 3.3/3.4/4.0 × Rails 8.0/8.1, PostgreSQL 16 and native official Python/Go SDK tests; public RubyGems bytes and installed Client/Server security smoke verified.
 - [ ] Collect RC adopter feedback and assess compatibility/bug reports before a separately approved stable `0.3.0` release.
