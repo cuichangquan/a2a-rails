@@ -1,6 +1,6 @@
 # v0.2.0 → v0.3.0 upgrade guide (stable release preparation / 正式版準備)
 
-> **2026-10-10 status:** Stable `a2a-rails 0.3.0` is **not released**. This is a review-ready guide for the planned stable version, based on **published prerelease `0.3.0.rc1`** and current main. It is **not** installation or deployment approval. Do not use unqualified `bundle update` to imply a stable `0.3.0` Gem exists. [Step 31 readiness](v0.3.0-stable-readiness.md) · [Step 31-4 feedback](v0.3.0-rc1-feedback-and-upgrade-readiness.md).
+> **2026-10-10 status:** Stable `a2a-rails 0.3.0` is **not released**. The Step 31-5 candidate branch has an actual `VERSION = "0.3.0"`, but the Gem exists only as a private CI artifact until separate publication approval.  This is a review-ready guide for the planned stable version, based on **published prerelease `0.3.0.rc1`** and current main. It is **not** installation or deployment approval. Do not use unqualified `bundle update` to imply a stable `0.3.0` Gem exists. [Step 31 readiness](v0.3.0-stable-readiness.md) · [Step 31-4 feedback](v0.3.0-rc1-feedback-and-upgrade-readiness.md).
 
 ## What changes from published stable 0.2.0?
 
