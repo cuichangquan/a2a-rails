@@ -1,4 +1,6 @@
 # a2a-rails
+
+> **Stable candidate source (Step 31-5):** The current development branch uses `VERSION = 0.3.0` only to build and verify an **unpublished** Gem. **RubyGems stable remains 0.2.0**, and RC1 (`0.3.0.rc1`) remains a published prerelease. Do not install `0.3.0` from RubyGems or claim a release until the final SHA256, security gates and separate owner authorization are complete. [Candidate record](docs/release/v0.3.0-stable-candidate-record.md) · [Step 31 #120](https://github.com/cuichangquan/a2a-rails/issues/120).
 <img src="docs/assets/a2a-rails-infographics.png">
 <br/>
 <br/>
