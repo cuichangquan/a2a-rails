@@ -16,15 +16,15 @@
 
 ## Supported versions / 対象バージョン
 
-- **Published stable:** `a2a-rails 0.2.0`.
-- **Unpublished source candidate:** `0.3.0` is **not** a RubyGems release. The Step 31-5 candidate may be downloaded from controlled CI but must not be represented as published or production-certified. Its hash and supported dependency set require explicit Step 31-6 owner release approval.
-- **Published pre-release:** [`0.3.0.rc1`](https://rubygems.org/gems/a2a-rails/versions/0.3.0.rc1), including the outbound Client. The [publication record](docs/release/v0.3.0-rc1-publication-record.md) documents exact artifact verification and limits. RC1 checks do not confer production endorsement; stable `0.3.0` remains unreleased.
+- **Current public distribution status:** Check [RubyGems versions](https://rubygems.org/gems/a2a-rails/versions) and [GitHub Releases](https://github.com/cuichangquan/a2a-rails/releases) for versions actually published. A source VERSION or a CI artifact is **not** evidence of a public release.
+- **`0.3.0` release line:** Rails 8 A2A Server plus outbound Client with origin-scoped HTTPS. [Stable candidate verification](docs/release/v0.3.0-stable-candidate-record.md) and [Step 31 decision](https://github.com/cuichangquan/a2a-rails/issues/120) track exact source/package SHA, tests and risk acceptance.
+- **Earlier published stable:** [`0.2.0`](https://rubygems.org/gems/a2a-rails/versions/0.2.0); **published prerelease:** [`0.3.0.rc1`](https://rubygems.org/gems/a2a-rails/versions/0.3.0.rc1). Their historical source and artifact verification do not certify public-production deployment.
 - Older versions may lack security hardening present in `0.2.0`. Users should prefer the latest **published stable** version appropriate to their application and review the [CHANGELOG](CHANGELOG.md) and [upgrade guide](docs/release/upgrading-v0.1.0-to-v0.2.md).
 - A precise long-term security support and patch SLA **is not promised** for this volunteer-maintained OSS Gem.
 
 ## Candidate dependency advisory note / 候補版の依存関係検証
 
-The unpublished 0.3.0 candidate's first fresh Rails-host RubySec audit found known advisories in some resolved `json` and `net-imap` versions (see the [candidate record](docs/release/v0.3.0-stable-candidate-record.md)). `json` is a direct runtime dependency; the candidate is changing its minimum to `2.19.9`. `net-imap` comes from a full Rails host/mail installation, not a direct a2a-rails runtime dependency, and must be patched by the **host application's actual Gemfile.lock**. These initial failures must not be treated as a clean audit or silently ignored. Any final new candidate and dependency graphs still require separate verification and owner GO.
+The early `0.3.0` candidate RubySec checks found affected `json` and `net-imap` releases (see [prepublication evidence](docs/release/v0.3.0-stable-candidate-record.md)). The direct Gem dependency now requires `json >= 2.19.9, < 3`. The six-host CI selects patched `net-imap ~> 0.5.15`, an indirect Rails mail dependency, **not** a dependency added by `a2a-rails`. A later candidate scan passed against those resolved lockfiles, but **every production host must audit/update its own Gemfile.lock**. Gem release does not certify arbitrary host OS/IdP/APM/queue/TLS configuration.
 
 ## Security guarantees and limits / 保証範囲と制約
 

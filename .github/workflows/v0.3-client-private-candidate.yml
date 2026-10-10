@@ -8,12 +8,14 @@ on:
       - "lib/**"
       - "app/**"
       - "config/**"
-      - "test/support/client_only_rails_smoke.rb"
-      - "test/support/production_security_http_smoke.rb"
+      - "test/support/**"
       - "spikes/clean_host_postgres/**"
       - "spikes/a2a_client_v03/**"
       - "docs/release/**"
       - "CHANGELOG.md"
+      - "README.md"
+      - "ROADMAP.md"
+      - "SECURITY.md"
   push:
     branches: [main]
     # Candidate branches are validated through pull_request only, to avoid
@@ -24,12 +26,14 @@ on:
       - "lib/**"
       - "app/**"
       - "config/**"
-      - "test/support/client_only_rails_smoke.rb"
-      - "test/support/production_security_http_smoke.rb"
+      - "test/support/**"
       - "spikes/clean_host_postgres/**"
       - "spikes/a2a_client_v03/**"
       - "docs/release/**"
       - "CHANGELOG.md"
+      - "README.md"
+      - "ROADMAP.md"
+      - "SECURITY.md"
   workflow_dispatch:
 
 permissions:
