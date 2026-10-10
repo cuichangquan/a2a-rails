@@ -10,7 +10,7 @@ assignees: []
 
 **Do not share bearer tokens, passwords, customer data, private Agent URLs, personal details, private logs, or working vulnerability exploits in a public issue.**
 
-**セキュリティ上の脆弱性が疑われる場合は、ここに再現コード・秘密情報を書かず、[SECURITY.md](../../SECURITY.md) の非公開報告手順を使用してください。**
+**セキュリティ上の脆弱性が疑われる場合は、ここに再現コード・秘密情報を書かず、[SECURITY.md](https://github.com/cuichangquan/a2a-rails/blob/main/SECURITY.md) の非公開報告手順を使用してください。**
 
 ## Environment / 動作環境
 
