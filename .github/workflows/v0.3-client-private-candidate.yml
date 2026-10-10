@@ -1,4 +1,4 @@
-name: Step 29-5r private v0.3.0.rc1 exact-installed-candidate
+name: Step 31-5 private stable 0.3.0 exact-installed candidate
 
 on:
   pull_request:
@@ -15,7 +15,7 @@ on:
       - "docs/release/**"
       - "CHANGELOG.md"
   push:
-    branches: [main, candidate/v0.3.0-rc1]
+    branches: [main, candidate/v0.3.0-stable]
     paths:
       - ".github/workflows/v0.3-client-private-candidate.yml"
       - "a2a-rails.gemspec"
@@ -33,14 +33,12 @@ on:
 permissions:
   contents: read
 
-# Verification artifact ONLY. candidate/v0.3.0-rc1 must have a real
-# source VERSION=0.3.0.rc1 and is built with *zero* staging edits.
-# Main and legacy PR rehearsal still stage a version from 0.2.0 without
-# changing main. Neither path authorizes tagging or RubyGems publication.
+# PRE-PUBLICATION CI artifact ONLY. No Gem push/tag/Release.
+# Check out PR head commit (not synthetic merge); archive once, build once.
 env:
-  RC_VERSION: "0.3.0.rc1"
-  RC_FILENAME: "a2a-rails-0.3.0.rc1.gem"
-  RC_ARTIFACT: "a2a-rails-0.3.0.rc1-private-ci-only"
+  RC_VERSION: "0.3.0"
+  RC_FILENAME: "a2a-rails-0.3.0.gem"
+  RC_ARTIFACT: "a2a-rails-0.3.0-stable-candidate-ci-only"
 
 jobs:
   build-once:
@@ -48,10 +46,12 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - uses: ruby/setup-ruby@v1
         with:
           ruby-version: "3.4.10"
-      - name: Build from immutable checkout, with no staging delta for genuine RC1 source
+      - name: Build from immutable checkout, with no staging delta for genuine stable candidate source
         shell: bash
         run: |
           set -euo pipefail
@@ -60,32 +60,13 @@ jobs:
           mkdir -p "$RUNNER_TEMP/rc-source" "$RUNNER_TEMP/rc-package"
           git archive "$source_sha" | tar -xf - -C "$RUNNER_TEMP/rc-source"
 
-          if test "$GITHUB_REF" = "refs/heads/candidate/v0.3.0-rc1"; then
-            test "$source_version" = "$RC_VERSION" || {
-              echo "Frozen candidate branch must contain an actual RC1 VERSION"; exit 1;
-            }
-          fi
-
-          case "$source_version" in
-            0.2.0)
-              # Backward-compatible Step 29-5r main/PR rehearsal, NOT frozen source.
-              ruby - "$RUNNER_TEMP/rc-source/lib/a2a/rails/version.rb" <<'RUBY'
-          path = ARGV.fetch(0)
-          original = File.read(path)
-          before = 'VERSION = "0.2.0"'
-          abort "unexpected staging VERSION" unless original.scan(before).length == 1
-          File.write(path, original.sub(before, 'VERSION = "0.3.0.rc1"'))
-          RUBY
-              printf '%s\n' 'CI rehearsal: only staged VERSION changed 0.2.0 -> 0.3.0.rc1'                 > "$RUNNER_TEMP/rc-package/STAGING_DELTA"
-              ;;
-            0.3.0.rc1)
-              # Real source candidate branch: ZERO package-input modifications.
-              printf '%s\n' 'NONE: packaged directly from immutable source SHA with VERSION=0.3.0.rc1'                 > "$RUNNER_TEMP/rc-package/STAGING_DELTA"
-              ;;
-            *)
-              echo "Unsupported source VERSION: $source_version"; exit 1;
-              ;;
-          esac
+          test "$source_version" = "$RC_VERSION" || {
+            echo "Candidate must contain actual stable VERSION=$RC_VERSION"; exit 1;
+          }
+          test "$source_sha" = "${{ github.event.pull_request.head.sha || github.sha }}" || {
+            echo "Unexpected source SHA (synthetic PR merge disallowed)"; exit 1;
+          }
+          echo "NONE: exact source, no staging edit" > "$RUNNER_TEMP/rc-package/STAGING_DELTA"
           (
             cd "$RUNNER_TEMP/rc-source"
             gem build a2a-rails.gemspec --output "$RUNNER_TEMP/rc-package/$RC_FILENAME"
@@ -95,7 +76,7 @@ jobs:
           path = ARGV.fetch(0)
           spec = Gem::Package.new(path).spec
           abort "not an RC Gem" unless spec.name == "a2a-rails" &&
-            spec.version.to_s == "0.3.0.rc1" &&
+            spec.version.to_s == "0.3.0" &&
             spec.required_ruby_version.satisfied_by?(Gem::Version.new("3.3.0"))
           Dir.mktmpdir do |dir|
             Gem::Package.new(path).extract_files(dir)
@@ -113,9 +94,9 @@ jobs:
                 Digest::SHA256.file(origin).hexdigest == Digest::SHA256.file(packaged).hexdigest
             end
             abort "wrong version within package" unless
-              File.read(File.join(dir, "lib/a2a/rails/version.rb")).include?('VERSION = "0.3.0.rc1"')
+              File.read(File.join(dir, "lib/a2a/rails/version.rb")).include?('VERSION = "0.3.0"')
           end
-          puts "PASS: packaged Client/Server source bytes and rc1 metadata match expected input"
+          puts "PASS: packaged Client/Server source bytes and stable-candidate metadata match expected input"
           RUBY
           (
             cd "$RUNNER_TEMP/rc-package"
@@ -130,7 +111,7 @@ jobs:
         with:
           name: ${{ env.RC_ARTIFACT }}
           path: |
-            ${{ runner.temp }}/rc-package/a2a-rails-0.3.0.rc1.gem
+            ${{ runner.temp }}/rc-package/a2a-rails-0.3.0.gem
             ${{ runner.temp }}/rc-package/SHA256SUMS
             ${{ runner.temp }}/rc-package/SOURCE_COMMIT
             ${{ runner.temp }}/rc-package/STAGING_DELTA
@@ -148,13 +129,15 @@ jobs:
         rails: ["~> 8.0.0", "~> 8.1.0"]
     env:
       TARGET_RAILS: ${{ matrix.rails }}
-      A2A_RAILS_EXPECTED_VERSION: "0.3.0.rc1"
+      A2A_RAILS_EXPECTED_VERSION: "0.3.0"
       A2A_RAILS_USE_INSTALLED_GEM: "1"
       A2A_RAILS_SOURCE_ROOT: ${{ github.workspace }}
       RAILS_ENV: production
       RACK_ENV: production
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - uses: ruby/setup-ruby@v1
         with:
           ruby-version: ${{ matrix.ruby }}
@@ -168,7 +151,7 @@ jobs:
           set -euo pipefail
           cd "$RUNNER_TEMP/rc"
           sha256sum -c SHA256SUMS
-          test "$(cat SOURCE_COMMIT)" = "$GITHUB_SHA"
+          test "$(cat SOURCE_COMMIT)" = "${{ github.event.pull_request.head.sha || github.sha }}"
           gem install --no-document "./$RC_FILENAME"
           gem install --no-document rails -v "$TARGET_RAILS"
           mkdir -p "$RUNNER_TEMP/clean-client-host"
@@ -213,7 +196,7 @@ jobs:
     env:
       TARGET_RAILS: ${{ matrix.rails }}
       A2A_TEST_INFLECTION: ${{ matrix.inflection }}
-      A2A_RAILS_EXPECTED_VERSION: "0.3.0.rc1"
+      A2A_RAILS_EXPECTED_VERSION: "0.3.0"
       A2A_RAILS_SOURCE_ROOT: ${{ github.workspace }}
       DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/a2a_rails_test
       RAILS_ENV: production
@@ -223,6 +206,8 @@ jobs:
       BUNDLE_RETRY: "3"
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - name: Start preinstalled PostgreSQL 16 on Ubuntu 24.04 runner
         shell: bash
         run: |
@@ -249,14 +234,14 @@ jobs:
           set -euo pipefail
           cd "$RUNNER_TEMP/rc"
           sha256sum -c SHA256SUMS
-          test "$(cat SOURCE_COMMIT)" = "$GITHUB_SHA"
+          test "$(cat SOURCE_COMMIT)" = "${{ github.event.pull_request.head.sha || github.sha }}"
           echo "CANDIDATE_GEM_SHA256=$(sha256sum "$RC_FILENAME" | cut -d ' ' -f 1)" >> "$GITHUB_ENV"
           gem install --no-document "./$RC_FILENAME"
           gem install --no-document rails -v "$TARGET_RAILS"
           pg_config --version
       - name: Verify installed RC clean Rails/PostgreSQL migration, restart, race and prune
         env:
-          CANDIDATE_GEM_FILE: ${{ runner.temp }}/rc/a2a-rails-0.3.0.rc1.gem
+          CANDIDATE_GEM_FILE: ${{ runner.temp }}/rc/a2a-rails-0.3.0.gem
         run: ruby spikes/clean_host_postgres/smoke.rb
 
   installed-official-sdk:
@@ -271,12 +256,14 @@ jobs:
       STEP29_5B_AGENT: ${{ matrix.agent }}
       AGENT_HOST: ${{ matrix.agent }}-agent.test
       AGENT_PORT: ${{ matrix.agent == 'python' && '3444' || '3445' }}
-      A2A_RAILS_EXPECTED_VERSION: "0.3.0.rc1"
+      A2A_RAILS_EXPECTED_VERSION: "0.3.0"
       A2A_RAILS_USE_INSTALLED_GEM: "1"
       A2A_RAILS_SOURCE_ROOT: ${{ github.workspace }}
       PYTHONUNBUFFERED: "1"
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - uses: ruby/setup-ruby@v1
         with:
           ruby-version: "3.4.10"
@@ -299,14 +286,14 @@ jobs:
           set -euo pipefail
           cd "$RUNNER_TEMP/rc"
           sha256sum -c SHA256SUMS
-          test "$(cat SOURCE_COMMIT)" = "$GITHUB_SHA"
+          test "$(cat SOURCE_COMMIT)" = "${{ github.event.pull_request.head.sha || github.sha }}"
           gem install --no-document "./$RC_FILENAME"
           gem install --no-document rails -v "~> 8.1.0"
           mkdir -p "$RUNNER_TEMP/isolated-interop-host"
           cat > "$RUNNER_TEMP/isolated-interop-host/Gemfile" <<GEMFILE
           source "https://rubygems.org"
           gem "rails", "~> 8.1.0"
-          gem "a2a-rails", "= 0.3.0.rc1"
+          gem "a2a-rails", "= 0.3.0"
           GEMFILE
           BUNDLE_GEMFILE="$RUNNER_TEMP/isolated-interop-host/Gemfile" bundle install --local
           BUNDLE_GEMFILE="$RUNNER_TEMP/isolated-interop-host/Gemfile" bundle exec ruby -e '
