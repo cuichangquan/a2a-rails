@@ -17,7 +17,7 @@
 ## Supported versions / 対象バージョン
 
 - **Published stable:** `a2a-rails 0.2.0`.
-- **Unreleased development/candidate:** `0.3.0.rc1` is **not published to RubyGems**, and candidate checks do not confer production endorsement.
+- **Published pre-release:** [`0.3.0.rc1`](https://rubygems.org/gems/a2a-rails/versions/0.3.0.rc1), including the outbound Client. The [publication record](docs/release/v0.3.0-rc1-publication-record.md) documents exact artifact verification and limits. RC1 checks do not confer production endorsement; stable `0.3.0` remains unreleased.
 - Older versions may lack security hardening present in `0.2.0`. Users should prefer the latest **published stable** version appropriate to their application and review the [CHANGELOG](CHANGELOG.md) and [upgrade guide](docs/release/upgrading-v0.1.0-to-v0.2.md).
 - A precise long-term security support and patch SLA **is not promised** for this volunteer-maintained OSS Gem.
 

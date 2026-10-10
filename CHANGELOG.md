@@ -4,7 +4,9 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.3.0.rc1] - 2026-10-10 (pre-release candidate)
+## [0.3.0.rc1] - 2026-10-10 (published pre-release)
+
+> **Published after explicit owner GO:** [RubyGems RC1](https://rubygems.org/gems/a2a-rails/versions/0.3.0.rc1) and [GitHub Pre-release](https://github.com/cuichangquan/a2a-rails/releases/tag/v0.3.0-rc1), from source `664a201e6df9173e1656bb5f25b503821c0be2b5`, using the same build-once Gem. SHA256: `e5b184e615f9f59c3db770d150b96e847fa5df83ca152e274ae55c656b68feda`. See the [publication record](docs/release/v0.3.0-rc1-publication-record.md). Stable `0.3.0` is not released.
 
 > **Pre-release candidate, not a stable-production security certification.**
 > This candidate contains the previously unreleased outbound Client changes
@@ -37,8 +39,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   SendMessage/CancelTask timeout and nested response validation.
 - **Go SDK follow-up:** Step 29-5q verified authenticated Go ListTasks pagination with two scoped test users and isolated Task visibility; anonymous callers still receive `-31401`.
 - **Release evidence and limitations:** Exact-version source and Gem are
-  subject to mandatory build-once/SHA256, installed Ruby/Rails/PostgreSQL,
-  native Python/Go interoperability and security regression checks.
+  verified by build-once/SHA256, installed Ruby/Rails/PostgreSQL,
+  native Python/Go interoperability and security regression checks; the
+  public RubyGems download matches the verified Gem byte-for-byte.
   [Step 29-5u risk-based release policy](docs/release/step-29-5u-risk-based-oss-release-policy.md)
   makes third-party security audit **optional** and does not assert a
   certification. No known unresolved Critical/High code defect is acceptable
