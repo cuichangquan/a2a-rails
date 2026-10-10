@@ -4,18 +4,18 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.3.0.rc1] — 2026-10-10 (frozen-source review candidate; NOT published)
+## [0.3.0.rc1] - 2026-10-10 (pre-release candidate)
 
-> **Candidate branch ONLY — not released, tagged, merged into main or pushed
-> to RubyGems.** The exact `candidate/v0.3.0-rc1` source version is
-> `A2A::Rails::VERSION = "0.3.0.rc1"` and matches the gemspec.
-> This is a source-level candidate for CI and **independent security review**,
-> not a distribution or production deployment approval. The published stable
-> remains RubyGems `0.2.0`; main's source VERSION still reads `0.2.0`.
-> See [Step 29-5s review packet](docs/release/step-29-5s-versioned-source-review-handoff.md)
-> and blocking [Issue #90](https://github.com/cuichangquan/a2a-rails/issues/90).
+> **Pre-release candidate, not a stable-production security certification.**
+> This candidate contains the previously unreleased outbound Client changes
+> made after published stable `0.2.0`. The candidate source/gemspec VERSION
+> is `0.3.0.rc1`. [Technical release gates](docs/release/step-29-5u-risk-based-oss-release-policy.md)
+> require exact artifact verification, no known unresolved Critical/High
+> vulnerabilities and an explicit owner GO for publication. An external
+> security review is encouraged but **not a mandatory release condition**.
+> Public A2A deployment security is tracked separately in [Issue #11](https://github.com/cuichangquan/a2a-rails/issues/11).
 
-### Proposed added capabilities (on main, unreleased)
+### Added — outbound Client capabilities (v0.3.0.rc1)
 
 - Outbound Rails `A2A::Rails::Client` for strict HTTPS Agent Card
   discovery and A2A v1.0 JSON-RPC `SendMessage`, `GetTask`, `ListTasks`,
@@ -36,10 +36,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
   malformed/chunked/truncated HTTP, JSON nesting, ambiguous remote
   SendMessage/CancelTask timeout and nested response validation.
 - **Go SDK follow-up:** Step 29-5q verified authenticated Go ListTasks pagination with two scoped test users and isolated Task visibility; anonymous callers still receive `-31401`.
-- **Open review items:** exact frozen-source RC1 Gem SHA256 and installed-host
-  verification (separate from the prior staged-version rehearsal), an
-  independent security reviewer, and final explicit publication/public-test
-  scope decisions.
+- **Release evidence and limitations:** Exact-version source and Gem are
+  subject to mandatory build-once/SHA256, installed Ruby/Rails/PostgreSQL,
+  native Python/Go interoperability and security regression checks.
+  [Step 29-5u risk-based release policy](docs/release/step-29-5u-risk-based-oss-release-policy.md)
+  makes third-party security audit **optional** and does not assert a
+  certification. No known unresolved Critical/High code defect is acceptable
+  in release scope. Production host security review remains separate.
 - Publishing a Gem and approving open-public **production deployment**
   are distinct; a host must provide credential issuer verification,
   business authorization, rate/concurrency and operational limits.
