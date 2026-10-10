@@ -8,6 +8,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 > **Candidate source only (2026-10-10):** This branch sets `A2A::Rails::VERSION = "0.3.0"` for the new **unpublished** stable-candidate verification. Published RubyGems stable remains `0.2.0`; published prerelease is `0.3.0.rc1`. A passing CI artifact is not a GitHub Release or RubyGems publication; exact candidate SOURCE_COMMIT/SHA256 and owner GO will be recorded separately. **Do not reuse RC1 bytes or SHA256.**
 
+### Dependency security hardening under evaluation
+
+- Unlike the published RC1's earlier resolved RubyGem graphs, the initial candidate audit exposed affected `json` (direct Gem dependency) and `net-imap` (indirect full Rails host/mail dependency) versions in some fresh host installations. The initial **6/6 advisory jobs failed** and remain visible: [candidate audit evidence](docs/release/v0.3.0-stable-candidate-record.md).
+- This **unpublished** candidate tightens the Gem's `json` runtime dependency to `>= 2.19.9, < 3`. The full Rails-host audit fixture selects patched `net-imap ~> 0.5.15` without forcing an unrelated mail dependency on every `a2a-rails` user. Hosts must audit/upgrade their own locks.
+- Final compatibility, audit and build-once Gem checks must all pass again for a **new exact source SHA and Gem SHA256** before owner release consideration. This changelog does **not** assert that the remediation has passed until those results are recorded.
+
 ### Documentation and release preparation
 
 - Added [v0.2.0 → planned v0.3.0 upgrade guide](docs/release/upgrading-v0.2.0-to-v0.3.md) with separate existing-Server vs Client-only paths, exact origin-scoped credentials, Task/direct Message handling, timeout/idempotency boundaries and no mandatory database migration for adding the Client.
