@@ -1,6 +1,6 @@
 # a2a-rails Roadmap
 
-> Status: updated 2026-10-10 through Step 29-5t documented separation of Gem release gates from optional public/no-auth Cloud Run deployment testing. v0.3.0.rc1 source-tree-matched private installed-candidate verification PASS. Independent external review is recommended **optional** quality work (#113), not a Gem-publication gate; owner sign-off and technical release checks remain open, so v0.3.x is not yet approved.
+> Status: updated 2026-10-10. `0.3.0.rc1` is published after explicit owner GO and exact-artifact verification; stable `0.3.0` is not released. See the [RC1 publication record](docs/release/v0.3.0-rc1-publication-record.md). Independent external review remains optional (#113), and public-production deployment is a separate decision (#11).
 >
 > **Step 21 complete:** [Issue #35](https://github.com/cuichangquan/a2a-rails/issues/35) delivered an optional durable ActiveRecord Task Store, owner-scoped SQL access, row locking, keyset pagination, retention/pruning/quota/payload maintenance, shared Store contract tests and PostgreSQL 16 durability/locking smoke. [Design](docs/design/active-record-task-store.md) · [Guide](docs/guides/active-record-task-store.md). Step 20's `0.2.0.rc1` artifact is historical only; [`0.2.0.rc2`](https://github.com/cuichangquan/a2a-rails/releases/tag/v0.2.0-rc.2) was subsequently verified and published as a **pre-release**. [Step 26](docs/release/v0.2.0-stable-readiness.md) completed the stable-release evidence, [Step 27](docs/release/v0.2.0-publication-record.md) published `0.2.0`, and Step 28 proved that the independent Rails demo runs against that public Gem. Public-production security [Issue #11](https://github.com/cuichangquan/a2a-rails/issues/11) remains open.
 
@@ -12,7 +12,17 @@
 - [x] README Quick Start, JP / EN A2A overview PDFs, Zenn / Qiita articles and community submissions.
 - [ ] Open public-production approval: deployment-specific controls are still required under [Issue #11](https://github.com/cuichangquan/a2a-rails/issues/11).
 
-## Step 29-5u — Risk-based OSS release policy: external audit optional (2026-10-10)
+## Current RC1 release and next stable work
+
+- [x] `0.3.0.rc1` published on RubyGems and GitHub as a Pre-release; tag `v0.3.0-rc1` pins `664a201e6df9173e1656bb5f25b503821c0be2b5`.
+- [x] Same installed Gem passed Ruby 3.3/3.4/4.0 × Rails 8.0/8.1, PostgreSQL 16 and native official Python/Go SDK tests; public RubyGems bytes and installed Client/Server security smoke verified.
+- [ ] Collect RC adopter feedback and assess compatibility/bug reports before a separately approved stable `0.3.0` release.
+- [ ] Keep optional independent security review #113 open; assess credible findings and fix any Critical/High issue before a subsequent release.
+- [ ] Maintain deployment-specific authentication, authorization, logging, durability and idempotency review under #11. Publication does not approve anonymous public Cloud Run exposure.
+
+The Step 29-5t/5u and Step 29 implementation entries below are historical preparation snapshots. Their Draft #112, unpublished/NO-GO and former external-review-gate wording does not override the RC1 publication record or current risk-based policy.
+
+## Step 29-5u — Risk-based OSS release policy: external audit optional (historical 2026-10-10 snapshot)
 
 - **[Current v0.3.x release/audit policy](docs/release/step-29-5u-risk-based-oss-release-policy.md):** Third-party security audit is **recommended, not mandatory** for Gem publication. **Mandatory**: complete technical security and compatibility tests, frozen-source and exact-artifact provenance, no known unresolved Critical/High code vulnerabilities in release scope, transparent supported/unsupported behavior, and **explicit owner GO**. [Issue #113](https://github.com/cuichangquan/a2a-rails/issues/113) stays OPEN as an **optional community review opportunity**, not a known security bug or release blocker. [Issue #90](https://github.com/cuichangquan/a2a-rails/issues/90) remains OPEN; release is **not yet approved**. Actual open-public production remains NO-GO by default under #11.
 
@@ -22,7 +32,7 @@
 - **Independent external security review OPTIONAL:** [Community review request #113](https://github.com/cuichangquan/a2a-rails/issues/113) created for the full `v0.2.0` to frozen `v0.3.0.rc1` delta (exact commit `68572fe7fd6f2f55c98ffdb463e72dd9063f53f7`, private Gem SHA256 `dfad66f8ca992646dedde306669e97b8a8ff94a13a04939d5a44b4dda7630efa`). External review of SSRF/DNS/pinned HTTPS, auth/audience/privacy, bounded transport/Tasks and queues is welcome, but **absence of an outside reviewer alone is NOT a release blocker**; technical checks and known Critical/High defects remain hard gates.
 - **Distinct decisions:** GitHub/RubyGems **Gem release NOT YET APPROVED** until technical verification, assessment of known Critical/High findings and *separate owner authorization*; anonymous/public-production deployment **NO-GO** without app/infra-specific controls; optional no-auth Cloud Run experiment **NOT APPROVED / NOT RUN**, requires separate explicit approval and cost/rollback plan. Keep [candidate Draft PR #112](https://github.com/cuichangquan/a2a-rails/pull/112) unmerged, IAM unchanged, and [release gate #90](https://github.com/cuichangquan/a2a-rails/issues/90) OPEN.
 
-## Current next work — Step 29: outbound A2A Client (implementation in progress)
+## Step 29: outbound A2A Client (historical implementation/preparation log)
 
 - [Tracking Issue #75](https://github.com/cuichangquan/a2a-rails/issues/75) — design and internal Step 29-3a policy merged; Steps 29-3a–3c merged; Step 29-4a/4b merged (public Rails Client and Client-only Rails mode). Step 29-5 independent outbound verification in progress. **Not yet published or production-approved**.
 - [Proposed API / architecture / security-gates document](docs/design/a2a-client.md) — Rails can call remote Agent Card / SendMessage / GetTask / ListTasks / CancelTask, including direct Message and Task response forms.
@@ -49,7 +59,7 @@
 | P1 | 7 | [ActiveRecord Task Store](https://github.com/cuichangquan/a2a-rails/issues/35) | Durable owner-scoped Tasks across workers/restarts + lifecycle maintenance | next v0.2 candidate | **Complete — PRs #36–#39** |
 | P1 | 8 | [ActiveJob Task execution](https://github.com/cuichangquan/a2a-rails/issues/41) | Run long-running Tasks asynchronously with explicit lifecycle semantics | next v0.2 candidate | **Complete — Steps 22-1–22-10** |
 | P0 | 8.5 | [v0.2.0.rc2 candidate verification](https://github.com/cuichangquan/a2a-rails/issues/54) | Fresh exact-candidate verification after Steps 21–22 | v0.2.0.rc2 | **Steps 23–25 complete — rc2 published and verified** |
-| P1 | 9 | [A2A Client / Step 29](https://github.com/cuichangquan/a2a-rails/issues/75) | Call remote A2A Agents from Rails | v0.3 proposal | **Design merged; security implementation in progress** |
+| P1 | 9 | [A2A Client / Step 29](https://github.com/cuichangquan/a2a-rails/issues/75) | Call remote A2A Agents from Rails | v0.3.0.rc1 → stable v0.3.0 | **RC1 published; adopter feedback and stable release assessment next** |
 | P2 | 10 | SSE Streaming | Stream Task status/results over A2A-compatible transport | v0.4 proposal | Planned |
 | P2 | 11 | Human-in-the-loop | Model INPUT_REQUIRED / AUTH_REQUIRED flows and resume safely | v0.5 proposal | Planned |
 | P2 | 12 | ActingFor integration | Optional delegated-authorization integration, never a hard dependency | Future | Planned |
