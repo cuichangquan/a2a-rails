@@ -375,7 +375,7 @@ jobs:
             kill "$(cat "$RUNNER_TEMP/official-server.pid")" 2>/dev/null || true
           fi
 
-installed-advisory:
+  installed-advisory:
     needs: build-once
     runs-on: ubuntu-latest
     timeout-minutes: 25
@@ -441,7 +441,7 @@ installed-advisory:
           if-no-files-found: warn
           retention-days: 30
 
-installed-rails-echo:
+  installed-rails-echo:
     needs: build-once
     runs-on: ubuntu-latest
     timeout-minutes: 25
