@@ -108,6 +108,14 @@ The Client does **not** automatically retry ambiguous `SendMessage`/`CancelTask`
 - `MemoryStore` remains process-local by default; opt in to `ActiveRecordStore` for durable distributed Server Task state, and select a durable queue where appropriate.
 - Public/no-auth production operation is **separately NO-GO by default**, per [Issue #11](https://github.com/cuichangquan/a2a-rails/issues/11). Publishing the Gem does not approve a host's exposure.
 
+## Dependency advisory differences from RC1
+
+The unpublished stable candidate raises `json` (a2a-rails's direct runtime dependency) to **`>= 2.19.9, < 3`**, following RubySec advisories for earlier JSON versions discovered during exact host testing. **Before adopting the candidate**, ensure your Ruby, Rails and existing Bundler lockfile can resolve this range. Do not bypass the bound to make an old application boot.
+
+A full `gem "rails"` installation also installs `net-imap` through mail features. Initial independent Rails-host security checks found vulnerable `net-imap 0.4.25`; a candidate test host now uses patched `net-imap ~>0.5.15`. This is **not a new a2a-rails Gem dependency**: production users must update/audit **their own application's** `net-imap` and lockfile, not assume a RubyGem version bump repairs unrelated Rails/mail advisories.
+
+See [candidate security finding details](v0.3.0-stable-candidate-record.md). The first failed candidate checks remain public, and successful remediated verification is a precondition for final release GO.
+
 ## 6. Regression checks before any version upgrade
 
 1. Review the exact release bytes, Gem version, changelog and RubyGems provenance. `0.3.0.rc1` and future `0.3.0` are **different immutable artifacts**, and the RC1 SHA256 must never be reused for stable.
