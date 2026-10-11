@@ -1,0 +1,34 @@
+name: Verification planning (offline only)
+
+on:
+  push:
+    paths:
+      - 'scripts/verification/**'
+      - '.github/workflows/cost-efficient-validation.yml'
+  pull_request:
+    paths:
+      - 'scripts/verification/**'
+      - '.github/workflows/cost-efficient-validation.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check bash syntax
+        run: |
+          bash -n scripts/verification/plan.sh
+          bash -n scripts/verification/test.sh
+          bash -n scripts/gcp-test/inventory.sh
+          bash -n scripts/gcp-test/test.sh
+      - name: Check classification regression
+        run: bash scripts/verification/test.sh
+      - name: Mock GCP read-only inventory and guard checks
+        run: bash scripts/gcp-test/test.sh
+      - name: Example security change must not provision cloud
+        run: bash scripts/verification/plan.sh --files lib/a2a/rails/client/outbound_policy.rb
