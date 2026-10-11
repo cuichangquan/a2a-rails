@@ -4,10 +4,12 @@ on:
   push:
     paths:
       - 'scripts/verification/**'
+      - 'scripts/gcp-test/**'
       - '.github/workflows/cost-efficient-validation.yml'
   pull_request:
     paths:
       - 'scripts/verification/**'
+      - 'scripts/gcp-test/**'
       - '.github/workflows/cost-efficient-validation.yml'
   workflow_dispatch:
 
