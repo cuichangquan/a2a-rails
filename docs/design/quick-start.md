@@ -1,5 +1,7 @@
 # a2a-rails v0.1 Quick Start Design
 
+Historical design record. For the current published 0.3.0 setup and Server/Client choice, start with the [README](../../README.md#choose-your-starting-point). The status below records the original pre-publication checkpoint.
+
 > **Status: Step 14 design complete. Step 15-12 runtime-verifies the generator-backed Echo Quick Start from source and from the built Gem. Step 15-13 verifies the v0.1.0 release-candidate metadata and packaged release files. Publication has not yet been performed.**
 
 This document fixes the first-time developer experience for an existing Rails application. The example uses Echo to keep the Gem independent of any business domain.
