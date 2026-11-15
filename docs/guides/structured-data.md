@@ -1,9 +1,9 @@
 # Call Rails business logic with structured Data
 
-**Unreleased:** this guide describes the 0.4.0 feature candidate. Published
-`a2a-rails 0.3.0` supports the outbound Client and Server Data output, but not
-Server Data input. Use an explicitly pinned candidate source commit to try the
-new behavior before release, not `gem install a2a-rails -v 0.4.0`.
+Server Data input is available in [published a2a-rails 0.4.0](https://rubygems.org/gems/a2a-rails/versions/0.4.0).
+In an existing Rails app, run `bundle add a2a-rails --version '= 0.4.0'`.
+Version 0.3.0 supports the outbound Client and Server Data output, but not
+Server Data input.
 
 ## Server: opt in on the selected Skill
 
@@ -94,7 +94,6 @@ To see the complete three-field fictional sales example and the real HTTPS
 test, use the
 [Server demo](https://github.com/cuichangquan/a2a-rails-demo) and
 [Client demo](https://github.com/cuichangquan/a2a-rails-client-demo)
-structured-report candidate guides. The stable branches may still use 0.3.0.
+structured-report guides. Check each README for its exact RubyGems pin.
 
-SSE, Task continuation, push delivery, and file input are outside this release
-candidate. The new Data input support is not a claim of full A2A conformance.
+SSE, Task continuation, push delivery, and file input are outside this release. The new Data input support is not a claim of full A2A conformance.

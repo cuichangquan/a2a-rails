@@ -4,9 +4,9 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.4.0] — release preparation (not yet published)
+## [0.4.0] - 2026-11-15 (published stable release)
 
-> Packaging and verification only. See the [0.4.0 release checklist](docs/release/v0.4.0-preparation.md).
+> [RubyGems a2a-rails 0.4.0](https://rubygems.org/gems/a2a-rails/versions/0.4.0) · [verified package and source provenance](docs/release/v0.4.0-publication-record.md).
 
 - Add opt-in inbound JSON object Data Parts on Skills declaring
   `application/json`; the input contract is enforced after Routing and before

@@ -2,7 +2,7 @@
 
 Rails-native A2A v1.0 integration: expose Rails business logic as an Agent, call remote Agents, or do both. Application handlers use Ruby Hashes rather than SDK request objects.
 
-> **Latest stable release (2026-10-10): [a2a-rails v0.3.0](https://github.com/cuichangquan/a2a-rails/releases/tag/v0.3.0) is now published on [RubyGems](https://rubygems.org/gems/a2a-rails/versions/0.3.0).** It adds the outbound Rails A2A Client and optional Client-only mode while preserving the existing Server default. [Official publication & SHA256 record](docs/release/v0.3.0-publication-record.md). **Gem publication is not approval to run an anonymous/public production Agent; deployment #11 remains separate.**
+> **Latest stable release (2026-11-15): [a2a-rails 0.4.0 is published on RubyGems](https://rubygems.org/gems/a2a-rails/versions/0.4.0).** It adds opt-in JSON object input for Rails Skills while keeping existing text and outbound Client flows. See the [Data guide](docs/guides/structured-data.md) and [publication & SHA-256 record](docs/release/v0.4.0-publication-record.md). **Gem publication is not approval to run an anonymous/public production Agent; deployment #11 remains separate.**
 
 ## Choose your starting point
 
@@ -37,7 +37,7 @@ The original v0.1.0 baseline was verified against:
 In an existing Rails application, pin the published stable Gem:
 
 ```bash
-bundle add a2a-rails --version '= 0.3.0'
+bundle add a2a-rails --version '= 0.4.0'
 ```
 
 If you need a fresh app first (with a supported Rails installed):
@@ -45,7 +45,7 @@ If you need a fresh app first (with a supported Rails installed):
 ```bash
 rails new echo_app --minimal --skip-active-record
 cd echo_app
-bundle add a2a-rails --version '= 0.3.0'
+bundle add a2a-rails --version '= 0.4.0'
 ```
 
 Then choose Server or Client-only setup below. No explicit Engine mount is needed.
@@ -80,7 +80,7 @@ Replace the placeholder with a real approved HTTPS Agent. For an authenticated A
 
 ## Server Quick Start (local development)
 
-Use the published `a2a-rails 0.3.0` Gem installed above in development. The Echo flow uses synchronous execution and MemoryStore; no database or queue is required. If you previously selected Client-only mode, remove `server_enabled = false` and restart Rails.
+Use the published `a2a-rails 0.4.0` Gem installed above in development. The Echo flow uses synchronous execution and MemoryStore; no database or queue is required. If you previously selected Client-only mode, remove `server_enabled = false` and restart Rails.
 
 ### 1. Generate the setup
 
@@ -211,7 +211,7 @@ See the [historical v0.1 Quick Start design](docs/design/quick-start.md) for the
 
 **[a2a-rails-demo — independent Rails 8 Echo Agent](https://github.com/cuichangquan/a2a-rails-demo)**
 
-Run a complete standalone Rails Agent using the **published RubyGems `a2a-rails = 0.3.0`** (not a Git source checkout). The separate Demo covers Agent Card discovery, JSON-RPC v1.0 SendMessage **Task and direct Message**, GetTask, ListTasks and error handling.
+Run a complete standalone Rails Agent using the published RubyGems package (not a Git source checkout). See the demo README for its exact pin. The separate Demo covers Agent Card discovery, JSON-RPC v1.0 SendMessage **Task and direct Message**, GetTask, ListTasks and error handling.
 
 - [Demo Quick Start, code and example curl requests](https://github.com/cuichangquan/a2a-rails-demo#quick-start).
 - [Demo GitHub Actions smoke](https://github.com/cuichangquan/a2a-rails-demo/actions/workflows/smoke.yml) — independent Rails 8.1.4 / Ruby 3.4.10 HTTP smoke against published stable Gem `0.3.0` ([Step 32 Server PR #3, merged](https://github.com/cuichangquan/a2a-rails-demo/pull/3), [passing CI](https://github.com/cuichangquan/a2a-rails-demo/actions/runs/38097407649)). Verifies the actual published Gem and dependency versions, Task/direct Message/GetTask/ListTasks/CancelTask and refusal to boot in production. The historical [Step 28 v0.2.0 smoke](https://github.com/cuichangquan/a2a-rails-demo/actions/runs/37736426834) is preserved separately.
@@ -221,7 +221,7 @@ Run a complete standalone Rails Agent using the **published RubyGems `a2a-rails 
 
 **[a2a-rails-client-demo — standalone Rails 8 Client](https://github.com/cuichangquan/a2a-rails-client-demo)**
 
-Independent Client-only Rails application **now tested against published stable RubyGems `a2a-rails = 0.3.0`** with `server_enabled = false`. It discovers Agent Cards and calls SendMessage (Task/direct Message), GetTask and ListTasks using exact HTTPS origin allowlisting. [Stable Client CI PASS](https://github.com/cuichangquan/a2a-rails-client-demo/actions/runs/38097502077) and [independent Rails-to-Rails pinned-TLS CI PASS](https://github.com/cuichangquan/a2a-rails-client-demo/actions/runs/38097502218) use **published stable 0.3.0 on both Rails sides** and actual Server Echo business logic ([Step 32 Client PR #3](https://github.com/cuichangquan/a2a-rails-client-demo/pull/3)). The loopback-only bridge uses an ephemeral test CA and isolated test-only policy override; production Client SSRF/TLS protections are not relaxed. This is **not** a direct public-DNS/public-CA or production deployment test. Historical RC1 Client ↔ 0.2.0 Server evidence remains [in Step 30](https://github.com/cuichangquan/a2a-rails/issues/117).
+Independent Client-only Rails application with `server_enabled = false`. See the demo README for its exact RubyGems pin. It discovers Agent Cards and calls SendMessage (Task/direct Message), GetTask and ListTasks using exact HTTPS origin allowlisting. [Stable Client CI PASS](https://github.com/cuichangquan/a2a-rails-client-demo/actions/runs/38097502077) and [independent Rails-to-Rails pinned-TLS CI PASS](https://github.com/cuichangquan/a2a-rails-client-demo/actions/runs/38097502218) use **published stable 0.3.0 on both Rails sides** and actual Server Echo business logic ([Step 32 Client PR #3](https://github.com/cuichangquan/a2a-rails-client-demo/pull/3)). The loopback-only bridge uses an ephemeral test CA and isolated test-only policy override; production Client SSRF/TLS protections are not relaxed. This is **not** a direct public-DNS/public-CA or production deployment test. Historical RC1 Client ↔ 0.2.0 Server evidence remains [in Step 30](https://github.com/cuichangquan/a2a-rails/issues/117).
 
 ## What is a2a-rails?
 
@@ -342,7 +342,7 @@ Behavior in v0.1:
 - Streaming, Push Notifications, and Extended Agent Cards are disabled;
 - generated Cards pass the `agent2agent 2.0.0` Agent Card schema.
 
-### Structured Data input (unreleased 0.4.0 candidate)
+### Structured Data input (since 0.4.0)
 
 Declare `input_modes: ["application/json"]` on each Skill that accepts Data.
 The selected Skill receives a normal Ruby Hash containing the JSON object, with
@@ -569,7 +569,7 @@ Known warning-enabled output from upstream `agent2agent 2.0.0` can include circu
 > **Release status (2026-10-08):** **`0.2.0` is published as a stable release** on [RubyGems](https://rubygems.org/gems/a2a-rails/versions/0.2.0) and [GitHub](https://github.com/cuichangquan/a2a-rails/releases/tag/v0.2.0). It includes the Rails/Zeitwerk and migration-generator fixes after rc2. The public Gem matches the verified artifact byte-for-byte; see the [publication record](docs/release/v0.2.0-publication-record.md).
 
 - RubyGems: https://rubygems.org/gems/a2a-rails
-- **Current stable `0.3.0`:** [GitHub Release](https://github.com/cuichangquan/a2a-rails/releases/tag/v0.3.0) · [RubyGems](https://rubygems.org/gems/a2a-rails/versions/0.3.0) · [exact public SHA256 and provenance](docs/release/v0.3.0-publication-record.md)
+- **Previous stable `0.3.0`:** [GitHub Release](https://github.com/cuichangquan/a2a-rails/releases/tag/v0.3.0) · [RubyGems](https://rubygems.org/gems/a2a-rails/versions/0.3.0) · [exact public SHA256 and provenance](docs/release/v0.3.0-publication-record.md)
 - Published version list: https://rubygems.org/gems/a2a-rails/versions
 - Earlier stable release `0.2.0`: https://github.com/cuichangquan/a2a-rails/releases/tag/v0.2.0
 - Previous stable release: https://github.com/cuichangquan/a2a-rails/releases/tag/v0.1.0
