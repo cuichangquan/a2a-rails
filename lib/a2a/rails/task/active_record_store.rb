@@ -413,9 +413,36 @@ module A2A
           }
 
           task[:status][:message] = deep_symbolize(record.status_message) unless record.status_message.nil?
-          task[:history] = deep_symbolize(record.history) unless record.history.nil?
-          task[:artifacts] = deep_symbolize(record.artifacts) unless record.artifacts.nil?
+          task[:history] = deserialize_part_entries(record.history) unless record.history.nil?
+          task[:artifacts] = deserialize_part_entries(record.artifacts) unless record.artifacts.nil?
           task
+        end
+
+        # The persistence envelope uses Ruby symbols; JSON inside the data
+        # field of a protocol Part is opaque. Do not treat a key named "data"
+        # inside metadata (or inside another arbitrary object) as a Part.
+        def deserialize_part_entries(entries)
+          return deep_symbolize(entries) unless entries.is_a?(Array)
+
+          entries.map do |entry|
+            next deep_symbolize(entry) unless entry.is_a?(Hash)
+
+            entry.each_with_object({}) do |(key, value), result|
+              result[key.to_sym] = if key == "parts" && value.is_a?(Array)
+                value.map { |part| deserialize_part(part) }
+              else
+                deep_symbolize(value)
+              end
+            end
+          end
+        end
+
+        def deserialize_part(part)
+          return deep_symbolize(part) unless part.is_a?(Hash)
+
+          part.each_with_object({}) do |(key, value), result|
+            result[key.to_sym] = key == "data" ? value : deep_symbolize(value)
+          end
         end
 
         def deep_stringify(value)

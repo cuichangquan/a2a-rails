@@ -183,7 +183,8 @@ module A2A
         end
         validate_remote_protocol_keys!(part, operation)
         type = kinds.find { |key| part.key?(key) }
-        valid_value = type == "data" ? part[type].is_a?(Hash) : part[type].is_a?(String)
+        value = part[type]
+        valid_value = type == "data" ? value.is_a?(Hash) || value.is_a?(Array) : value.is_a?(String)
         unless valid_value
           raise InvalidResponseError.new(:invalid_message_part, operation: operation)
         end

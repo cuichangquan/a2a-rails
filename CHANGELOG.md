@@ -4,6 +4,19 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] — structured Rails business calls (0.4.0 candidate)
+
+- Add opt-in inbound JSON object Data Parts on Skills declaring
+  `application/json`; the input contract is enforced after Routing and before
+  Handler execution or Task admission.
+- Preserve nested JSON nulls and exact application keys through SDK
+  serialization, Task history and results. No database migration or SDK
+  dependency change. Existing text, Task and direct Message flows remain.
+- Keep Hash and Array Data output; the Rails Client now reads both. Object-only
+  is a Rails Server **input** restriction, not an output restriction.
+- See the [structured Data guide](docs/guides/structured-data.md) for the
+  normalized MIME type, accepted values and rollout instructions.
+
 ## [0.3.0] - 2026-10-10 (published stable release)
 
 > **Published after explicit maintainer GO.** [GitHub Release v0.3.0](https://github.com/cuichangquan/a2a-rails/releases/tag/v0.3.0) · [RubyGems a2a-rails 0.3.0](https://rubygems.org/gems/a2a-rails/versions/0.3.0). Immutable annotated tag targets commit `772f63fc814123f39b40bafd7403f3ef9a59788e`; the Gem SHA256 is `90a7d8d32bdd19ebc97046a3307c483cc0798b06afcd79df4931cfc5a4ead40f`. Exact final-main CI **49/49 jobs passed**. Gem uploaded without rebuilding; original RubyGems package was fetched and matched. [Step 31-6 publication record](docs/release/v0.3.0-publication-record.md).

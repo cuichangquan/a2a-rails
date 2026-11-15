@@ -9,6 +9,7 @@ module A2A
     class UnknownSkillError < ConfigurationError; end
 
     class RejectedTask < Error; end
+    class UnsupportedSkillInputError < RejectedTask; end
     class ArtifactMappingError < Error; end
 
     class ProtocolError < Error; end

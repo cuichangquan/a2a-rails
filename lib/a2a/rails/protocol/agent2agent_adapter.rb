@@ -5,6 +5,7 @@ require "rack"
 require "stringio"
 require_relative "adapter"
 require_relative "task_mapper"
+require_relative "part_data"
 
 module A2A
   module Rails
@@ -90,7 +91,14 @@ module A2A
           request = env.fetch("a2a.request")
           validate_request!(request)
 
-          result = @request_handler.call(operation: operation, params: request.to_h)
+          params = request.to_h
+          if operation == "SendMessage"
+            # The binding retains the parsed original params before Definition
+            # recursively removes nil values. Preserve Data only after the
+            # usual SDK validation; Rails still validates its input contract.
+            params = PartData.restore_request(params, env["a2a.body"])
+          end
+          result = @request_handler.call(operation: operation, params: params)
           schema(RESPONSE_SCHEMAS.fetch(operation), result)
         rescue A2A::Rails::TaskNotFoundError => error
           raise A2A::TaskNotFoundError.new(error.task_id)
@@ -128,7 +136,9 @@ module A2A
         def schema(name, value)
           object = A2A::Protocol::JsonSchema[name].new(value)
           object.valid!
-          object
+          # Return the SDK-normalized protocol shape, with only opaque Data
+          # restored. The SDK binding remains responsible for JSON-RPC output.
+          PartData.restore_response(name, object.to_h, value)
         end
       end
     end

@@ -342,6 +342,17 @@ Behavior in v0.1:
 - Streaming, Push Notifications, and Extended Agent Cards are disabled;
 - generated Cards pass the `agent2agent 2.0.0` Agent Card schema.
 
+### Structured Data input (unreleased 0.4.0 candidate)
+
+Declare `input_modes: ["application/json"]` on each Skill that accepts Data.
+The selected Skill receives a normal Ruby Hash containing the JSON object, with
+its original string keys and nested values intact. A Router selects a Skill
+before this opt-in is checked; sending Data alone does not select a Skill
+automatically. Legacy text-only handlers do not receive Data. See the
+[structured Data guide](docs/guides/structured-data.md) for a complete Handler,
+Client call, storage behavior and limits. Published 0.3.0 does not accept
+inbound Data.
+
 ## Task Lifecycle
 
 Internally, `a2a-rails` keeps SDK-independent Task states:

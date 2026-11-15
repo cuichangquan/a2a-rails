@@ -43,11 +43,27 @@ module A2A
             return send_direct_message(message, context_id)
           end
 
-          task = @lifecycle.create(message: message, context_id: context_id)
+          preflight = nil
+          routing_error = nil
+          task = @lifecycle.create(message: message, context_id: context_id) do |draft|
+            next unless message.fetch(:parts).any? { |part| part.key?(:data) }
+
+            # The router gets the final task context, but unsupported Data
+            # must not create a Task or consume the owner's storage quota.
+            begin
+              preflight = @dispatcher.plan(message: message, context: execution_context(draft))
+            rescue UnsupportedSkillInputError => error
+              raise ContentTypeNotSupportedError, error.message
+            rescue StandardError => error
+              routing_error = error
+            end
+          end
           context = execution_context(task)
 
           plan = begin
-            @dispatcher.plan(message: message, context: context)
+            raise routing_error if routing_error
+
+            preflight || @dispatcher.plan(message: message, context: context)
           rescue RejectedTask => error
             task = @lifecycle.reject(task.fetch(:id), error)
             nil
@@ -121,6 +137,8 @@ module A2A
             context: { task_id: nil, context_id: context_id }
           )
           { "message" => @task_mapper.dump_direct_message(result, context_id: context_id) }
+        rescue UnsupportedSkillInputError => error
+          raise ContentTypeNotSupportedError, error.message
         rescue StandardError
           # No Task exists to record a FAILED status. Never send application
           # exception details or unsupported result values to A2A callers.
@@ -199,7 +217,10 @@ module A2A
             raise TaskContinuationNotSupportedError, "Task continuation is not supported in v0.1"
           end
 
-          normalized_parts = parts.map { |part| normalize_text_part(part) }
+          normalized_parts = parts.map { |part| normalize_part(part) }
+          if normalized_parts.any? { |part| part.key?(:data) } && normalized_parts.any? { |part| part.key?(:text) }
+            raise ContentTypeNotSupportedError, "Text and JSON Data Parts cannot be mixed in one Message"
+          end
           message = {
             message_id: message_id,
             role: :user,
@@ -210,25 +231,53 @@ module A2A
           [message, context_id]
         end
 
-        def normalize_text_part(part)
-          unless part.is_a?(Hash) && part["text"].is_a?(String) && (part.keys & %w[data raw url]).empty?
-            raise ContentTypeNotSupportedError, "Only text Parts are supported in v0.1"
+        def normalize_part(part)
+          types = part.is_a?(Hash) ? part.keys & %w[text data raw url] : []
+          if types.size > 1
+            raise InvalidRequestError, "Each Part must specify exactly one content kind"
           end
-          media_type = part["mediaType"]
-          unless media_type.nil? || media_type.is_a?(String)
-            raise InvalidRequestError, "mediaType must be a String"
+
+          normalized = case types.first
+          when "data"
+            normalize_data_part(part)
+          when "text"
+            normalize_text_part(part)
+          else
+            raise ContentTypeNotSupportedError, "Only text and JSON Data Parts are supported"
           end
+
           metadata = part["metadata"]
           unless metadata.nil? || metadata.is_a?(Hash)
             raise InvalidRequestError, "part metadata must be an object"
           end
-
-          normalized = {
-            text: part["text"],
-            media_type: part["mediaType"].to_s.empty? ? "text/plain" : part["mediaType"]
-          }
           normalized[:metadata] = copy(metadata) if metadata
           normalized
+        end
+
+        def normalize_data_part(part)
+          data = part["data"]
+          unless data.is_a?(Hash)
+            raise InvalidRequestError, "Data Part input must be a JSON object"
+          end
+
+          media_type = part.fetch("mediaType", Skill::DATA_INPUT_MODE)
+          unless media_type == Skill::DATA_INPUT_MODE
+            raise ContentTypeNotSupportedError, "Data Part mediaType must be application/json when specified"
+          end
+
+          { data: copy(data), media_type: media_type }
+        end
+
+        def normalize_text_part(part)
+          unless part["text"].is_a?(String)
+            raise ContentTypeNotSupportedError, "Text Part content must be a String"
+          end
+
+          media_type = part["mediaType"]
+          unless media_type.nil? || media_type.is_a?(String)
+            raise InvalidRequestError, "mediaType must be a String"
+          end
+          { text: part["text"], media_type: media_type.to_s.empty? ? "text/plain" : media_type }
         end
 
         def validate_list_filters!(params)

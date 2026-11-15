@@ -116,6 +116,12 @@ The public Client, codec and DTO/error mapping use the pinned HTTPS Agent Card r
 
 **Release:** Stable `0.3.0` has been **published** with an immutable tagged source and verified Gem SHA256. [Release record](../release/v0.3.0-publication-record.md) covers the exact-package provenance, Ruby/Rails/PG/SDK checks and known risks. The previous stable `0.2.0` remains available unchanged.
 
+For report filters and other application objects, use an outbound Part such as
+`{ data: { "year" => 2026, "month" => 10 }, media_type: "application/json" }`.
+Check that the target Skill supports Data before calling it. The unreleased
+server candidate adds opt-in Data input and its Client can read both object
+and array Data responses. See [structured Data](structured-data.md).
+
 **Limitations:** outbound HTTPS target sockets are pinned to approved public **IPv4**; IPv6-only destinations, SSE, push notifications, gRPC, polling/orchestration and automatic retries are unsupported. A timeout during `SendMessage` or `CancelTask` may follow a remote side effect; the host must reconcile state safely. Host security requires real credential issuer checks, business authorization, filtering outside Gem loggers, sensible budgets and durable storage/queue configuration where necessary.
 
 **Production:** External security audit is **optional** for distributing this OSS Gem, not a claim of independent approval; public/no-auth Server operation remains a [separate NO-GO decision](https://github.com/cuichangquan/a2a-rails/issues/11) until the actual deployment meets its own security requirements.

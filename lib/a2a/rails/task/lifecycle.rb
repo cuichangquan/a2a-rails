@@ -28,6 +28,7 @@ module A2A
             history: [copy(message)]
           }
 
+          yield task if block_given?
           @store.save(task)
         end
 

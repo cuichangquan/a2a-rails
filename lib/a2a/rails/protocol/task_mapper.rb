@@ -104,7 +104,7 @@ module A2A
           result["raw"] = part[:raw] if part.key?(:raw)
           result["url"] = part[:url] if part.key?(:url)
           result["filename"] = part[:filename] if part.key?(:filename)
-          if part.key?(:raw) || part.key?(:url)
+          if part.key?(:raw) || part.key?(:url) || part.key?(:data)
             result["mediaType"] = part[:media_type] if part.key?(:media_type)
           end
           result["metadata"] = copy(part[:metadata]) if part.key?(:metadata)
