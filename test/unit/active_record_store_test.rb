@@ -36,6 +36,62 @@ class ActiveRecordStoreTest < Minitest::Test
 
   SECRET = "step-21-active-record-store-test-secret".ljust(64, "x")
 
+  class DataEchoAgent < A2A::Rails::Agent
+    name "Data Echo"
+    description "Checks the Task store and Active Job boundary"
+    version "1.0"
+    skill :echo, description: "Echo", tags: ["test"],
+      input_modes: ["application/json"], handler: ->(message:, context:) {
+        part = message.fetch(:parts).first
+        { "observed" => part.fetch(:data), "type" => part.fetch(:media_type) }
+      }
+  end
+
+  def test_data_round_trip_in_both_stores_and_execution_modes
+    value = { "messageId" => 1, "message_id" => false, "missing" => nil, "array" => [[], {}, nil] }
+    original_configuration = A2A::Rails.instance_variable_get(:@configuration)
+    original_runtime = A2A::Rails.instance_variable_get(:@runtime)
+    original_queue = A2A::Rails::TaskExecutionJob.queue_adapter
+    configuration = A2A::Rails::Configuration.new
+    configuration.agent = "ActiveRecordStoreTest::DataEchoAgent"
+    A2A::Rails.instance_variable_set(:@configuration, configuration)
+    A2A::Rails::TaskExecutionJob.queue_adapter = :test
+
+    [A2A::Rails::Task::MemoryStore.new, @store].product(%i[sync async]).each do |store, mode|
+      configuration.task_execution_mode = mode
+      A2A::Rails.instance_variable_set(:@runtime, A2A::Rails::Runtime.new(store: store))
+      lifecycle = A2A::Rails::Task::Lifecycle.new(store: store, principal_id: "data-test")
+      handler = A2A::Rails::Protocol::RequestHandler.new(
+        dispatcher: A2A::Rails::Dispatcher.new(agent: DataEchoAgent, configuration: configuration),
+        lifecycle: lifecycle
+      )
+      queue = A2A::Rails::TaskExecutionJob.queue_adapter.enqueued_jobs
+      queue.clear
+      task = handler.call(operation: "SendMessage", params: {
+        "message" => { "messageId" => "data", "role" => "ROLE_USER", "parts" => [{ "data" => value }] }
+      }).fetch("task")
+
+      if mode == :async
+        assert_equal "TASK_STATE_SUBMITTED", task.dig("status", "state")
+        assert_equal 1, queue.size
+        A2A::Rails::TaskExecutionJob.deserialize(queue.fetch(0)).perform_now
+      else
+        assert_empty queue
+      end
+
+      saved = handler.call(operation: "GetTask", params: { "id" => task.fetch("id") })
+      assert_equal "TASK_STATE_COMPLETED", saved.dig("status", "state")
+      assert_equal value, saved.dig("history", 0, "parts", 0, "data")
+      assert_equal "application/json", saved.dig("history", 0, "parts", 0, "mediaType")
+      assert_equal({ "observed" => value, "type" => "application/json" }, saved.dig("artifacts", 0, "parts", 0, "data"))
+      assert_equal value, lifecycle.find(task.fetch("id")).dig(:history, 0, :parts, 0, :data)
+    end
+  ensure
+    A2A::Rails.instance_variable_set(:@configuration, original_configuration)
+    A2A::Rails.instance_variable_set(:@runtime, original_runtime)
+    A2A::Rails::TaskExecutionJob.queue_adapter = original_queue
+  end
+
   def build_contract_store
     A2A::Rails::Task::ActiveRecordStore.new(cursor_secret: SECRET)
   end

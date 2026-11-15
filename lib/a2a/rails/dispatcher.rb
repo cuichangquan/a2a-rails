@@ -27,6 +27,7 @@ module A2A
       def plan(message:, context:)
         validate!
         skill = select_skill(message: message, context: context)
+        verify_skill_input!(skill, message)
 
         ExecutionPlan.new(
           agent_class_name: @agent.name,
@@ -38,6 +39,7 @@ module A2A
       def execute(plan:, message:, context:)
         validate!
         skill = declared_skill(plan.skill_id)
+        verify_skill_input!(skill, message)
         handler_context = context.merge(skill_id: skill.id)
 
         skill.handler.call(message: message, context: handler_context)
@@ -62,6 +64,14 @@ module A2A
         selected_id = normalize_selected_id(selected)
 
         declared_skill(selected_id, selected)
+      end
+
+      def verify_skill_input!(skill, message)
+        parts = message[:parts] if message.is_a?(Hash)
+        return unless parts.is_a?(Array) && parts.any? { |part| part.is_a?(Hash) && part.key?(:data) }
+        return if skill.input_modes&.include?(Skill::DATA_INPUT_MODE)
+
+        raise UnsupportedSkillInputError, "Selected skill does not accept JSON Data Parts"
       end
 
       def declared_skill(skill_id, original = skill_id)

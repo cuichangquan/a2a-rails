@@ -80,7 +80,7 @@ The Step 29-5t/5u and Step 29 implementation entries below are historical prepar
 | P1 | 8 | [ActiveJob Task execution](https://github.com/cuichangquan/a2a-rails/issues/41) | Run long-running Tasks asynchronously with explicit lifecycle semantics | next v0.2 candidate | **Complete — Steps 22-1–22-10** |
 | P0 | 8.5 | [v0.2.0.rc2 candidate verification](https://github.com/cuichangquan/a2a-rails/issues/54) | Fresh exact-candidate verification after Steps 21–22 | v0.2.0.rc2 | **Steps 23–25 complete — rc2 published and verified** |
 | P1 | 9 | [A2A Client / Step 29](https://github.com/cuichangquan/a2a-rails/issues/75) | Call remote A2A Agents from Rails | v0.3.0.rc1 → stable v0.3.0 | **RC1 published; adopter feedback and stable release assessment next** |
-| P2 | 10 | SSE Streaming | Stream Task status/results over A2A-compatible transport | v0.4 proposal | Planned |
+| P2 | 10 | SSE Streaming | Stream Task status/results over A2A-compatible transport | Later proposal | Planned |
 | P2 | 11 | Human-in-the-loop | Model INPUT_REQUIRED / AUTH_REQUIRED flows and resume safely | v0.5 proposal | Planned |
 | P2 | 12 | ActingFor integration | Optional delegated-authorization integration, never a hard dependency | Future | Planned |
 | P3 | 13 | English documentation | Expand international setup, API references and examples | Ongoing | Planned |
@@ -149,9 +149,10 @@ Completed on `main` (unreleased; **not** part of RubyGems v0.1.0):
 ## Suggested release sequence (subject to change)
 
 - **Released `0.2.0`:** stable Gem, optional ActiveRecord Task Store / ActiveJob, and [published-Gem Rails demo verification](https://github.com/cuichangquan/a2a-rails-demo/pull/2) are complete; deployment-specific public-production gates remain open.
-- **v0.3 proposal:** A2A Client (not yet committed).
-- **v0.4 proposal:** Streaming / SSE.
-- **v0.5 proposal:** Human-in-the-loop.
+- **Released `0.3.0`:** outbound A2A Client and Client-only Rails hosts.
+- **`0.4.0` candidate (unreleased):** invoke Rails business logic with structured
+  Data and receive structured results. See the [Data guide](docs/guides/structured-data.md).
+- **Later proposals:** Streaming / SSE and human-in-the-loop.
 - **Later:** optional ActingFor integration.
 
 ## Maintenance

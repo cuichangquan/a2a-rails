@@ -5,21 +5,6 @@ require "rack/mock"
 require_relative "../test_helper"
 
 class RequestHandlerIntegrationTest < Minitest::Test
-  AGENT_CARD = {
-    "name" => "Integrated Test Agent",
-    "description" => "a2a-rails Step 15-8 integration test",
-    "version" => "0.1.0",
-    "supportedInterfaces" => [
-      { "url" => "http://example.test/a2a", "protocolBinding" => "JSONRPC", "protocolVersion" => "1.0" }
-    ],
-    "capabilities" => { "streaming" => false, "pushNotifications" => false, "extendedAgentCard" => false },
-    "defaultInputModes" => ["text/plain"],
-    "defaultOutputModes" => ["text/plain"],
-    "skills" => [
-      { "id" => "reply", "name" => "Reply", "description" => "Reply to a message", "tags" => ["test"] }
-    ]
-  }.freeze
-
   def test_send_get_and_list_use_real_sdk_and_internal_task_core
     rack, = build_stack(handler: lambda do |message:, context:|
       assert_equal :user, message[:role]
@@ -415,7 +400,77 @@ class RequestHandlerIntegrationTest < Minitest::Test
 
     unsupported = send_params
     unsupported["message"]["parts"] = [{ "data" => { "x" => 1 } }]
-    refute_nil rpc(rack, "SendMessage", unsupported).dig("error", "code")
+    assert_equal(-32_005, rpc(rack, "SendMessage", unsupported).dig("error", "code"))
+    assert_equal 1, lifecycle.list.fetch(:total_size)
+  end
+
+  def test_json_data_round_trips_in_task_and_history_without_key_conversion
+    value = {
+      "messageId" => "camel", "message_id" => "snake", "department:id" => 123,
+      "optional" => nil, "enabled" => false, "empty" => {},
+      "nested" => [[{ "media_type" => nil, "data" => false }, [], nil], 0]
+    }
+    rack, = build_stack(input_modes: ["application/json"], handler: ->(message:, context:) {
+      assert_equal :reply, context[:skill_id]
+      assert_equal({ data: value, media_type: "application/json" }, message[:parts].first)
+      [message[:parts].first.fetch(:data), nil]
+    })
+    params = send_params
+    params["message"]["parts"] = [{ "data" => value }]
+    task = rpc(rack, "SendMessage", params).fetch("result").fetch("task")
+
+    assert_equal "TASK_STATE_COMPLETED", task.dig("status", "state")
+    assert_equal [value, nil], task.dig("artifacts", 0, "parts", 0, "data")
+    assert_equal({ "data" => value, "mediaType" => "application/json" }, task.dig("history", 0, "parts", 0))
+    assert_equal task, rpc(rack, "GetTask", "id" => task.fetch("id")).fetch("result")
+    listed = rpc(rack, "ListTasks", "includeArtifacts" => true).fetch("result").fetch("tasks")
+    assert_equal [task], listed
+  end
+
+  def test_json_data_rejects_incompatible_input_before_creating_task
+    calls = 0
+    rack, lifecycle = build_stack(input_modes: ["application/json"], handler: ->(**) { calls += 1 })
+    examples = [
+      [-32_602, [{ "data" => [] }]],
+      [-32_602, [{ "data" => false }]],
+      [-32_602, [{ "data" => nil }]],
+      [-32_005, [{ "data" => {}, "mediaType" => "text/plain" }]],
+      [-32_005, [{ "data" => {}, "mediaType" => "" }]],
+      [-32_602, [{ "data" => {}, "mediaType" => "application/json", "media_type" => "text/plain" }]],
+      [-32_602, [{ "data" => nil, "text" => "one Part" }]],
+      [-32_005, [{ "text" => "separate" }, { "data" => {} }]]
+    ]
+
+    examples.each do |code, parts|
+      params = send_params
+      params["message"]["parts"] = parts
+      assert_equal code, rpc(rack, "SendMessage", params).dig("error", "code")
+    end
+    assert_equal 0, calls
+    assert_equal 0, lifecycle.list.fetch(:total_size)
+  end
+
+  def test_json_data_applies_selected_skill_not_another_skills_declaration
+    handler = ->(**) { flunk "undeclared skill must not receive data" }
+    rack, lifecycle = build_stack(handler: handler, other_json_skill: true)
+    params = send_params
+    params["message"]["parts"] = [{ "data" => {} }]
+    assert_equal(-32_005, rpc(rack, "SendMessage", params).dig("error", "code"))
+    assert_equal 0, lifecycle.list.fetch(:total_size)
+  end
+
+  def test_direct_json_data_echoes_object_and_does_not_create_a_task
+    rack, lifecycle = build_stack(
+      response_mode: :message,
+      input_modes: ["application/json"],
+      handler: ->(message:, context:) { message.fetch(:parts).first.fetch(:data) }
+    )
+    params = send_params
+    data = { "optional" => nil, "empty" => {} }
+    params["message"]["parts"] = [{ "data" => data, "mediaType" => "application/json" }]
+    result = rpc(rack, "SendMessage", params).fetch("result")
+    assert_equal data, result.dig("message", "parts", 0, "data")
+    assert_equal 0, lifecycle.list.fetch(:total_size)
   end
 
   def test_list_validation_uses_internal_store_rules_through_sdk_boundary
@@ -458,7 +513,8 @@ class RequestHandlerIntegrationTest < Minitest::Test
 
   private
 
-  def build_stack(handler:, response_mode: :task, execution_mode: nil, task_job: A2A::Rails::TaskExecutionJob, principal_id: nil)
+  def build_stack(handler:, response_mode: :task, execution_mode: nil, task_job: A2A::Rails::TaskExecutionJob,
+    principal_id: nil, input_modes: nil, other_json_skill: false)
     agent = Class.new(A2A::Rails::Agent)
     agent.name "Integrated Test Agent"
     agent.description "Step 15-8"
@@ -468,7 +524,12 @@ class RequestHandlerIntegrationTest < Minitest::Test
     agent.skill :reply,
       description: "Reply",
       tags: %w[test],
-      handler: handler
+      handler: handler,
+      input_modes: input_modes
+    if other_json_skill
+      agent.skill :data, description: "Data", tags: ["test"], handler: handler, input_modes: ["application/json"]
+      agent.router ->(message:, context:, skills:) { :reply }
+    end
 
     store = A2A::Rails::Task::MemoryStore.new
     lifecycle = A2A::Rails::Task::Lifecycle.new(store: store, principal_id: principal_id)
@@ -478,7 +539,7 @@ class RequestHandlerIntegrationTest < Minitest::Test
       task_job: task_job
     )
     adapter = A2A::Rails::Protocol::Agent2AgentAdapter.new(
-      agent_card: AGENT_CARD,
+      agent_card: A2A::Rails::AgentCard::Builder.new(agent: agent, public_base_url: "http://example.test").call,
       request_handler: request_handler
     )
 

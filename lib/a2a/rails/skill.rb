@@ -3,6 +3,8 @@
 module A2A
   module Rails
     class Skill
+      DATA_INPUT_MODE = "application/json"
+
       attr_reader :id, :name, :description, :tags, :handler, :examples, :input_modes, :output_modes, :execution_mode
 
       def initialize(id:, description:, tags:, handler:, name: nil, examples: nil, input_modes: nil, output_modes: nil, execution_mode: nil)

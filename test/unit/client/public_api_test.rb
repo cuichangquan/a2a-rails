@@ -93,6 +93,21 @@ class ClientPublicApiTest < Minitest::Test
     assert_match(/\A[0-9a-f-]{36}\z/, call[:id])
   end
 
+  def test_outbound_object_and_inbound_array_keep_data_opaque
+    data = { "messageId" => false, "message_id" => nil, "media_type" => [[], {}] }
+    @resolver.reply = fixture("direct-message")
+    @resolver.reply["message"]["parts"] = [{ "data" => [data, nil] }]
+    result = @client.send_message(message: {
+      message_id: "m-data", role: "ROLE_USER",
+      parts: [{ data: data, media_type: "application/json" }]
+    })
+
+    assert_equal({ "data" => data, "mediaType" => "application/json" },
+      @resolver.calls.last.dig(:params, "message", "parts", 0))
+    assert_equal [data, nil], result.message.dig(:parts, 0, :data)
+    assert_predicate result.message.dig(:parts, 0, :data), :frozen?
+  end
+
   def test_send_result_direct_message_and_output_configuration
     @resolver.reply = fixture("direct-message")
     r = @client.send_message(message: user_message,
@@ -179,7 +194,7 @@ class ClientPublicApiTest < Minitest::Test
     bad_parts = [
       { "text" => "bad", "data" => { "private" => "must-not-leak" } },
       { "url" => "https://untrusted.example/file", "raw" => "aGVsbG8=" },
-      { "data" => [] },
+      { "data" => 17 },
       { "raw" => 17 },
       { "url" => nil },
       { "text" => { "nested" => true } },
