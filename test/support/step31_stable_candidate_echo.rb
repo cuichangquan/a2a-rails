@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-# Step 31-5: exact installed 0.3.0 stable candidate calls the independent Demo
+# Step 31-5: exact installed release candidate calls the independent Demo
 # running the PUBLISHED a2a-rails 0.2.0 Gem; isolated test-only TLS. HTTPS is terminated by a
 # loopback-only test bridge because the Demo itself advertises an HTTP URL.
 # Do not install the loopback policy in an application or weaken production
@@ -10,8 +10,9 @@ require "json"
 require "securerandom"
 
 spec = Gem.loaded_specs.fetch("a2a-rails")
-unless spec.version.to_s == "0.3.0" && A2A::Rails::VERSION == "0.3.0"
-  abort("FAIL: loaded Client must be exact 0.3.0 candidate")
+expected_version = ENV.fetch("RC_VERSION")
+unless spec.version.to_s == expected_version && A2A::Rails::VERSION == expected_version
+  abort("FAIL: loaded Client must be exact #{expected_version} candidate")
 end
 if File.realpath(spec.full_gem_path).start_with?(
      File.realpath(ENV.fetch("A2A_RAILS_SOURCE_ROOT")) + File::SEPARATOR
@@ -147,4 +148,4 @@ verify!(policy.checked_paths.include?("/.well-known/agent-card.json") &&
   "actual TLS requests use separately validated Card and RPC paths")
 verify!(policy.checked_origins.uniq == [BASE],
   "all requests remain on exact approved HTTPS origin")
-puts "STEP 31-5 EXACT INSTALLED 0.3.0 CANDIDATE -> PUBLISHED 0.2.0 SERVER HTTPS: PASS"
+puts "STEP 31-5 EXACT INSTALLED #{expected_version} CANDIDATE -> PUBLISHED 0.2.0 SERVER HTTPS: PASS"

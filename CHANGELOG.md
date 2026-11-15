@@ -4,7 +4,9 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased] — structured Rails business calls (0.4.0 candidate)
+## [0.4.0] — release preparation (not yet published)
+
+> Packaging and verification only. See the [0.4.0 release checklist](docs/release/v0.4.0-preparation.md).
 
 - Add opt-in inbound JSON object Data Parts on Skills declaring
   `application/json`; the input contract is enforced after Routing and before

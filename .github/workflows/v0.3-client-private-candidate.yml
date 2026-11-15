@@ -1,4 +1,4 @@
-name: Step 31-5 private stable 0.3.0 exact-installed candidate
+name: Build-once release candidate and exact-install matrix
 
 on:
   pull_request:
@@ -42,14 +42,14 @@ permissions:
 # PRE-PUBLICATION CI artifact ONLY. No Gem push/tag/Release.
 # Check out PR head commit (not synthetic merge); archive once, build once.
 env:
-  RC_VERSION: "0.3.0"
-  RC_FILENAME: "a2a-rails-0.3.0.gem"
-  RC_ARTIFACT: "a2a-rails-0.3.0-stable-candidate-ci-only"
+  RC_VERSION: "0.4.0"
+  RC_FILENAME: "a2a-rails-0.4.0.gem"
+  RC_ARTIFACT: "a2a-rails-0.4.0-stable-candidate-ci-only"
 
 jobs:
   build-once:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 8
     steps:
       - uses: actions/checkout@v4
         with:
@@ -82,7 +82,7 @@ jobs:
           path = ARGV.fetch(0)
           spec = Gem::Package.new(path).spec
           abort "not an exact stable candidate Gem" unless spec.name == "a2a-rails" &&
-            spec.version.to_s == "0.3.0" &&
+            spec.version.to_s == "0.4.0" &&
             spec.required_ruby_version.satisfied_by?(Gem::Version.new("3.3.0"))
           Dir.mktmpdir do |dir|
             Gem::Package.new(path).extract_files(dir)
@@ -93,6 +93,7 @@ jobs:
               lib/a2a/rails/client/outbound_policy.rb
               lib/a2a/rails/client/pinned_https_transport.rb
               lib/a2a/rails/engine.rb
+              lib/a2a/rails/protocol/part_data.rb
               README.md
               CHANGELOG.md
             ]
@@ -109,7 +110,7 @@ jobs:
             end
             puts "PASS exact matching packaged files: #{spec.files.size}"
             abort "wrong version within package" unless
-              File.read(File.join(dir, "lib/a2a/rails/version.rb")).include?('VERSION = "0.3.0"')
+              File.read(File.join(dir, "lib/a2a/rails/version.rb")).include?('VERSION = "0.4.0"')
           end
           puts "PASS: packaged Client/Server source bytes and stable-candidate metadata match expected input"
           RUBY
@@ -126,7 +127,7 @@ jobs:
         with:
           name: ${{ env.RC_ARTIFACT }}
           path: |
-            ${{ runner.temp }}/rc-package/a2a-rails-0.3.0.gem
+            ${{ runner.temp }}/rc-package/a2a-rails-0.4.0.gem
             ${{ runner.temp }}/rc-package/SHA256SUMS
             ${{ runner.temp }}/rc-package/SOURCE_COMMIT
             ${{ runner.temp }}/rc-package/STAGING_DELTA
@@ -136,7 +137,7 @@ jobs:
   installed-client:
     needs: build-once
     runs-on: ubuntu-latest
-    timeout-minutes: 22
+    timeout-minutes: 8
     strategy:
       fail-fast: false
       matrix:
@@ -144,7 +145,7 @@ jobs:
         rails: ["~> 8.0.0", "~> 8.1.0"]
     env:
       TARGET_RAILS: ${{ matrix.rails }}
-      A2A_RAILS_EXPECTED_VERSION: "0.3.0"
+      A2A_RAILS_EXPECTED_VERSION: "0.4.0"
       A2A_RAILS_USE_INSTALLED_GEM: "1"
       A2A_RAILS_SOURCE_ROOT: ${{ github.workspace }}
       RAILS_ENV: production
@@ -202,7 +203,7 @@ jobs:
   installed-postgres:
     needs: build-once
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    timeout-minutes: 8
     strategy:
       fail-fast: false
       matrix:
@@ -211,7 +212,7 @@ jobs:
     env:
       TARGET_RAILS: ${{ matrix.rails }}
       A2A_TEST_INFLECTION: ${{ matrix.inflection }}
-      A2A_RAILS_EXPECTED_VERSION: "0.3.0"
+      A2A_RAILS_EXPECTED_VERSION: "0.4.0"
       A2A_RAILS_SOURCE_ROOT: ${{ github.workspace }}
       DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/a2a_rails_test
       RAILS_ENV: production
@@ -256,13 +257,13 @@ jobs:
           pg_config --version
       - name: Verify installed RC clean Rails/PostgreSQL migration, restart, race and prune
         env:
-          CANDIDATE_GEM_FILE: ${{ runner.temp }}/rc/a2a-rails-0.3.0.gem
+          CANDIDATE_GEM_FILE: ${{ runner.temp }}/rc/a2a-rails-0.4.0.gem
         run: ruby spikes/clean_host_postgres/smoke.rb
 
   installed-official-sdk:
     needs: build-once
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 8
     strategy:
       fail-fast: false
       matrix:
@@ -271,7 +272,7 @@ jobs:
       STEP29_5B_AGENT: ${{ matrix.agent }}
       AGENT_HOST: ${{ matrix.agent }}-agent.test
       AGENT_PORT: ${{ matrix.agent == 'python' && '3444' || '3445' }}
-      A2A_RAILS_EXPECTED_VERSION: "0.3.0"
+      A2A_RAILS_EXPECTED_VERSION: "0.4.0"
       A2A_RAILS_USE_INSTALLED_GEM: "1"
       A2A_RAILS_SOURCE_ROOT: ${{ github.workspace }}
       PYTHONUNBUFFERED: "1"
@@ -308,7 +309,7 @@ jobs:
           cat > "$RUNNER_TEMP/isolated-interop-host/Gemfile" <<GEMFILE
           source "https://rubygems.org"
           gem "rails", "~> 8.1.0"
-          gem "a2a-rails", "= 0.3.0"
+          gem "a2a-rails", "= 0.4.0"
           GEMFILE
           BUNDLE_GEMFILE="$RUNNER_TEMP/isolated-interop-host/Gemfile" bundle install --local
           BUNDLE_GEMFILE="$RUNNER_TEMP/isolated-interop-host/Gemfile" bundle exec ruby -e '
@@ -384,7 +385,7 @@ jobs:
   installed-advisory:
     needs: build-once
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 8
     strategy:
       fail-fast: false
       matrix:
@@ -429,7 +430,7 @@ jobs:
             require "a2a-rails"
             spec = Gem.loaded_specs.fetch("a2a-rails")
             abort "incorrect exact candidate" unless
-              A2A::Rails::VERSION == "0.3.0" && spec.version.to_s == "0.3.0"
+              A2A::Rails::VERSION == "0.4.0" && spec.version.to_s == "0.4.0"
             abort "source checkout loaded" if File.realpath(spec.full_gem_path).start_with?(
               File.realpath(ENV.fetch("GITHUB_WORKSPACE")) + File::SEPARATOR
             )
@@ -454,7 +455,7 @@ jobs:
   installed-rails-echo:
     needs: build-once
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 8
     env:
       RAILS_ENV: test
       RACK_ENV: test
@@ -473,7 +474,7 @@ jobs:
         with:
           name: ${{ env.RC_ARTIFACT }}
           path: ${{ runner.temp }}/rc
-      - name: Install exactly the frozen 0.3.0 Gem into independent Client bundle
+      - name: Install exactly the frozen 0.4.0 Gem into independent Client bundle
         shell: bash
         run: |
           set -euo pipefail
@@ -486,7 +487,7 @@ jobs:
           cat > "$RUNNER_TEMP/stable-client-host/Gemfile" <<GEMFILE
           source "https://rubygems.org"
           gem "rails", "~> 8.1.0"
-          gem "a2a-rails", "= 0.3.0"
+          gem "a2a-rails", "= 0.4.0"
           GEMFILE
           BUNDLE_GEMFILE="$RUNNER_TEMP/stable-client-host/Gemfile" bundle install --local
       - name: Independently install pinned published 0.2.0 Rails Echo Server
@@ -546,7 +547,7 @@ jobs:
           done
           tail -n 45 "$RUNNER_TEMP/stable-tls-bridge.log"
           exit 1
-      - name: Call published 0.2.0 Rails Server from exact installed 0.3.0 Client over TLS
+      - name: Call published 0.2.0 Rails Server from exact installed 0.4.0 Client over TLS
         shell: bash
         run: |
           set -euo pipefail

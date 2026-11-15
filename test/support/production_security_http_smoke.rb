@@ -32,7 +32,10 @@ module Step166ProductionSecuritySmoke
 
     def self.call(message:, context:)
       self.calls += 1
-      "Echo: #{message.dig(:parts, 0, :text)}"
+      part = message.fetch(:parts).first
+      return part.fetch(:data) if part.key?(:data)
+
+      "Echo: #{part.fetch(:text)}"
     end
   end
 
@@ -43,6 +46,7 @@ module Step166ProductionSecuritySmoke
     skill :reply,
       description: "Reply to a message",
       tags: %w[test],
+      input_modes: ["text/plain", "application/json"],
       handler: EchoHandler
   end
 
@@ -207,6 +211,21 @@ module Step166ProductionSecuritySmoke
     invalid = rpc("client-a", "SendMessage", send_params("misconfigured"))
     assert(invalid.status == 500, "mismatched verifier and card metadata did not fail closed")
     assert(EchoHandler.calls == 1, "inconsistent security configuration reached Handler")
+
+    configuration.security_requirements = card_data.fetch("securityRequirements")
+    data = { "messageId" => false, "message_id" => nil, "rows" => [[{}], nil] }
+    params = send_params("data")
+    params.fetch("message")["parts"] = [{ "data" => data }]
+    response = rpc("client-a", "SendMessage", params)
+    assert(response.status == 200, "structured Data request failed")
+    task = JSON.parse(response.body).fetch("result").fetch("task")
+    assert(task.dig("status", "state") == "TASK_STATE_COMPLETED", "Data Task did not complete")
+    assert(task.dig("artifacts", 0, "parts", 0, "data") == data, "Data Artifact changed content")
+    saved = rpc("client-a", "GetTask", "id" => task.fetch("id"))
+    assert(JSON.parse(saved.body).dig("result", "history", 0, "parts", 0) ==
+      { "data" => data, "mediaType" => "application/json" }, "structured history changed content")
+    assert(EchoHandler.calls == 2, "Data Handler was not invoked exactly once")
+    puts "Structured Data in production-shaped Rails host: PASS"
 
     puts "Step 16-6 production HTTP security smoke: PASS"
   end
