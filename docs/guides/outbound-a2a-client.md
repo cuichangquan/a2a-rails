@@ -1,12 +1,12 @@
-# Outbound Rails Client API — stable v0.3.0
+# Outbound Rails Client API
 
 > **Released (2026-10-10):** Stable [a2a-rails 0.3.0](https://rubygems.org/gems/a2a-rails/versions/0.3.0) now ships this outbound Client API. Previous stable **0.2.0** was Server-first and did not include this Client; [0.3.0.rc1](https://rubygems.org/gems/a2a-rails/versions/0.3.0.rc1) remains a historical prerelease. Gem publication **does not authorize anonymous/public production A2A Server exposure**; see [deployment #11](https://github.com/cuichangquan/a2a-rails/issues/11). [Verified stable release and SHA256](../release/v0.3.0-publication-record.md) · [Step 31-2 scoped security review](../release/v0.3.0-client-security-api-review.md).
 >
 > Tracking: [original Client design #84](https://github.com/cuichangquan/a2a-rails/issues/84), [client umbrella #75](https://github.com/cuichangquan/a2a-rails/issues/75), [stable readiness #120](https://github.com/cuichangquan/a2a-rails/issues/120).
 
-To install the released stable Client, pin `gem "a2a-rails", "= 0.3.0"` in your Gemfile and test the actual host configuration. The [independent Client-only demo](https://github.com/cuichangquan/a2a-rails-client-demo) now pins **published stable 0.3.0**; the separate [Rails Echo Server demo](https://github.com/cuichangquan/a2a-rails-demo) also pins **0.3.0**. [Step 32 stable-to-stable Rails-to-Rails TLS CI](https://github.com/cuichangquan/a2a-rails-client-demo/actions/runs/38097502218) validates real isolated TLS with a test-only bridge, not public-DNS/public-CA deployment. For a tested standalone Client-only Rails 8 example, use [a2a-rails-client-demo](https://github.com/cuichangquan/a2a-rails-client-demo); its [Japanese Quick Start](https://github.com/cuichangquan/a2a-rails-client-demo/blob/main/docs/quickstart-ja.md) explains how to reproduce the independent TLS tests.
+To install the current stable Client, pin `gem "a2a-rails", "= 0.4.0"` in your Gemfile and test the actual host configuration. See the [independent Client-only demo](https://github.com/cuichangquan/a2a-rails-client-demo) and the separate [Rails Server demo](https://github.com/cuichangquan/a2a-rails-demo) for their exact RubyGems pins. [Step 32 stable-to-stable Rails-to-Rails TLS CI](https://github.com/cuichangquan/a2a-rails-client-demo/actions/runs/38097502218) validates real isolated TLS with a test-only bridge, not public-DNS/public-CA deployment. For a tested standalone Client-only Rails 8 example, use [a2a-rails-client-demo](https://github.com/cuichangquan/a2a-rails-client-demo); its [Japanese Quick Start](https://github.com/cuichangquan/a2a-rails-client-demo/blob/main/docs/quickstart-ja.md) explains how to reproduce the independent TLS tests.
 
-## Public Ruby interface (0.3.0)
+## Public Ruby interface
 
 ```ruby
 client = A2A::Rails::Client.new(
