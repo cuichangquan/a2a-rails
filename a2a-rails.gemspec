@@ -29,6 +29,9 @@ Gem::Specification.new do |spec|
   spec.metadata["rubygems_mfa_required"] = "true"
 
   spec.add_dependency "agent2agent", "~> 2.0.0"
+  # Temporary: json_schemer 2.5.0 calls regexp_parser APIs made private in 2.13.2.
+  # Preserve its existing ~> 2.0 range below the incompatible release; see 0.5.1 preparation.
+  spec.add_dependency "regexp_parser", "~> 2.0", "< 2.13.2"
   spec.add_dependency "actionpack", ">= 8.0", "< 8.2"
   spec.add_dependency "activejob", ">= 8.0", "< 8.2"
   # Block known vulnerable JSON 2.x releases in the new stable line.
