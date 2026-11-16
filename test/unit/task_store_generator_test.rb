@@ -34,3 +34,32 @@ class TaskStoreGeneratorTest < Minitest::Test
     end
   end
 end
+
+class TaskContinuationGeneratorTest < Minitest::Test
+  def test_upgrade_generator_only_adds_execution_column
+    require_relative "../../lib/generators/a2a/rails/task_continuation_generator"
+    Dir.mktmpdir("a2a-rails-task-continuation-generator") do |root|
+      ::Rails::Generators.invoke("a2a:rails:task_continuation", [], behavior: :invoke, destination_root: root)
+      migrations = Dir[File.join(root, "db/migrate/*.rb")]
+      assert_equal 1, migrations.size
+      body = File.read(migrations.first)
+      expected_class = ::ActiveSupport::Inflector.camelize("add_execution_to_a2a_rails_tasks")
+      assert_includes body, "class #{expected_class} < ActiveRecord::Migration[8.0]"
+      refute_includes body, "<%"
+      assert_includes body, "add_column :a2a_rails_tasks, :execution, :json"
+      refute_includes body, "create_table"
+    end
+  end
+end
+
+class TaskContinuationGeneratorTest
+  def test_upgrade_generator_respects_host_acronym
+    inflections = ActiveSupport::Inflector.inflections(:en)
+    old_acronyms = inflections.acronyms.dup
+    inflections.acronym("A2A")
+    test_upgrade_generator_only_adds_execution_column
+  ensure
+    inflections.clear(:acronyms)
+    old_acronyms.each_value { |word| inflections.acronym(word) }
+  end
+end

@@ -100,6 +100,17 @@ module A2A
           end
           result = @request_handler.call(operation: operation, params: params)
           schema(RESPONSE_SCHEMAS.fetch(operation), result)
+        rescue A2A::Rails::InvalidAgentResponseError
+          raise A2A::InvalidAgentResponseError.new
+        rescue A2A::Rails::TaskStorePayloadLimitError
+          raise A2A::InvalidParamsError.new("Task history or payload limit reached; cancel and start a new Task")
+        rescue A2A::Rails::TaskNotResumableError => error
+          if Task::TERMINAL_STATES.include?(error.state)
+            raise A2A::UnsupportedOperationError.new(message: "Terminal Task cannot accept new input")
+          end
+          raise A2A::InvalidParamsError.new("Task does not accept new input in its current state")
+        rescue A2A::Rails::TaskContinuationUnavailableError
+          raise A2A::UnsupportedOperationError.new(message: "Task has no resumable execution metadata")
         rescue A2A::Rails::TaskNotFoundError => error
           raise A2A::TaskNotFoundError.new(error.task_id)
         rescue A2A::Rails::TaskNotCancelableError => error

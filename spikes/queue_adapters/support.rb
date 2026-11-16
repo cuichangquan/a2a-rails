@@ -84,6 +84,7 @@ def initialize_smoke_schema!
       t.json :status_message
       t.json :history
       t.json :artifacts
+      t.json :execution
       t.datetime :expires_at, precision: 6
       t.timestamps
     end

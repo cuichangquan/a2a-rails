@@ -14,6 +14,27 @@ end
 module Step18InteropSut
   class Handler
     def self.call(message:, context:)
+      original = context.fetch(:history, [message]).first
+      original_parts = original.fetch(:parts)
+      if original_parts.any? { |part| part[:data].is_a?(Hash) && part[:data]["interop_continuation"] }
+        # Application-owned combination. The Gem must not merge arbitrary input.
+        initial = original_parts.find { |part| part[:data] }.fetch(:data)
+        answer = message.fetch(:parts).find { |part| part[:data] }&.fetch(:data)
+        unless answer && answer["department_id"] == 123
+          return A2A::Rails::InputRequired.new("Which department?", data: {
+            "required" => "department_id", "flag" => false, "nil" => nil,
+            "messageId" => "business-camel", "message_id" => "business-snake",
+            "empty" => {}, "nested" => [[false, nil], {}]
+          })
+        end
+        return {"year" => initial.fetch("year"), "month" => initial.fetch("month"),
+          "department_id" => answer.fetch("department_id"), "count" => 3, "total" => 35000}
+      end
+      if original_parts.any? { |part| part[:text] == "interop-question" }
+        answer = message.fetch(:parts).filter_map { |part| part[:text] }.join("\n")
+        return A2A::Rails::InputRequired.new("Your name?") if answer == "interop-question"
+        return "Hello #{answer}"
+      end
       text = message.fetch(:parts).filter_map { |part| part[:text] }.join("\n")
       "Interop echo: #{text}"
     end
@@ -30,7 +51,9 @@ module Step18InteropSut
     skill :echo,
       description: "Echo a caller's text",
       tags: %w[interop echo],
-      handler: Handler
+      handler: Handler,
+      input_modes: ["text/plain", "application/json"],
+      output_modes: ["text/plain", "application/json"]
   end
 
   class Application < ::Rails::Application

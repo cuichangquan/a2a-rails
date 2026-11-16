@@ -1,7 +1,7 @@
 # Step 18 — Cross-language A2A interoperability (official clients)
 
 > Only an isolated source-based Rails test SUT on 127.0.0.1:9998.
-> Published RubyGems v0.1.0 has **not** been updated. Do not expose this
+> This harness tests the checked-out source candidate, not a published release. Do not expose this
 > deliberately anonymous test SUT to public networks.
 
 ## Pinned clients
@@ -24,7 +24,29 @@ These are independent **official client APIs**, not scripted hand-built JSON-RPC
 6. CancelTask on a completed Task yields the specified noncancelable error (-32002).
 7. Reject unsupported A2A-Version 0.3 with -32009; the Go test also inspects real SDK 1.0 request headers.
 
-Limits: successful cancellation of a still-working Task, SSE streaming, gRPC, HTTP+JSON, push notifications, task continuation, human-in-the-loop, authorization on a real production identity backend and task durability are **not** covered. Existing Ruby CI separately tests Task ownership. This is **not** an A2A conformance certification.
+## Continuation candidate coverage (Python only)
+
+The existing Python 1.2.2 client also exercises synchronous INPUT_REQUIRED:
+
+- Data request, agent question with a Data part, GetTask and ListTasks while waiting.
+- Two answers, including an incomplete answer that asks again; taskId-only continuation
+  preserves Task and context IDs and completes the aggregate fixture (3 / 35000).
+- Every SendMessage requests `historyLength: 0`, while application-side retained
+  input still supplies the original year/month. A later GetTask checks stored history.
+- Question Data retains string keys (`messageId` and `message_id`), false, null,
+  empty objects and nested arrays through real SDK serialization and decoding.
+- Text question/answer and CancelTask during INPUT_REQUIRED.
+
+The SUT uses the Gem-owned `InputRequired` result and ordinary Ruby inputs. The
+Python client deliberately uses official SDK DTOs: the Ruby SDK-boundary rule does
+not prohibit a separate interoperability client from using its own native API.
+There are no automatic retries, nonstandard RPCs or capability declarations.
+
+These are test definitions, not a claim that the current candidate passed. Record
+exact source SHA, command and result in the candidate evidence after execution.
+The existing Go checks remain baseline checks; Go continuation is not asserted.
+
+Limits: cancellation of a still-working Task, SSE streaming, gRPC, HTTP+JSON, push notifications, authorization on a real production identity backend and task durability are **not** covered. Existing Ruby CI separately tests Task ownership. This is **not** an A2A conformance certification.
 
 ## Reproduce locally
 

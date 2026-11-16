@@ -38,6 +38,9 @@ module A2A
 
       def execute(plan:, message:, context:)
         validate!
+        unless plan.agent_class_name.nil? || @agent.name == plan.agent_class_name
+          raise ConfigurationError, "Saved Agent no longer matches configured Agent"
+        end
         skill = declared_skill(plan.skill_id)
         verify_skill_input!(skill, message)
         handler_context = context.merge(skill_id: skill.id)

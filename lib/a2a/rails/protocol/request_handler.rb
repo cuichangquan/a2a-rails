@@ -34,8 +34,9 @@ module A2A
 
         def send_message(params)
           @dispatcher.validate!
-          history_length = history_length(params)
-          message, context_id = normalize_message(params)
+          history_length = history_length(params.fetch("configuration", {}))
+          message, context_id, task_id = normalize_message(params)
+          return resume_message(task_id, message, context_id, history_length) if task_id
 
           # Direct Message is an explicit host-side choice, never inferred
           # from an untrusted client flag or forced by the protocol adapter.
@@ -72,21 +73,50 @@ module A2A
             nil
           end
 
-          if plan&.async?
-            task = enqueue_async_task(task, plan)
-          elsif plan
-            @lifecycle.start(task.fetch(:id))
-            task = begin
-              result = @dispatcher.execute(plan: plan, message: message, context: context)
-              @lifecycle.complete(task.fetch(:id), result)
-            rescue RejectedTask => error
-              @lifecycle.reject(task.fetch(:id), error)
+          if plan
+            begin
+              task = @lifecycle.configure_execution(task.fetch(:id), plan: plan,
+                message_id: message.fetch(:message_id))
             rescue StandardError => error
+              # A configuration/migration failure must not leave an initial
+              # submitted Task that nobody can execute. No turn exists yet.
               @lifecycle.fail(task.fetch(:id), error)
+              raise
             end
+            task = execute_task(task, plan, message)
           end
 
           { "task" => @task_mapper.dump(task, history_length: history_length, include_artifacts: true) }
+        end
+
+        def resume_message(task_id, message, context_id, history_length)
+          accepted = @lifecycle.resume(task_id, message: message, context_id: context_id)
+          task = accepted.fetch(:task)
+          if accepted.fetch(:accepted)
+            execution = task.fetch(:execution)
+            plan = ExecutionPlan.new(agent_class_name: execution[:agent_class_name],
+              skill_id: execution.fetch(:skill_id), execution_mode: execution.fetch(:execution_mode).to_sym)
+            task = execute_task(task, plan, message)
+          end
+          { "task" => @task_mapper.dump(task, history_length: history_length, include_artifacts: true) }
+        end
+
+        def execute_task(task, plan, message)
+          return enqueue_async_task(task, plan) if plan.async?
+
+          task_id = task.fetch(:id)
+          turn_id = task.dig(:execution, :turn_id)
+          claimed = @lifecycle.claim_execution(task_id, turn_id: turn_id)
+          return @lifecycle.find(task_id) unless claimed
+
+          begin
+            result = @dispatcher.execute(plan: plan, message: message, context: execution_context(claimed))
+            @lifecycle.complete(task_id, result, turn_id: turn_id)
+          rescue RejectedTask => error
+            @lifecycle.reject(task_id, error, turn_id: turn_id)
+          rescue StandardError => error
+            @lifecycle.fail(task_id, error, turn_id: turn_id)
+          end
         end
 
         def enqueue_async_task(task, plan)
@@ -94,7 +124,8 @@ module A2A
             task_id: task.fetch(:id),
             principal_id: @lifecycle.principal_id,
             agent_class_name: plan.agent_class_name,
-            skill_id: plan.skill_id
+            skill_id: plan.skill_id,
+            turn_id: task.dig(:execution, :turn_id)
           )
           job = @task_job.perform_later(**arguments.to_h)
           enqueue_error = job.respond_to?(:enqueue_error) ? job.enqueue_error : nil
@@ -107,10 +138,11 @@ module A2A
 
           @lifecycle.fail(
             task.fetch(:id),
-            enqueue_error || ConfigurationError.new("Task execution job was not enqueued")
+            enqueue_error || ConfigurationError.new("Task execution job was not enqueued"),
+            turn_id: task.dig(:execution, :turn_id)
           )
         rescue StandardError => error
-          @lifecycle.fail(task.fetch(:id), error)
+          @lifecycle.fail(task.fetch(:id), error, turn_id: task.dig(:execution, :turn_id))
         end
 
         def execution_context(task)
@@ -118,7 +150,9 @@ module A2A
             task_id: task.fetch(:id),
             context_id: task.fetch(:context_id),
             principal_id: @lifecycle.principal_id,
-            idempotency_key: task.fetch(:id)
+            idempotency_key: task.fetch(:id),
+            execution_turn_id: task.dig(:execution, :turn_id),
+            history: copy(task.fetch(:history, []))
           }
         end
 
@@ -127,7 +161,7 @@ module A2A
         rescue StandardError
           # The selector is host application code and may raise with secrets.
           # No Task exists yet to record the failure as a Task status.
-          raise A2A::InvalidAgentResponseError.new
+          raise InvalidAgentResponseError
         end
 
         def send_direct_message(message, context_id)
@@ -142,7 +176,7 @@ module A2A
         rescue StandardError
           # No Task exists to record a FAILED status. Never send application
           # exception details or unsupported result values to A2A callers.
-          raise A2A::InvalidAgentResponseError.new
+          raise InvalidAgentResponseError
         end
 
         def get_task(params)
@@ -212,10 +246,6 @@ module A2A
             raise InvalidRequestError, "message metadata must be an object"
           end
 
-          if task_id.is_a?(String) && !task_id.empty?
-            @lifecycle.find(task_id)
-            raise TaskContinuationNotSupportedError, "Task continuation is not supported in v0.1"
-          end
 
           normalized_parts = parts.map { |part| normalize_part(part) }
           if normalized_parts.any? { |part| part.key?(:data) } && normalized_parts.any? { |part| part.key?(:text) }
@@ -228,7 +258,7 @@ module A2A
             metadata: copy(metadata || {})
           }
 
-          [message, context_id]
+          [message, context_id, task_id.to_s.empty? ? nil : task_id]
         end
 
         def normalize_part(part)

@@ -32,25 +32,45 @@ module A2A
           @store.save(task)
         end
 
-        def start(task_id)
-          @store.transition(task_id, state: :working, timestamp: now, principal_id: @principal_id)
+        def start(task_id, turn_id: nil)
+          @store.transition(task_id, state: :working, timestamp: now, principal_id: @principal_id, turn_id: turn_id)
         end
 
-        def claim_execution(task_id)
-          @store.claim_execution(task_id, timestamp: now, principal_id: @principal_id)
+        def claim_execution(task_id, turn_id: nil)
+          @store.claim_execution(task_id, timestamp: now, principal_id: @principal_id, turn_id: turn_id)
         end
 
-        def complete(task_id, result)
-          transition_from_outcome(task_id, @result_mapper.completed(result))
+        def complete(task_id, result, turn_id: nil)
+          if result.is_a?(InputRequired)
+            question = { message_id: next_id, role: :agent, parts: result.parts }
+            transition_from_outcome(task_id, { state: :input_required, message: question }, turn_id: turn_id)
+          else
+            transition_from_outcome(task_id, @result_mapper.completed(result), turn_id: turn_id)
+          end
         end
 
-        def reject(task_id, error)
-          transition_from_outcome(task_id, @result_mapper.rejected(error))
+        def reject(task_id, error, turn_id: nil)
+          transition_from_outcome(task_id, @result_mapper.rejected(error), turn_id: turn_id)
         end
 
-        def fail(task_id, error)
+        def fail(task_id, error, turn_id: nil)
           log_failure(task_id, error)
-          transition_from_outcome(task_id, @result_mapper.failed(error))
+          transition_from_outcome(task_id, @result_mapper.failed(error), turn_id: turn_id)
+        end
+
+        def configure_execution(task_id, plan:, message_id:)
+          @store.configure_execution(task_id, principal_id: @principal_id, execution: {
+            agent_class_name: plan.agent_class_name,
+            skill_id: plan.skill_id.to_s,
+            execution_mode: plan.execution_mode.to_s,
+            turn_id: next_id,
+            message_id: message_id
+          })
+        end
+
+        def resume(task_id, message:, context_id: nil)
+          @store.resume(task_id, message: message, context_id: context_id,
+            turn_id: next_id, timestamp: now, principal_id: @principal_id)
         end
 
         def cancel(task_id)
@@ -67,8 +87,8 @@ module A2A
 
         private
 
-        def transition_from_outcome(task_id, outcome)
-          attributes = { state: outcome.fetch(:state), timestamp: now }
+        def transition_from_outcome(task_id, outcome, turn_id: nil)
+          attributes = { state: outcome.fetch(:state), timestamp: now, turn_id: turn_id }
           attributes[:artifacts] = outcome[:artifacts] if outcome.key?(:artifacts)
           attributes[:message] = outcome[:message] if outcome.key?(:message)
           @store.transition(task_id, **attributes, principal_id: @principal_id)
