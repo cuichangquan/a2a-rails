@@ -85,3 +85,14 @@ For sync, SendMessage returns the resulting Task normally.
 See [upgrade/recovery](../release/upgrading-v0.4.0-to-v0.5.md) and
 [design/boundary](../design/task-continuation.md). These are narrow continuation
 contracts, not external exactly-once guarantees or full A2A certification.
+
+## Logging privacy
+
+The A2A Rails controller filters the JSON-RPC `params` envelope from its own Rails
+request log and instrumentation payload’s filtered `params` view before processing, including denied
+requests. This is request-local: real parameters and host global filter settings
+are unchanged. SDK logging remains suppressed at the existing adapter boundary;
+Job arguments contain only identifiers and Handler failures log only the class.
+Host middleware, reverse proxies, tracing agents and custom business logs can still
+log raw bodies independently; configure their redaction/retention separately. Do
+not put question/answer bodies or credentials in job arguments or custom logs.

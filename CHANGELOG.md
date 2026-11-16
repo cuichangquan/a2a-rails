@@ -7,6 +7,8 @@
 - Atomic reply acceptance and per-turn Job/outcome fencing in both built-in Stores;
   bounded messageId deduplication and additive durable execution metadata.
 - Upgrade/recovery guide, SDK boundary review policy and real multi-turn validation.
+- Request-local Rails log redaction for A2A parameter bodies, including denied requests,
+  without changing host filter settings or real input.
 - Not yet published. See candidate evidence for verified/NOT_RUN checks.
 
 All notable changes to this project will be documented in this file.
