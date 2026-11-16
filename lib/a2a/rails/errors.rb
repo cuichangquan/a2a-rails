@@ -13,6 +13,7 @@ module A2A
     class ArtifactMappingError < Error; end
 
     class ProtocolError < Error; end
+    class InvalidAgentResponseError < ProtocolError; end
     class InvalidRequestError < ProtocolError; end
     class ContentTypeNotSupportedError < ProtocolError; end
     class TaskContinuationNotSupportedError < ProtocolError; end
@@ -36,6 +37,18 @@ module A2A
         super("Task #{task_id} is not cancelable from #{state}")
       end
     end
+
+    class TaskNotResumableError < TaskError
+      attr_reader :task_id, :state
+
+      def initialize(task_id, state:)
+        @task_id, @state = task_id, state
+        super("Task is not awaiting input")
+      end
+    end
+    class TaskContextMismatchError < InvalidRequestError; end
+    class TaskMessageConflictError < InvalidRequestError; end
+    class TaskContinuationUnavailableError < ConfigurationError; end
 
     class InvalidTaskQueryError < TaskError; end
     class InvalidTaskStateError < TaskError; end

@@ -29,6 +29,13 @@ module A2A
         )
       end
 
+      def create_continuation_migration
+        migration_template(
+          "add_execution_to_a2a_rails_tasks.rb.tt",
+          "db/migrate/add_execution_to_a2a_rails_tasks.rb"
+        )
+      end
+
       def show_configuration
         say <<~MESSAGE
 

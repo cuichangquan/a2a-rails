@@ -7,19 +7,24 @@ module A2A
       MAX_CLASS_NAME_BYTES = 512
       KEYS = %i[task_id principal_id agent_class_name skill_id].freeze
 
-      attr_reader(*KEYS)
+      OPTIONAL_KEYS = %i[turn_id].freeze
 
-      def initialize(task_id:, principal_id:, agent_class_name:, skill_id:)
+      attr_reader(*(KEYS + OPTIONAL_KEYS))
+
+      def initialize(task_id:, principal_id:, agent_class_name:, skill_id:, turn_id: nil)
         @task_id = normalize_identifier(task_id, "task_id")
         @principal_id = normalize_principal_id(principal_id)
         @agent_class_name = normalize_agent_class_name(agent_class_name)
         @skill_id = normalize_skill_id(skill_id)
+        @turn_id = turn_id.nil? ? nil : normalize_identifier(turn_id, "turn_id")
         @payload = {
           task_id: @task_id,
           principal_id: @principal_id,
           agent_class_name: @agent_class_name,
           skill_id: @skill_id
-        }.freeze
+        }
+        @payload[:turn_id] = @turn_id unless @turn_id.nil?
+        @payload.freeze
         freeze
       end
 

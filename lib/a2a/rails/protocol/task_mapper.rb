@@ -9,6 +9,7 @@ module A2A
         STATE_TO_WIRE = {
           submitted: "TASK_STATE_SUBMITTED",
           working: "TASK_STATE_WORKING",
+          input_required: "TASK_STATE_INPUT_REQUIRED",
           completed: "TASK_STATE_COMPLETED",
           failed: "TASK_STATE_FAILED",
           rejected: "TASK_STATE_REJECTED",
@@ -25,7 +26,13 @@ module A2A
 
           if task.key?(:history)
             history = project_history(task[:history], history_length)
-            result["history"] = history.map { |message| dump_message(message) }
+            result["history"] = history.map do |message|
+              value = dump_message(message)
+              if message[:role].to_s == "agent"
+                value.merge!("taskId" => task.fetch(:id), "contextId" => task.fetch(:context_id))
+              end
+              value
+            end
           end
 
           if include_artifacts && task.key?(:artifacts)
@@ -70,11 +77,15 @@ module A2A
           }
 
           if status[:message]
-            result["message"] = {
+            result["message"] = if status[:message].is_a?(Hash)
+              dump_message(status[:message]).merge("taskId" => task.fetch(:id), "contextId" => task.fetch(:context_id))
+            else
+              {
               "messageId" => "status-#{task.fetch(:id)}-#{status.fetch(:state)}",
               "role" => "ROLE_AGENT",
               "parts" => [{ "text" => status[:message].to_s }]
-            }
+              }
+            end
           end
 
           result.compact
@@ -83,7 +94,7 @@ module A2A
         def dump_message(message)
           result = {
             "messageId" => message.fetch(:message_id),
-            "role" => message.fetch(:role) == :agent ? "ROLE_AGENT" : "ROLE_USER",
+            "role" => message.fetch(:role).to_s == "agent" ? "ROLE_AGENT" : "ROLE_USER",
             "parts" => message.fetch(:parts).map { |part| dump_part(part) }
           }
           result["metadata"] = copy(message[:metadata]) if message.key?(:metadata)

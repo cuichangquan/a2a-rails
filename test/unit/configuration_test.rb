@@ -147,6 +147,7 @@ class ConfigurationTest < Minitest::Test
     config = A2A::Rails::Configuration.new
 
     assert_equal 30 * 24 * 60 * 60, config.task_retention
+    assert_nil config.task_input_required_retention
     assert_equal 1_000, config.task_prune_batch_size
     assert_equal 10_000, config.max_tasks_per_owner
     assert_equal 100, config.max_task_history_entries
@@ -163,7 +164,7 @@ class ConfigurationTest < Minitest::Test
   def test_custom_task_store_must_satisfy_store_contract
     config = A2A::Rails::Configuration.new
     custom = Object.new
-    %i[save find transition cancel list].each do |method_name|
+    A2A::Rails::Configuration::TASK_STORE_METHODS.each do |method_name|
       custom.define_singleton_method(method_name) { |*, **| nil }
     end
     config.task_store = custom
@@ -173,6 +174,25 @@ class ConfigurationTest < Minitest::Test
     config.task_store = Object.new
     error = assert_raises(A2A::Rails::ConfigurationError) { config.resolve_task_store }
     assert_match(/missing methods/, error.message)
+  end
+
+  def test_custom_store_inheriting_unimplemented_turn_methods_is_rejected
+    config = A2A::Rails::Configuration.new
+    klass = Class.new(A2A::Rails::Task::Store)
+    %i[save find transition cancel list].each { |name| klass.define_method(name) { |*, **| nil } }
+    config.task_store = klass.new
+    error = assert_raises(A2A::Rails::ConfigurationError) { config.resolve_task_store }
+    assert_includes error.message, "configure_execution"
+    assert_includes error.message, "resume"
+  end
+
+  def test_memory_history_limit_uses_configuration
+    config = A2A::Rails::Configuration.new
+    config.max_task_history_entries = 1
+    store = config.resolve_task_store
+    assert_raises(A2A::Rails::TaskStorePayloadLimitError) do
+      store.save(id: "limited", history: [{}, {}])
+    end
   end
 
   def test_active_record_store_is_lazy_and_uses_explicit_cursor_secret

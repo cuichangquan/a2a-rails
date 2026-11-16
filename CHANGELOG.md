@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased — 0.5.0 candidate
+
+- Explicit SDK-independent `InputRequired` Handler result and same-Task continuation,
+  stable Agent/Skill routing, question history and current-turn context.
+- Atomic reply acceptance and per-turn Job/outcome fencing in both built-in Stores;
+  bounded messageId deduplication and additive durable execution metadata.
+- Upgrade/recovery guide, SDK boundary review policy and real multi-turn validation.
+- Request-local Rails log redaction for A2A parameter bodies, including denied requests,
+  without changing host filter settings or real input.
+- Not yet published. See candidate evidence for verified/NOT_RUN checks.
+
 All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).

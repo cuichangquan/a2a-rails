@@ -23,13 +23,14 @@ module A2A
 
         def initialize(cursor_secret:, clock: -> { Time.now.utc }, retention: nil,
           prune_batch_size: 1_000, max_tasks_per_owner: nil,
-          max_history_entries: 100, max_artifacts: 50)
+          max_history_entries: 100, max_artifacts: 50, input_required_retention: nil)
           unless cursor_secret.is_a?(String) && cursor_secret.bytesize >= 32
             raise ArgumentError, "cursor_secret must be at least 32 bytes"
           end
 
           @clock = clock
           @retention_seconds = normalize_retention(retention)
+          @input_required_retention = normalize_retention(input_required_retention)
           @prune_batch_size = normalize_prune_batch_size(prune_batch_size)
           @max_tasks_per_owner = normalize_optional_positive_integer(
             max_tasks_per_owner,
@@ -56,7 +57,7 @@ module A2A
           record = Record.transaction do
             enforce_owner_quota!(task[:owner_id], at: now)
 
-            Record.create!(
+            attributes = {
               task_id: task.fetch(:id),
               owner_id: task[:owner_id],
               context_id: task.fetch(:context_id),
@@ -66,7 +67,12 @@ module A2A
               history: task.key?(:history) ? deep_stringify(task[:history]) : nil,
               artifacts: task.key?(:artifacts) ? deep_stringify(task[:artifacts]) : nil,
               expires_at: terminal_state?(state) ? expiration_at(timestamp) : nil
-            )
+            }
+            if task[:execution]
+              require_execution_column!
+              attributes[:execution] = deep_stringify(task[:execution])
+            end
+            Record.create!(attributes)
           end
 
           deserialize(record)
@@ -76,12 +82,12 @@ module A2A
           deserialize(find_record!(task_id, principal_id: principal_id))
         end
 
-        def claim_execution(task_id, timestamp: Time.now.utc, principal_id: nil)
+        def claim_execution(task_id, timestamp: Time.now.utc, principal_id: nil, turn_id: nil)
           timestamp = normalize_time(timestamp, field: "task status timestamp")
 
           Record.transaction do
             record = locked_record!(task_id, principal_id: principal_id)
-            if record.state == "submitted"
+            if record.state == "submitted" && turn_matches?(deserialize(record), turn_id)
               record.update!(
                 state: "working",
                 status_timestamp: timestamp,
@@ -93,7 +99,7 @@ module A2A
         end
 
         def transition(task_id, state:, timestamp: Time.now.utc, artifacts: UNSET, message: UNSET,
-          principal_id: nil)
+          principal_id: nil, turn_id: nil)
           state = normalized_state(state)
           timestamp = normalize_time(timestamp, field: "task status timestamp")
           validate_payload_collection!("artifacts", artifacts, @max_artifacts) unless artifacts.equal?(UNSET)
@@ -101,13 +107,23 @@ module A2A
           Record.transaction do
             record = locked_record!(task_id, principal_id: principal_id)
 
-            unless terminal_record?(record)
+            eligible = !terminal_record?(record) && turn_matches?(deserialize(record), turn_id)
+            eligible &&= %w[submitted working].include?(record.state) if turn_id
+            if eligible
               attributes = {
                 state: state.to_s,
                 status_timestamp: timestamp,
                 status_message: message.equal?(UNSET) ? nil : deep_stringify(message)
               }
               attributes[:artifacts] = deep_stringify(artifacts) unless artifacts.equal?(UNSET)
+              if state == :input_required
+                if message.is_a?(Hash)
+                  history = (record.history || []) + [deep_stringify(message)]
+                  validate_payload_collection!("history", history, @max_history_entries)
+                  attributes[:history] = history
+                end
+                attributes[:expires_at] = @input_required_retention && timestamp + @input_required_retention
+              end
               if terminal_state?(state) && record.expires_at.nil?
                 attributes[:expires_at] = expiration_at(timestamp)
               end
@@ -115,6 +131,35 @@ module A2A
             end
 
             deserialize(record)
+          end
+        end
+
+        def configure_execution(task_id, execution:, principal_id: nil)
+          require_execution_column!
+          Record.transaction do
+            record = locked_record!(task_id, principal_id: principal_id)
+            metadata = configured_execution(deserialize(record), execution)
+            record.update!(execution: deep_stringify(metadata))
+            deserialize(record)
+          end
+        end
+
+        def resume(task_id, message:, context_id: nil, turn_id:, timestamp: Time.now.utc, principal_id: nil)
+          timestamp = normalize_time(timestamp, field: "task status timestamp")
+          Record.transaction do
+            record = locked_record!(task_id, principal_id: principal_id)
+            task = deserialize(record)
+            validate_turn_id!(turn_id)
+            accepted = validate_resume!(task, message, context_id, @max_history_entries)
+            if accepted
+              metadata = task.fetch(:execution).merge(turn_id: turn_id, message_id: message.fetch(:message_id))
+              record.update!(
+                execution: deep_stringify(metadata),
+                history: (record.history || []) + [deep_stringify(message)],
+                state: "submitted", status_timestamp: timestamp, status_message: nil, expires_at: nil
+              )
+            end
+            { task: deserialize(record), accepted: accepted }
           end
         end
 
@@ -130,7 +175,7 @@ module A2A
               state: "canceled",
               status_timestamp: timestamp,
               status_message: nil,
-              expires_at: record.expires_at || expiration_at(timestamp)
+              expires_at: expiration_at(timestamp)
             )
 
             deserialize(record)
@@ -238,7 +283,7 @@ module A2A
 
           return 0 if ids.empty?
 
-          Record.where(id: ids).delete_all
+          Record.where(id: ids).where.not(expires_at: nil).where("expires_at <= ?", at).delete_all
         end
 
         def maintenance_stats(at: now)
@@ -257,6 +302,13 @@ module A2A
         end
 
         private
+
+        def require_execution_column!
+          return if Record.column_names.include?("execution")
+
+          raise TaskContinuationUnavailableError,
+            "Run a2a:rails:task_continuation and db:migrate before using execution turns"
+        end
 
         def find_record!(task_id, principal_id:)
           record = Record.where(owner_id: principal_id, task_id: task_id).first
@@ -412,7 +464,12 @@ module A2A
             }
           }
 
-          task[:status][:message] = deep_symbolize(record.status_message) unless record.status_message.nil?
+          unless record.status_message.nil?
+            task[:status][:message] = deserialize_part_entries([record.status_message]).first
+          end
+          if record.has_attribute?(:execution) && record.execution
+            task[:execution] = deep_symbolize(record.execution)
+          end
           task[:history] = deserialize_part_entries(record.history) unless record.history.nil?
           task[:artifacts] = deserialize_part_entries(record.artifacts) unless record.artifacts.nil?
           task

@@ -64,7 +64,7 @@ class RequestHandlerIntegrationTest < Minitest::Test
     refute handler_called
     assert_equal 1, enqueued.length
     assert_equal(
-      %i[task_id principal_id agent_class_name skill_id],
+      %i[task_id principal_id agent_class_name skill_id turn_id],
       enqueued.first.keys
     )
     assert_equal sent.fetch("id"), enqueued.first.fetch(:task_id)
@@ -396,6 +396,7 @@ class RequestHandlerIntegrationTest < Minitest::Test
 
     continuation = send_params
     continuation["message"]["taskId"] = task[:id]
+    continuation["message"]["contextId"] = "context-existing"
     assert_equal(-32_004, rpc(rack, "SendMessage", continuation).dig("error", "code"))
 
     unsupported = send_params

@@ -106,3 +106,4 @@ A2A::Rails.instance_variable_set(:@runtime, A2A::Rails::Runtime.new(store: store
 # Outbound Client worker contract is opt-in, never loaded into normal
 # inbound queue compatibility or production Gem paths.
 require_relative "outbound_client_job" if ENV["OUTBOUND_CLIENT_SMOKE"] == "1"
+require_relative "continuation_handler" if ENV["CONTINUATION_SMOKE"] == "1"

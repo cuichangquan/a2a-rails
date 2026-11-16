@@ -10,6 +10,8 @@ module Step1510Smoke
   class EchoHandler
     def self.call(message:, context:)
       text = message.fetch(:parts).filter_map { |part| part[:text] }.join("\n")
+      return A2A::Rails::InputRequired.new("Please answer") if text == "ask-input"
+
       "Echo: #{text}"
     end
   end
@@ -252,7 +254,30 @@ module Step1510Smoke
     assert(scoped_rpc.call("second-token", "SendMessage", foreign_continuation).dig("error", "code") ==
       -32_001, "foreign Task existence leaked via continuation")
     assert(scoped_rpc.call("valid-token", "SendMessage", foreign_continuation).dig("error", "code") ==
-      -32_004, "own Task continuation did not retain unsupported-operation error")
+      -32_004, "completed own Task did not return UnsupportedOperation")
+
+    # Continuation still passes the real Rails authentication gate before
+    # Store acceptance; a denied answer must leave the waiting record untouched.
+    waiting_params = send_params.call("ask-input", "wait-auth-1")
+    waiting_params.fetch("message")["contextId"] = "waiting-auth-context"
+    waiting_task = scoped_rpc.call("valid-token", "SendMessage", waiting_params).dig("result", "task")
+    assert(waiting_task.dig("status", "state") == "TASK_STATE_INPUT_REQUIRED", "auth fixture did not wait")
+    answer = send_params.call("answer", "wait-auth-2")
+    answer.fetch("message")["taskId"] = waiting_task.fetch("id")
+    answer.fetch("message").delete("contextId")
+    answer_body = JSON.generate("jsonrpc" => "2.0", "id" => "wait-auth", "method" => "SendMessage", "params" => answer)
+    [nil, "wrong-token", "forbidden-token"].each do |token|
+      headers = auth_headers.dup
+      headers["HTTP_AUTHORIZATION"] = "Bearer #{token}" if token
+      denied_answer = request("POST", "/a2a", body: answer_body, headers: headers)
+      expected_status = token == "forbidden-token" ? 403 : 401
+      assert(denied_answer.status == expected_status, "unauthorized continuation did not fail authentication")
+      unchanged = scoped_rpc.call("valid-token", "GetTask", "id" => waiting_task.fetch("id")).fetch("result")
+      assert(unchanged == waiting_task, "authentication failure changed waiting Task")
+    end
+    resumed = scoped_rpc.call("valid-token", "SendMessage", answer).dig("result", "task")
+    assert(resumed.fetch("id") == waiting_task.fetch("id") && resumed.dig("status", "state") == "TASK_STATE_COMPLETED",
+      "authorized owner could not resume after denied answers")
 
     # Canceling a Task is atomic and the non-owner must see not-found.
     store = A2A::Rails.runtime.instance_variable_get(:@store)

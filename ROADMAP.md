@@ -243,3 +243,10 @@ Completed on `main` (unreleased; **not** part of RubyGems v0.1.0):
 - [PR CI run #37736426834](https://github.com/cuichangquan/a2a-rails-demo/actions/runs/37736426834) and [push CI run #37736412150](https://github.com/cuichangquan/a2a-rails-demo/actions/runs/37736412150): **SUCCESS**. Independent real HTTP smoke **16/16 PASS** covers Agent Card, JSON-RPC v1.0 Task/direct Message, GetTask, ListTasks and expected error cases. CI also verifies published Gem version and RubyGems dependency source plus refusal to start in production.
 - Scope is **local-only**, synchronous default Task + MemoryStore. It does **not** prove ActiveRecord/ActiveJob integration in this demo or authorize public production; production [Issue #11](https://github.com/cuichangquan/a2a-rails/issues/11) remains open.
 - **Next proposed development focus:** A2A Client (v0.3 proposal), prioritized against adopter feedback and production security follow-ups.
+
+## Current 0.5.0 candidate work
+
+INPUT_REQUIRED and same-Task continuation are under implementation/verification.
+See [current design](docs/design/task-continuation.md); historical unsupported
+continuation statements below earlier milestones are not a new release claim.
+SSE/AUTH_REQUIRED and general workflow orchestration remain outside this scope.

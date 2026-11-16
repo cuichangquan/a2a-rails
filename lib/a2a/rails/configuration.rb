@@ -6,7 +6,7 @@ require "uri"
 module A2A
   module Rails
     class Configuration
-      TASK_STORE_METHODS = %i[save find transition cancel list].freeze
+      TASK_STORE_METHODS = %i[save find transition cancel list claim_execution configure_execution resume].freeze
       TASK_EXECUTION_MODES = %i[sync async].freeze
       DEFAULT_TASK_RETENTION_SECONDS = 30 * 24 * 60 * 60
       DEFAULT_TASK_PRUNE_BATCH_SIZE = 1_000
@@ -16,7 +16,7 @@ module A2A
 
       attr_accessor :agent, :public_base_url, :authenticate_request, :authentication_challenge,
         :max_request_bytes, :security_schemes, :security_requirements,
-        :task_store, :task_page_token_secret, :task_retention,
+        :task_store, :task_page_token_secret, :task_retention, :task_input_required_retention,
         :task_prune_batch_size, :max_tasks_per_owner,
         :max_task_history_entries, :max_task_artifacts,
         :task_execution_mode, :server_enabled
@@ -32,6 +32,7 @@ module A2A
         @task_store = :memory
         @task_page_token_secret = nil
         @task_retention = DEFAULT_TASK_RETENTION_SECONDS
+        @task_input_required_retention = nil
         @task_prune_batch_size = DEFAULT_TASK_PRUNE_BATCH_SIZE
         @max_tasks_per_owner = DEFAULT_MAX_TASKS_PER_OWNER
         @max_task_history_entries = DEFAULT_MAX_TASK_HISTORY_ENTRIES
@@ -93,7 +94,7 @@ module A2A
       def resolve_task_store
         case @task_store
         when nil, :memory
-          Task::MemoryStore.new
+          Task::MemoryStore.new(max_history_entries: @max_task_history_entries)
         when :active_record
           resolve_active_record_store
         else
@@ -115,6 +116,7 @@ module A2A
         Task::ActiveRecordStore.new(
           cursor_secret: task_cursor_secret,
           retention: @task_retention,
+          input_required_retention: @task_input_required_retention,
           prune_batch_size: @task_prune_batch_size,
           max_tasks_per_owner: @max_tasks_per_owner,
           max_history_entries: @max_task_history_entries,
@@ -144,7 +146,9 @@ module A2A
       end
 
       def validate_task_store!(store)
-        missing = TASK_STORE_METHODS.reject { |method_name| store.respond_to?(method_name) }
+        missing = TASK_STORE_METHODS.reject do |method_name|
+          store.respond_to?(method_name) && store.method(method_name).owner != Task::Store
+        end
         unless missing.empty?
           raise ConfigurationError, "config.task_store is missing methods: #{missing.join(", ")}"
         end

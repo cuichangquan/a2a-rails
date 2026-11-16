@@ -3,7 +3,7 @@
 module A2A
   module Rails
     module Task
-      STATES = %i[submitted working completed failed rejected canceled].freeze
+      STATES = %i[submitted working input_required completed failed rejected canceled].freeze
       TERMINAL_STATES = %i[completed failed rejected canceled].freeze
     end
   end

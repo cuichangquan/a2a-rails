@@ -14,7 +14,11 @@ module A2A
         MAX_PAGE_SIZE = 100
         MAX_CACHED_PAGES = 128
 
-        def initialize
+        def initialize(max_history_entries: 100)
+          unless max_history_entries.is_a?(Integer) && max_history_entries.positive?
+            raise ArgumentError, "max_history_entries must be a positive integer"
+          end
+          @max_history_entries = max_history_entries
           @tasks = {}
           @pages = {}
           @mutex = Mutex.new
@@ -22,6 +26,10 @@ module A2A
 
         def save(task)
           id = task.fetch(:id)
+          history = task[:history]
+          if history && (!history.is_a?(Array) || history.size > @max_history_entries)
+            raise TaskStorePayloadLimitError, "Task history exceeds configured limit"
+          end
           @mutex.synchronize do
             @tasks[id] = copy(task)
             copy(@tasks[id])
@@ -32,10 +40,10 @@ module A2A
           @mutex.synchronize { copy(find!(task_id, principal_id: principal_id)) }
         end
 
-        def claim_execution(task_id, timestamp: Time.now.utc, principal_id: nil)
+        def claim_execution(task_id, timestamp: Time.now.utc, principal_id: nil, turn_id: nil)
           @mutex.synchronize do
             task = find!(task_id, principal_id: principal_id)
-            return nil unless task.dig(:status, :state) == :submitted
+            return nil unless turn_matches?(task, turn_id) && task.dig(:status, :state) == :submitted
 
             task[:status] = status_hash(:working, timestamp, UNSET)
             copy(task)
@@ -43,16 +51,44 @@ module A2A
         end
 
         def transition(task_id, state:, timestamp: Time.now.utc, artifacts: UNSET, message: UNSET,
-          principal_id: nil)
+          principal_id: nil, turn_id: nil)
           validate_state!(state)
 
           @mutex.synchronize do
             task = find!(task_id, principal_id: principal_id)
-            return copy(task) if terminal?(task)
+            return copy(task) if terminal?(task) || !turn_matches?(task, turn_id)
+            return copy(task) if turn_id && !%i[submitted working].include?(task.dig(:status, :state))
 
-            task[:status] = status_hash(state, timestamp, message)
+            if state == :input_required && message.is_a?(Hash)
+              history = task[:history] || []
+              raise TaskStorePayloadLimitError, "Task history limit reached" if history.length >= @max_history_entries
+              task[:history] = history + [copy(message)]
+            end
+            task[:status] = status_hash(state, timestamp, message.equal?(UNSET) ? UNSET : copy(message))
             task[:artifacts] = copy(artifacts) unless artifacts.equal?(UNSET)
             copy(task)
+          end
+        end
+
+        def configure_execution(task_id, execution:, principal_id: nil)
+          @mutex.synchronize do
+            task = find!(task_id, principal_id: principal_id)
+            task[:execution] = copy(configured_execution(task, execution))
+            copy(task)
+          end
+        end
+
+        def resume(task_id, message:, context_id: nil, turn_id:, timestamp: Time.now.utc, principal_id: nil)
+          @mutex.synchronize do
+            task = find!(task_id, principal_id: principal_id)
+            validate_turn_id!(turn_id)
+            accepted = validate_resume!(task, message, context_id, @max_history_entries)
+            if accepted
+              task[:history] = (task[:history] || []) + [copy(message)]
+              task[:execution] = task.fetch(:execution).merge(turn_id: turn_id, message_id: message.fetch(:message_id))
+              task[:status] = status_hash(:submitted, timestamp, UNSET)
+            end
+            { task: copy(task), accepted: accepted }
           end
         end
 

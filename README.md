@@ -633,3 +633,11 @@ The Gem is available as open source under the terms of the MIT License. See [LIC
 ### Community submissions / コミュニティへの投稿
 
 - [awesome-a2a: Resource suggestion #190 / 掲載提案](https://github.com/ai-boost/awesome-a2a/issues/190)
+
+## 0.5.0 continuation candidate (not published)
+
+Handlers can explicitly return `A2A::Rails::InputRequired.new("Which department?")`
+to ask a question, then accept a reply through SendMessage on the same Task.
+See [usage](docs/guides/task-continuation.md), [design](docs/design/task-continuation.md),
+[SDK boundary rules](docs/design/sdk-boundary.md), and [upgrade/recovery](docs/release/upgrading-v0.4.0-to-v0.5.md).
+Candidate verification and review remain required; this is not a release notice.

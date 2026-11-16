@@ -2,6 +2,7 @@
 
 require_relative "../test_helper"
 require_relative "../support/task_store_contract"
+require_relative "../support/task_continuation_store_contract"
 require "active_record"
 require "sqlite3"
 require_relative "../../lib/a2a/rails/task/active_record_store"
@@ -17,6 +18,7 @@ ActiveRecord::Schema.define do
     t.string :state, null: false
     t.datetime :status_timestamp, precision: 6, null: false
     t.json :status_message
+    t.json :execution
     t.json :history
     t.json :artifacts
     t.datetime :expires_at, precision: 6
@@ -33,6 +35,11 @@ end
 
 class ActiveRecordStoreTest < Minitest::Test
   include TaskStoreContract
+  include TaskContinuationStoreContract
+
+  def build_continuation_store(**options)
+    A2A::Rails::Task::ActiveRecordStore.new(cursor_secret: SECRET, **options)
+  end
 
   SECRET = "step-21-active-record-store-test-secret".ljust(64, "x")
 
@@ -373,6 +380,45 @@ class ActiveRecordStoreTest < Minitest::Test
     assert_equal({ total: 2, terminal: 1, active: 1, expired: 1 }, stats)
     refute_includes stats.to_s, "tenant-A:user-1"
     refute_includes stats.to_s, "task-terminal-456"
+  end
+
+end
+
+class ActiveRecordStoreTest
+
+  def test_input_wait_retention_is_opt_in_and_cleared_on_resume
+    store = build_continuation_store(input_required_retention: 60)
+    waiting_task(store)
+    record = A2A::Rails::Task::ActiveRecordStore::Record.find_by!(task_id: "continuation-task")
+    refute_nil record.expires_at
+    store.resume("continuation-task", message: continuation_message("reply"), turn_id: "second", principal_id: "owner")
+    assert_nil record.reload.expires_at
+    assert_equal 0, store.prune_expired(at: Time.now.utc + 120)
+    assert_equal :submitted, store.find("continuation-task", principal_id: "owner").dig(:status, :state)
+  end
+
+  def test_input_wait_has_no_default_expiration
+    store = build_continuation_store(retention: 60)
+    waiting_task(store)
+    assert_nil A2A::Rails::Task::ActiveRecordStore::Record.find_by!(task_id: "continuation-task").expires_at
+  end
+  def test_cancel_replaces_waiting_expiration_with_terminal_retention
+    [300, nil].each do |retention|
+      A2A::Rails::Task::ActiveRecordStore::Record.delete_all
+      store = build_continuation_store(retention: retention, input_required_retention: 60)
+      waiting_task(store)
+      record = A2A::Rails::Task::ActiveRecordStore::Record.find_by!(task_id: "continuation-task")
+      waiting_deadline = record.expires_at
+      canceled_at = waiting_deadline - 1
+      store.cancel("continuation-task", timestamp: canceled_at, principal_id: "owner")
+      if retention
+        assert_equal canceled_at + retention, record.reload.expires_at
+      else
+        assert_nil record.reload.expires_at
+      end
+      assert_equal 0, store.prune_expired(at: waiting_deadline + 1)
+      assert_equal :canceled, store.find("continuation-task", principal_id: "owner").dig(:status, :state)
+    end
   end
 
 end

@@ -122,6 +122,7 @@ module Step1512PackagedGemSmoke
   REQUIRED_PACKAGE_FILES = %w[
     lib/a2a-rails.rb
     lib/a2a/rails/engine.rb
+    lib/a2a/rails/input_required.rb
     lib/a2a/rails/execution_plan.rb
     lib/a2a/rails/task_execution_arguments.rb
     lib/a2a/rails/task_execution_job.rb
@@ -129,9 +130,11 @@ module Step1512PackagedGemSmoke
     lib/tasks/a2a_rails_tasks.rake
     lib/generators/a2a/rails/install_generator.rb
     lib/generators/a2a/rails/task_store_generator.rb
+    lib/generators/a2a/rails/task_continuation_generator.rb
     lib/generators/a2a/rails/agent_generator.rb
     lib/generators/a2a/rails/templates/initializer.rb.tt
     lib/generators/a2a/rails/templates/create_a2a_rails_tasks.rb.tt
+    lib/generators/a2a/rails/templates/add_execution_to_a2a_rails_tasks.rb.tt
     lib/generators/a2a/rails/templates/agent.rb.tt
     config/routes.rb
     README.md
