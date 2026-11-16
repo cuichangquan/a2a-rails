@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased — 0.5.0 candidate
+## Unreleased — 0.5.0 stable preparation
 
 - Explicit SDK-independent `InputRequired` Handler result and same-Task continuation,
   stable Agent/Skill routing, question history and current-turn context.
@@ -9,7 +9,8 @@
 - Upgrade/recovery guide, SDK boundary review policy and real multi-turn validation.
 - Request-local Rails log redaction for A2A parameter bodies, including denied requests,
   without changing host filter settings or real input.
-- Not yet published. See candidate evidence for verified/NOT_RUN checks.
+- Not yet published. See [stable preparation](docs/release/v0.5.0-preparation.md)
+  for the approval gates and exact-artifact release procedure.
 
 All notable changes to this project will be documented in this file.
 
