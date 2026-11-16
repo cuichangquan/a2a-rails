@@ -1,6 +1,8 @@
 # Changelog
 
-## Unreleased — 0.5.0 stable preparation
+## [0.5.0] - 2026-11-16 (published stable release)
+
+> [RubyGems a2a-rails 0.5.0](https://rubygems.org/gems/a2a-rails/versions/0.5.0) · [verified package and source provenance](docs/release/v0.5.0-publication-record.md). This entry is a post-publication documentation update; released bytes retain the frozen source recorded there.
 
 - Explicit SDK-independent `InputRequired` Handler result and same-Task continuation,
   stable Agent/Skill routing, question history and current-turn context.
@@ -9,8 +11,8 @@
 - Upgrade/recovery guide, SDK boundary review policy and real multi-turn validation.
 - Request-local Rails log redaction for A2A parameter bodies, including denied requests,
   without changing host filter settings or real input.
-- Not yet published. See [stable preparation](docs/release/v0.5.0-preparation.md)
-  for the approval gates and exact-artifact release procedure.
+- See [upgrade/recovery](docs/release/upgrading-v0.4.0-to-v0.5.md) for migration,
+  custom Store and worker rollout requirements; existing async/TCK limits remain.
 
 All notable changes to this project will be documented in this file.
 
