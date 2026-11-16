@@ -1,6 +1,9 @@
 source "https://rubygems.org"
 
 gem "agent2agent", "2.0.0"
+# Standalone SDK fixture has no a2a-rails gemspec constraint. Keep its schema
+# parser on the known-good release; 2.13.2 breaks this SDK/schema path.
+gem "regexp_parser", "= 2.13.1"
 gem "minitest", "~> 5.25"
 gem "rackup", "~> 2.2"
 gem "webrick", "~> 1.9"

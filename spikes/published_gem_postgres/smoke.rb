@@ -91,9 +91,16 @@ module PublishedGemPostgresSmoke
       gem "rails", "#{ENV.fetch('TARGET_RAILS')}"
       gem "pg", ">= 1.5", "< 3"
       gem "a2a-rails", "= 0.2.0.rc2"
+      # Historical host compatibility only; published rc2 bytes stay unchanged.
+      # regexp_parser 2.13.2 is incompatible with this SDK/schema path.
+      gem "regexp_parser", "= 2.13.1"
     GEMFILE
 
+    assert(!File.exist?(File.join(host, "Gemfile.lock")), "historical host must resolve a fresh bundle")
     run!("bundle", "install", chdir: host)
+    run!("bundle", "exec", "ruby", "-rregexp_parser", "-e",
+      'abort "historical host parser mismatch" unless Gem.loaded_specs.fetch("regexp_parser").version.to_s == "2.13.1"',
+      chdir: host)
     # Published rc2 currently needs a host inflection workaround in a real
     # production eager-load Rails app (tracked at Issue #65). This fixture
     # is NOT proof of zero-configuration production startup.

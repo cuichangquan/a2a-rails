@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased — 0.5.1 compatibility preparation
+
+- Add a temporary runtime dependency bound `regexp_parser ~> 2.0, < 2.13.2`
+  for the published agent2agent 2.0.0 / json_schemer 2.5.0 dependency chain.
+  Fresh installs select compatible 2.13.1; previously compatible lower 2.x
+  lockfiles remain allowed. No public API, protocol or persistence change.
+- Not published. See [preparation and removal criteria](docs/release/v0.5.1-preparation.md).
+
 ## [0.5.0] - 2026-11-16 (published stable release)
 
 > [RubyGems a2a-rails 0.5.0](https://rubygems.org/gems/a2a-rails/versions/0.5.0) · [verified package and source provenance](docs/release/v0.5.0-publication-record.md). This entry is a post-publication documentation update; released bytes retain the frozen source recorded there.
