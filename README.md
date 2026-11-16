@@ -2,7 +2,7 @@
 
 Rails-native A2A v1.0 integration: expose Rails business logic as an Agent, call remote Agents, or do both. Application handlers use Ruby Hashes rather than SDK request objects.
 
-> **Latest stable release (2026-11-15): [a2a-rails 0.4.0 is published on RubyGems](https://rubygems.org/gems/a2a-rails/versions/0.4.0).** It adds opt-in JSON object input for Rails Skills while keeping existing text and outbound Client flows. See the [Data guide](docs/guides/structured-data.md) and [publication & SHA-256 record](docs/release/v0.4.0-publication-record.md). **Gem publication is not approval to run an anonymous/public production Agent; deployment #11 remains separate.**
+> **Latest stable release (2026-11-16): [a2a-rails 0.5.0 is published on RubyGems](https://rubygems.org/gems/a2a-rails/versions/0.5.0).** It adds explicit input-required questions and same-Task continuation while retaining existing text, structured Data and outbound Client flows. See the [continuation guide](docs/guides/task-continuation.md), [upgrade/recovery guide](docs/release/upgrading-v0.4.0-to-v0.5.md) and [publication & SHA-256 record](docs/release/v0.5.0-publication-record.md). **Gem publication is not approval to run an anonymous/public production Agent; deployment #11 remains separate.**
 
 ## Choose your starting point
 
@@ -634,10 +634,11 @@ The Gem is available as open source under the terms of the MIT License. See [LIC
 
 - [awesome-a2a: Resource suggestion #190 / 掲載提案](https://github.com/ai-boost/awesome-a2a/issues/190)
 
-## 0.5.0 continuation candidate (not published)
+## 0.5.0 input-required continuation
 
 Handlers can explicitly return `A2A::Rails::InputRequired.new("Which department?")`
 to ask a question, then accept a reply through SendMessage on the same Task.
 See [usage](docs/guides/task-continuation.md), [design](docs/design/task-continuation.md),
 [SDK boundary rules](docs/design/sdk-boundary.md), and [upgrade/recovery](docs/release/upgrading-v0.4.0-to-v0.5.md).
-Candidate verification and review remain required; this is not a release notice.
+See the [publication record](docs/release/v0.5.0-publication-record.md) for the
+frozen source, exact package hash and verification limits.
