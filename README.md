@@ -37,7 +37,7 @@ The original v0.1.0 baseline was verified against:
 In an existing Rails application, pin the published stable Gem:
 
 ```bash
-bundle add a2a-rails --version '= 0.4.0'
+bundle add a2a-rails --version '= 0.5.0'
 ```
 
 If you need a fresh app first (with a supported Rails installed):
@@ -45,7 +45,7 @@ If you need a fresh app first (with a supported Rails installed):
 ```bash
 rails new echo_app --minimal --skip-active-record
 cd echo_app
-bundle add a2a-rails --version '= 0.4.0'
+bundle add a2a-rails --version '= 0.5.0'
 ```
 
 Then choose Server or Client-only setup below. No explicit Engine mount is needed.
@@ -80,7 +80,7 @@ Replace the placeholder with a real approved HTTPS Agent. For an authenticated A
 
 ## Server Quick Start (local development)
 
-Use the published `a2a-rails 0.4.0` Gem installed above in development. The Echo flow uses synchronous execution and MemoryStore; no database or queue is required. If you previously selected Client-only mode, remove `server_enabled = false` and restart Rails.
+Use the published `a2a-rails 0.5.0` Gem installed above in development. The Echo flow uses synchronous execution and MemoryStore; no database or queue is required. If you previously selected Client-only mode, remove `server_enabled = false` and restart Rails.
 
 ### 1. Generate the setup
 
