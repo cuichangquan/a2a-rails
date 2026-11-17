@@ -2,7 +2,7 @@
 
 Rails-native A2A v1.0 integration: expose Rails business logic as an Agent, call remote Agents, or do both. Application handlers use Ruby Hashes rather than SDK request objects.
 
-> **Latest stable release (2026-11-16): [a2a-rails 0.5.0 is published on RubyGems](https://rubygems.org/gems/a2a-rails/versions/0.5.0).** It adds explicit input-required questions and same-Task continuation while retaining existing text, structured Data and outbound Client flows. See the [continuation guide](docs/guides/task-continuation.md), [upgrade/recovery guide](docs/release/upgrading-v0.4.0-to-v0.5.md) and [publication & SHA-256 record](docs/release/v0.5.0-publication-record.md). **Gem publication is not approval to run an anonymous/public production Agent; deployment #11 remains separate.**
+> **Latest stable release (2026-11-16 UTC): [a2a-rails 0.5.1 is published on RubyGems](https://rubygems.org/gems/a2a-rails/versions/0.5.1).** This compatibility-only patch bounds `regexp_parser` below 2.13.2 to keep fresh SDK/schema dependency resolution working, with no public API or protocol change. See the [publication & SHA-256 record](docs/release/v0.5.1-publication-record.md), [continuation guide](docs/guides/task-continuation.md) and [upgrade/recovery guide](docs/release/upgrading-v0.4.0-to-v0.5.md). **Gem publication is not approval to run an anonymous/public production Agent; deployment #11 remains separate.**
 
 ## Choose your starting point
 
@@ -37,7 +37,7 @@ The original v0.1.0 baseline was verified against:
 In an existing Rails application, pin the published stable Gem:
 
 ```bash
-bundle add a2a-rails --version '= 0.5.0'
+bundle add a2a-rails --version '= 0.5.1'
 ```
 
 If you need a fresh app first (with a supported Rails installed):
@@ -45,7 +45,7 @@ If you need a fresh app first (with a supported Rails installed):
 ```bash
 rails new echo_app --minimal --skip-active-record
 cd echo_app
-bundle add a2a-rails --version '= 0.5.0'
+bundle add a2a-rails --version '= 0.5.1'
 ```
 
 Then choose Server or Client-only setup below. No explicit Engine mount is needed.
@@ -80,7 +80,7 @@ Replace the placeholder with a real approved HTTPS Agent. For an authenticated A
 
 ## Server Quick Start (local development)
 
-Use the published `a2a-rails 0.5.0` Gem installed above in development. The Echo flow uses synchronous execution and MemoryStore; no database or queue is required. If you previously selected Client-only mode, remove `server_enabled = false` and restart Rails.
+Use the published `a2a-rails 0.5.1` Gem installed above in development. The Echo flow uses synchronous execution and MemoryStore; no database or queue is required. If you previously selected Client-only mode, remove `server_enabled = false` and restart Rails.
 
 ### 1. Generate the setup
 
